@@ -1,0 +1,64 @@
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
+  <title>Web Audio Acid Studio (Share Edition)</title>
+  <link rel="stylesheet" type="text/css" href="styles.css" />
+</head>
+<body>
+  <div class="rack">
+    <!-- Transport -->
+    <div class="top-bar">
+      <div class="transport-controls">
+        <button id="initBtn" class="init">INIT AUDIO</button>
+        <button id="playBtn" class="play">RUN</button>
+        <button id="stopBtn" class="stop">STOP</button>
+        <button id="randomBtn">RANDOMIZE</button>
+        <button id="clearBtn">CLEAR</button>
+        <button id="shareBtn" class="share">SHARE URL</button>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center">
+        <label>TEMPO</label>
+        <input
+          type="range"
+          id="tempo"
+          min="60"
+          max="160"
+          value="125"
+          style="width: 100px"
+        />
+        <span id="tempoVal" style="font-size: 12px; width: 60px">125 BPM</span>
+      </div>
+    </div>
+
+    <!-- TB-303 -->
+    <div class="machine tb-303">
+      <div class="machine-header">
+        <h2>TB-303 <small>BASS LINE</small></h2>
+        <select id="wave303">
+          <option value="sawtooth">SAWTOOTH</option>
+          <option value="square">SQUARE</option>
+        </select>
+      </div>
+
+      <div class="knob-group" id="knobs303"></div>
+      <div id="grid303" class="sequencer-303"></div>
+    </div>
+
+    <!-- TR-909 -->
+    <div class="machine tr-909">
+      <div class="machine-header">
+        <h2>TR-909 <small>RHYTHM COMPOSER</small></h2>
+      </div>
+      <div id="tracks909"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast">Link copied to clipboard!</div>
+</body>
+<script src="script.js"></script>
+</html>

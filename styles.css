@@ -1,0 +1,242 @@
+        :root {
+            --bg-main: #1a1a1a;
+            --303-panel: #c8c8c8;
+            --909-panel: #dcd8d0;
+            --knob-body: #2a2a2a;
+            --knob-line: #eee;
+            --accent: #ff3333;
+            --led-on: #ff0000;
+            --led-off: #4a0000;
+            --toast-bg: #333;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: #333;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            user-select: none;
+            /* Removed global touch-action: none to allow scrolling */
+        }
+
+        h1, h2, h3 { margin: 0; text-transform: uppercase; letter-spacing: -1px; }
+        
+        .rack {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 920px;
+            padding-bottom: 50px; /* Extra space for mobile scrolling */
+        }
+
+        /* --- Global Controls --- */
+        .top-bar {
+            background: #333;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid #555;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .transport-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .transport-controls button {
+            background: #eee;
+            border: 2px solid #999;
+            padding: 8px 15px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            border-radius: 4px;
+            font-size: 11px;
+            transition: background 0.1s;
+            touch-action: manipulation; /* Improve tap response */
+        }
+        .transport-controls button:active { transform: translateY(2px); }
+        .transport-controls button.play { background: #cfc; }
+        .transport-controls button.stop { background: #fcc; }
+        .transport-controls button.init { background: var(--accent); color: white; border:none; }
+        .transport-controls button.share { background: #ccf; border-color: #88b; }
+
+        /* --- Machine Panel Common --- */
+        .machine {
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            position: relative;
+            border: 1px solid #000;
+        }
+
+        .machine-header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid rgba(0,0,0,0.2);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* --- ROTARY KNOB STYLES --- */
+        .knob-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            background: rgba(0,0,0,0.05);
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .knob-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 50px;
+            position: relative;
+        }
+
+        .knob-label {
+            font-size: 9px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .rotary-knob {
+            width: 40px;
+            height: 40px;
+            background: var(--knob-body);
+            border-radius: 50%;
+            position: relative;
+            cursor: ns-resize; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.2);
+            border: 2px solid #111;
+            /* IMPORTANT: Only disable scrolling when touching the knob */
+            touch-action: none; 
+        }
+
+        .rotary-knob::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            width: 2px;
+            height: 12px;
+            background: var(--knob-line);
+            transform-origin: bottom center;
+            transform: translateX(-50%);
+        }
+
+        .knob-input { display: none; }
+
+        /* --- TB-303 Specific --- */
+        .tb-303 { background-color: var(--303-panel); }
+        
+        .sequencer-303 {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            gap: 3px;
+        }
+        .step-303 {
+            background: #ddd;
+            border: 1px solid #999;
+            padding: 5px 2px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-radius: 3px;
+            min-height: 50px; /* Make touch targets bigger */
+        }
+        .step-303.current { background: #ffffaa; border-color: #cccc00; }
+        
+        .led { width: 8px; height: 8px; background: var(--led-off); border-radius: 50%; margin-bottom: 4px; box-shadow: inset 1px 1px 1px rgba(0,0,0,0.5); }
+        .step-303.active .led { background: var(--led-on); box-shadow: 0 0 5px red; }
+
+        .mini-btn {
+            font-size: 9px; width: 100%; text-align: center;
+            cursor: pointer; background: #eee; border: 1px solid #aaa; margin-top: 2px;
+            padding: 2px 0;
+        }
+        .mini-btn.active { background: #888; color: white; }
+        .mini-btn.acc.active { background: #ffcccc; color: black; }
+        .mini-btn.sld.active { background: #ccffcc; color: black; }
+
+        /* --- TR-909 Specific --- */
+        .tr-909 { background-color: var(--909-panel); }
+        
+        .drum-track-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            background: rgba(255,255,255,0.3);
+            padding: 5px;
+            border-radius: 4px;
+            /* Allow scrolling on the row, buttons handle their own click */
+        }
+        .track-header {
+            width: 180px;
+            display: flex;
+            align-items: center;
+            padding-right: 10px;
+            margin-right: 10px;
+            justify-content: space-between;
+        }
+        .track-knobs { display: flex; gap: 8px; }
+        .track-name { font-weight: bold; font-size: 10px; width: 40px; text-align: right; display: none; }
+        /* Show name on larger screens */
+        @media (min-width: 600px) {
+            .track-name { display: block; }
+        }
+        
+        .sequencer-909 {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            gap: 2px;
+            flex-grow: 1;
+        }
+        .step-909 {
+            height: 35px; /* Taller for touch */
+            background: #eee;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: inset 1px 1px 0 white;
+        }
+        .sequencer-909 .step-909:nth-child(-n+4),
+        .sequencer-909 .step-909:nth-child(n+9):nth-child(-n+12) { background: #ffccaa; }
+        
+        .step-909.active { background: #ff5555 !important; box-shadow: 0 0 5px red; border-color: red; }
+        .step-909.current { border: 2px solid #333; }
+
+        /* Toast Notification */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 16px;
+            position: fixed;
+            z-index: 100;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 14px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
