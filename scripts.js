@@ -347,9 +347,9 @@
             };
 
             document.getElementById('wave303').value = Math.random() > 0.5 ? 'sawtooth' : 'square';
-            setK('tune303', -50, 50); 
+            setK('tune303', 0, 0); 
             setK('cutoff303', 20, 90);
-            setK('reso303', 40, 95); 
+            setK('reso303', 0, 15); 
             setK('env303', 30, 90); 
             setK('decay303', 30, 80); 
             setK('accent303', 50, 100);
