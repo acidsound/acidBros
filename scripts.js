@@ -353,45 +353,99 @@ const AudioEngine = {
 
     voice909BD(time) {
         const P = UI.get909Params('bd');
+
+        const baseFreq = 50 + (P.pitch || 0);
+        const tuneDepth = 1 + (P.tuneDepth || 3);
+        const pitchEnvMs = 0.03 + (P.p1 * 0.0009);
+        const ampDecay = 0.15 + (P.p2 * 0.005);
+
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
+
+        const startFreq = baseFreq * tuneDepth;
+        const endFreq = baseFreq;
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(startFreq, time);
+        osc.frequency.exponentialRampToValueAtTime(endFreq, time + pitchEnvMs);
+
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(1.0 * P.vol, time + 0.002);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + ampDecay);
+
+        osc.connect(gain);
+        gain.connect(this.master);
+
+        // CLICK
         const click = this.ctx.createOscillator();
         const clickGain = this.ctx.createGain();
-        const startFreq = 180;
-        const endFreq = 40 + (P.p1 * 0.5);
-        const decay = 0.1 + (P.p2 * 0.003);
-        osc.frequency.setValueAtTime(startFreq, time);
-        osc.frequency.exponentialRampToValueAtTime(endFreq, time + 0.1);
-        gain.gain.setValueAtTime(1.0 * P.vol, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
-        click.frequency.value = 50;
-        clickGain.gain.setValueAtTime(0.5 * (P.p3 / 100) * P.vol, time);
-        clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.01);
-        osc.connect(gain); click.connect(clickGain); gain.connect(this.master); clickGain.connect(this.master);
-        osc.start(time); osc.stop(time + 0.5); click.start(time); click.stop(time + 0.02);
-    },
+        click.type = 'square';
+        click.frequency.setValueAtTime(3000, time);
+        const clickAmp = 0.5 * (P.p3 / 100) * P.vol;
+        clickGain.gain.setValueAtTime(clickAmp, time);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.005);
+        click.connect(clickGain);
+        clickGain.connect(this.master);
 
+        // (옵션) NOISE 레이어 - 위 5번 코드 참고해서 추가
+
+        osc.start(time);
+        osc.stop(time + ampDecay + 0.1);
+        click.start(time);
+        click.stop(time + 0.03);
+    },
     voice909SD(time) {
         const P = UI.get909Params('sd');
+
+        // ---- TUNE: 톤 피치 ----
         const tone = this.ctx.createOscillator();
         const toneGain = this.ctx.createGain();
-        const startF = 350 + (P.p1);
+
+        const startF = 350 + (P.p1);          // 필요하면 range/taper 조절
         const endF = 180 + (P.p1 * 0.5);
+
+        tone.type = 'triangle';
         tone.frequency.setValueAtTime(startF, time);
-        tone.frequency.exponentialRampToValueAtTime(endF, time + 0.1);
+        tone.frequency.exponentialRampToValueAtTime(endF, time + 0.03); // 짧은 pitch env
+
+        const toneDecay = 0.15;
         toneGain.gain.setValueAtTime(0.8 * P.vol, time);
-        toneGain.gain.exponentialRampToValueAtTime(0.001, time + (0.1 + P.p2 * 0.002));
+        toneGain.gain.exponentialRampToValueAtTime(0.001, time + toneDecay);
+
+        // ---- NOISE: Tone & Snappy ----
         const noise = this.ctx.createBufferSource();
-        noise.buffer = this.noiseBuffer; noise.loop = true;
+        noise.buffer = this.noiseBuffer;
+        noise.loop = true;
+
         const noiseFilter = this.ctx.createBiquadFilter();
-        noiseFilter.type = 'highpass'; noiseFilter.frequency.value = 1000;
+        noiseFilter.type = 'highpass';
+
         const noiseGain = this.ctx.createGain();
-        const snapVol = (P.p3 / 100) * P.vol;
+
+        const toneNorm = P.p2 / 100;                  // 0..1
+        const snapNorm = P.p3 / 100;
+
+        const snapVol = snapNorm * P.vol;
+        const noiseDecay = 0.08 + (1.0 - toneNorm) * 0.20;
+
+        noiseFilter.frequency.setValueAtTime(1000 + toneNorm * 5000, time);
+
         noiseGain.gain.setValueAtTime(snapVol, time);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
-        tone.connect(toneGain); toneGain.connect(this.master);
-        noise.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(this.master);
-        tone.start(time); tone.stop(time + 0.3); noise.start(time); noise.stop(time + 0.3);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, time + noiseDecay);
+
+        // ---- 라우팅 ----
+        tone.connect(toneGain);
+        toneGain.connect(this.master);
+
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(this.master);
+
+        tone.start(time);
+        tone.stop(time + 0.3);
+
+        noise.start(time);
+        noise.stop(time + noiseDecay + 0.05);
     },
 
     voice909Hat(time, isOpen) {
