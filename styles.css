@@ -380,6 +380,7 @@ input:checked+label .icon-sq {
 }
 
 .step-303 {
+    box-sizing: border-box;
     background: linear-gradient(to bottom, #ccc, #aaa);
     border: 1px solid #000;
     padding: 4px 2px;
@@ -555,6 +556,7 @@ input:checked+label .icon-sq {
 }
 
 .step-909 {
+    box-sizing: border-box;
     height: 40px;
     background: #e6e2d6;
     /* Match panel */
