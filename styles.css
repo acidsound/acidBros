@@ -2,7 +2,7 @@
     --bg-main: #111;
     --rack-bg: #222;
     --panel-303: linear-gradient(180deg, #c8c8c8 0%, #a8a8a8 100%);
-    --panel-909: linear-gradient(180deg, #e0dcd0 0%, #c0bcb0 100%);
+    --panel-909: #e6e2d6;
     --knob-body: linear-gradient(135deg, #ddd 0%, #999 100%);
     --knob-top: #ccc;
     --knob-indicator: #333;
@@ -450,40 +450,92 @@ input:checked+label .icon-sq {
 /* --- TR-909 Specific --- */
 .tr-909 {
     background: var(--panel-909);
+    color: #333;
+    border: 1px solid #bbb;
+}
+
+.tr-909 .machine-header {
+    border-bottom: 2px solid #d85c2e;
+    /* 909 Orange */
+}
+
+.tr-909 h2 {
+    color: #333;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    /* Cleaner font for 909 */
+    letter-spacing: 0;
+}
+
+.tr-909 h2 small {
+    color: #d85c2e;
+    font-weight: bold;
 }
 
 .drum-track-row {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
-    background: rgba(0, 0, 0, 0.05);
+    background: transparent;
     padding: 8px;
-    border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .track-header {
-    width: 180px;
+    width: 220px;
+    /* Wider for extra knob */
     display: flex;
     align-items: center;
     padding-right: 15px;
     margin-right: 10px;
     justify-content: space-between;
-    border-right: 1px solid rgba(0, 0, 0, 0.2);
+    border-right: 2px solid #d85c2e;
+}
+
+/* 909 Knob Style Override */
+.tr-909 .rotary-knob {
+    width: 30px;
+    height: 30px;
+    background: radial-gradient(circle at 30% 30%, #444, #222);
+    border: 1px solid #111;
+}
+
+.tr-909 .knob-wrapper {
+    width: 34px;
+    /* Adjust wrapper width */
+}
+
+.tr-909 .knob-wrapper::after {
+    width: 30px;
+    height: 30px;
+    top: 15px;
+    /* Adjust gloss position */
+}
+
+.tr-909 .rotary-knob::after {
+    background: #ff6600;
+    /* Orange indicator */
+    width: 2px;
+    height: 10px;
+    /* Shorter indicator */
+    top: 3px;
 }
 
 .track-knobs {
     display: flex;
-    gap: 10px;
+    gap: 6px;
+    align-items: center;
 }
 
 .track-name {
-    font-weight: 900;
-    font-size: 11px;
-    width: 40px;
+    font-weight: bold;
+    font-size: 10px;
+    width: 50px;
     text-align: right;
     display: none;
-    color: #444;
+    color: #d85c2e;
+    /* 909 Orange */
+    font-family: 'Arial', sans-serif;
 }
 
 @media (min-width: 600px) {
@@ -495,16 +547,20 @@ input:checked+label .icon-sq {
 .sequencer-909 {
     display: grid;
     grid-template-columns: repeat(16, 1fr);
-    gap: 3px;
+    gap: 4px;
     flex-grow: 1;
+    background: #444;
+    padding: 4px;
+    border-radius: 2px;
 }
 
 .step-909 {
     height: 40px;
-    background: linear-gradient(to bottom, #f0f0f0, #dcdcdc);
+    background: #e6e2d6;
+    /* Match panel */
     border: 1px solid #999;
     border-bottom-color: #777;
-    border-radius: 3px;
+    border-radius: 2px;
     cursor: pointer;
     box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2), inset 0 1px 0 white;
     position: relative;
@@ -519,12 +575,26 @@ input:checked+label .icon-sq {
 .sequencer-909 .step-909:nth-child(n+5):nth-child(-n+8),
 .sequencer-909 .step-909:nth-child(n+13) {
     background: linear-gradient(to bottom, #ffccaa, #ffaa88);
+    /* Orange-ish */
 }
 
 .step-909.active {
     background: linear-gradient(to bottom, #ff5555, #cc0000) !important;
-    box-shadow: 0 0 10px #ff0000, inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 8px #ff0000, inset 0 1px 0 rgba(255, 255, 255, 0.4);
     border-color: #900;
+}
+
+.step-909.active::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background: #ffcccc;
+    border-radius: 50%;
+    box-shadow: 0 0 5px #fff;
 }
 
 .step-909.current {

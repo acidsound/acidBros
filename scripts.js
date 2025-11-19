@@ -20,6 +20,7 @@ class RotaryKnob {
         this.wrapper = document.createElement('div');
         this.wrapper.className = 'knob-wrapper';
         if (size === 'large') this.wrapper.classList.add('large');
+        if (size === 'small') this.wrapper.classList.add('small');
 
         if (label) {
             this.labelEl = document.createElement('div');
@@ -31,6 +32,7 @@ class RotaryKnob {
         this.knobEl = document.createElement('div');
         this.knobEl.className = 'rotary-knob';
         if (size === 'large') this.knobEl.classList.add('large');
+        if (size === 'small') this.knobEl.classList.add('small');
 
         this.inputEl = document.createElement('input');
         this.inputEl.type = 'range';
@@ -116,7 +118,7 @@ class RotaryKnob {
     }
 }
 
-/* 
+/*
    ================================================================
    AUDIO SYSTEM ENGINE
    ================================================================
@@ -272,10 +274,10 @@ const AudioEngine = {
         const decay = 0.1 + (P.p2 * 0.003);
         osc.frequency.setValueAtTime(startFreq, time);
         osc.frequency.exponentialRampToValueAtTime(endFreq, time + 0.1);
-        gain.gain.setValueAtTime(1.0, time);
+        gain.gain.setValueAtTime(1.0 * P.vol, time);
         gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
         click.frequency.value = 50;
-        clickGain.gain.setValueAtTime(0.5 * (P.p3 / 100), time);
+        clickGain.gain.setValueAtTime(0.5 * (P.p3 / 100) * P.vol, time);
         clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.01);
         osc.connect(gain); click.connect(clickGain); gain.connect(this.master); clickGain.connect(this.master);
         osc.start(time); osc.stop(time + 0.5); click.start(time); click.stop(time + 0.02);
@@ -289,14 +291,14 @@ const AudioEngine = {
         const endF = 180 + (P.p1 * 0.5);
         tone.frequency.setValueAtTime(startF, time);
         tone.frequency.exponentialRampToValueAtTime(endF, time + 0.1);
-        toneGain.gain.setValueAtTime(0.8, time);
+        toneGain.gain.setValueAtTime(0.8 * P.vol, time);
         toneGain.gain.exponentialRampToValueAtTime(0.001, time + (0.1 + P.p2 * 0.002));
         const noise = this.ctx.createBufferSource();
         noise.buffer = this.noiseBuffer; noise.loop = true;
         const noiseFilter = this.ctx.createBiquadFilter();
         noiseFilter.type = 'highpass'; noiseFilter.frequency.value = 1000;
         const noiseGain = this.ctx.createGain();
-        const snapVol = P.p3 / 100;
+        const snapVol = (P.p3 / 100) * P.vol;
         noiseGain.gain.setValueAtTime(snapVol, time);
         noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
         tone.connect(toneGain); toneGain.connect(this.master);
@@ -314,7 +316,7 @@ const AudioEngine = {
         hp.type = 'highpass'; hp.frequency.value = 7000;
         const gain = this.ctx.createGain();
         const baseDecay = isOpen ? (0.2 + P.p1 * 0.01) : (0.05 + P.p1 * 0.001);
-        gain.gain.setValueAtTime(0.6, time);
+        gain.gain.setValueAtTime(1.2 * P.vol, time);
         gain.gain.exponentialRampToValueAtTime(0.001, time + baseDecay);
         src.connect(bp); bp.connect(hp); hp.connect(gain); gain.connect(this.master);
         src.start(time); src.stop(time + baseDecay + 0.1);
@@ -328,14 +330,14 @@ const AudioEngine = {
         bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 1.5;
         const gain = this.ctx.createGain();
         gain.gain.setValueAtTime(0, time);
-        gain.gain.linearRampToValueAtTime(0.8, time + 0.01);
+        gain.gain.linearRampToValueAtTime(1.5 * P.vol, time + 0.01);
         gain.gain.exponentialRampToValueAtTime(0.001, time + (0.1 + P.p1 * 0.002));
         noise.connect(bp); bp.connect(gain); gain.connect(this.master);
         noise.start(time); noise.stop(time + 0.4);
     }
 };
 
-/* 
+/*
    ================================================================
    DATA, RANDOMIZER & SHARING
    ================================================================
@@ -369,15 +371,11 @@ const Data = {
         setK('accent303', 50, 100);
         setK('vol303', 70, 90);
 
-        setK('bd_p1', 10, 60);
-        setK('bd_p2', 30, 80);
-        setK('bd_p3', 60, 100);
-        setK('sd_p1', 40, 70);
-        setK('sd_p2', 20, 50);
-        setK('sd_p3', 50, 90);
-        setK('ch_p1', 10, 40);
-        setK('oh_p1', 40, 80);
-        setK('cp_p1', 40, 70);
+        setK('bd_p1', 10, 60); setK('bd_p2', 30, 80); setK('bd_p3', 60, 100); setK('bd_level', 80, 100);
+        setK('sd_p1', 40, 70); setK('sd_p2', 20, 50); setK('sd_p3', 50, 90); setK('sd_level', 80, 100);
+        setK('ch_p1', 10, 40); setK('ch_level', 80, 100);
+        setK('oh_p1', 40, 80); setK('oh_level', 80, 100);
+        setK('cp_p1', 40, 70); setK('cp_level', 80, 100);
 
         const scales = ['C', 'D#', 'F', 'F#', 'G', 'A#'];
         this.seq303.forEach((step) => {
@@ -453,7 +451,7 @@ const Data = {
     }
 };
 
-/* 
+/*
    ================================================================
    UI CONTROLLER
    ================================================================
@@ -517,11 +515,12 @@ const UI = {
 
     get909Params(track) {
         const getV = (id) => parseFloat(document.getElementById(id).value);
-        if (track === 'bd') return { p1: getV('bd_p1'), p2: getV('bd_p2'), p3: getV('bd_p3') };
-        if (track === 'sd') return { p1: getV('sd_p1'), p2: getV('sd_p2'), p3: getV('sd_p3') };
-        if (track === 'ch') return { p1: getV('ch_p1') };
-        if (track === 'oh') return { p1: getV('oh_p1') };
-        if (track === 'cp') return { p1: getV('cp_p1') };
+        const lvl = (id) => getV(id) / 100;
+        if (track === 'bd') return { p1: getV('bd_p1'), p2: getV('bd_p2'), p3: getV('bd_p3'), vol: lvl('bd_level') };
+        if (track === 'sd') return { p1: getV('sd_p1'), p2: getV('sd_p2'), p3: getV('sd_p3'), vol: lvl('sd_level') };
+        if (track === 'ch') return { p1: getV('ch_p1'), vol: lvl('ch_level') };
+        if (track === 'oh') return { p1: getV('oh_p1'), vol: lvl('oh_level') };
+        if (track === 'cp') return { p1: getV('cp_p1'), vol: lvl('cp_level') };
         return {};
     },
 
@@ -599,17 +598,17 @@ const UI = {
         const container = document.getElementById('tracks909');
         container.innerHTML = '';
         const tracks = [
-            { id: 'bd', name: 'BASS DRUM', params: [{ l: 'TUNE', id: 'bd_p1', v: 50 }, { l: 'DECAY', id: 'bd_p2', v: 50 }, { l: 'ATTACK', id: 'bd_p3', v: 80 }] },
-            { id: 'sd', name: 'SNARE DRUM', params: [{ l: 'TUNE', id: 'sd_p1', v: 50 }, { l: 'TONE', id: 'sd_p2', v: 30 }, { l: 'SNAPPY', id: 'sd_p3', v: 70 }] },
-            { id: 'ch', name: 'CLOSED HAT', params: [{ l: 'DECAY', id: 'ch_p1', v: 20 }] },
-            { id: 'oh', name: 'OPEN HAT', params: [{ l: 'DECAY', id: 'oh_p1', v: 60 }] },
-            { id: 'cp', name: 'CLAP', params: [{ l: 'DECAY', id: 'cp_p1', v: 50 }] },
+            { id: 'bd', name: 'BASS DRUM', params: [{ l: 'TUNE', id: 'bd_p1', v: 50 }, { l: 'DECAY', id: 'bd_p2', v: 50 }, { l: 'ATTACK', id: 'bd_p3', v: 80 }, { l: 'LEVEL', id: 'bd_level', v: 100 }] },
+            { id: 'sd', name: 'SNARE DRUM', params: [{ l: 'TUNE', id: 'sd_p1', v: 50 }, { l: 'TONE', id: 'sd_p2', v: 30 }, { l: 'SNAPPY', id: 'sd_p3', v: 70 }, { l: 'LEVEL', id: 'sd_level', v: 100 }] },
+            { id: 'ch', name: 'CLOSED HAT', params: [{ l: 'DECAY', id: 'ch_p1', v: 20 }, { l: 'LEVEL', id: 'ch_level', v: 100 }] },
+            { id: 'oh', name: 'OPEN HAT', params: [{ l: 'DECAY', id: 'oh_p1', v: 60 }, { l: 'LEVEL', id: 'oh_level', v: 100 }] },
+            { id: 'cp', name: 'CLAP', params: [{ l: 'DECAY', id: 'cp_p1', v: 50 }, { l: 'LEVEL', id: 'cp_level', v: 100 }] },
         ];
         tracks.forEach(t => {
             const row = document.createElement('div'); row.className = 'drum-track-row';
             const hdr = document.createElement('div'); hdr.className = 'track-header';
             const knobDiv = document.createElement('div'); knobDiv.className = 'track-knobs';
-            t.params.forEach(p => { new RotaryKnob(knobDiv, p.l, p.id, 0, 100, p.v); });
+            t.params.forEach(p => { new RotaryKnob(knobDiv, p.l, p.id, 0, 100, p.v, 1, 'small'); });
             const name = document.createElement('div'); name.className = 'track-name'; name.innerText = t.id.toUpperCase();
             hdr.appendChild(knobDiv); hdr.appendChild(name); row.appendChild(hdr);
             const seqDiv = document.createElement('div'); seqDiv.className = 'sequencer-909'; seqDiv.id = `seq909_${t.id}`;
