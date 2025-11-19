@@ -293,59 +293,61 @@ h3 {
     border: 1px solid #555;
 }
 
-.waveform-switch input {
+/* Waveform Switch Logic */
+.waveform-switch input[type="radio"] {
     display: none;
 }
 
 .waveform-switch label {
-    flex: 1;
-    z-index: 2;
-    cursor: pointer;
+    width: 50%;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
+    z-index: 2;
+    cursor: pointer;
 }
 
 .switch-handle {
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 28px;
-    height: 20px;
-    background: linear-gradient(to bottom, #ccc, #999);
-    border-radius: 1px;
-    transition: transform 0.2s;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    width: calc(50% - 4px);
+    height: calc(100% - 4px);
+    background: linear-gradient(to bottom, #eee, #ccc);
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+    z-index: 1;
 }
 
-/* Logic for switch handle movement */
-#wave-sq:checked~.switch-handle {
-    transform: translateX(28px);
+/* Use attribute selector for ID suffix matching to support multiple units */
+.waveform-switch input[id*="wave-sq"]:checked~.switch-handle {
+    transform: translateX(100%);
 }
 
-/* Icons for waveform */
-.icon-saw {
-    width: 12px;
-    height: 12px;
-    background:
-        linear-gradient(to bottom right, transparent 50%, #888 50%) no-repeat 0 0/6px 6px,
-        linear-gradient(to bottom right, transparent 50%, #888 50%) no-repeat 6px 6px/6px 6px;
+.icon-saw,
+.icon-sq {
+    width: 16px;
+    height: 16px;
+    background-repeat: no-repeat;
+    background-position: center;
     opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.icon-saw {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2'%3E%3Cpath d='M22 22L12 2L2 22'/%3E%3C/svg%3E");
 }
 
 .icon-sq {
-    width: 10px;
-    height: 10px;
-    border: 2px solid #888;
-    border-top: none;
-    border-right: none;
-    opacity: 0.5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2'%3E%3Crect x='2' y='2' width='20' height='20'/%3E%3C/svg%3E");
 }
 
-input:checked+label .icon-saw,
-input:checked+label .icon-sq {
+.waveform-switch input:checked+label .icon-saw,
+.waveform-switch input:checked+label .icon-sq {
     opacity: 1;
-    filter: drop-shadow(0 0 2px #fff);
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
 }
 
 /* Tempo Group */
@@ -413,29 +415,76 @@ input:checked+label .icon-sq {
     box-shadow: 0 0 8px #ff0000, inset 0 1px 2px rgba(255, 255, 255, 0.5);
 }
 
-.mini-btn {
-    font-size: 8px;
+.step-303 select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: #000;
+    color: #f00;
+    /* LED Red */
+    border: 1px solid #444;
+    border-top-color: #222;
+    border-bottom-color: #555;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    font-weight: bold;
     width: 100%;
+    margin-bottom: 2px;
+    text-align: center;
+    padding: 2px 0;
+    border-radius: 1px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+    cursor: pointer;
+}
+
+.step-303 select:focus {
+    outline: none;
+    border-color: #666;
+}
+
+.step-ctrls {
+    display: flex;
+    gap: 2px;
+    width: 100%;
+    margin-top: 2px;
+}
+
+.mini-btn {
+    flex: 1;
+    font-size: 9px;
     text-align: center;
     cursor: pointer;
-    background: linear-gradient(to bottom, #555, #333);
-    color: #ccc;
-    border: 1px solid #000;
-    margin-top: 3px;
-    padding: 3px 0;
+    background: linear-gradient(to bottom, #444, #222);
+    color: #888;
+    border: 1px solid #111;
+    padding: 4px 0;
     border-radius: 2px;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 1);
+    transition: all 0.1s;
 }
 
 .mini-btn:active {
     transform: translateY(1px);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+    background: #222;
 }
 
 .mini-btn.active {
-    background: linear-gradient(to bottom, #999, #777);
-    color: white;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+    color: #fff;
+    text-shadow: 0 0 2px #f00;
+    background: linear-gradient(to bottom, #d00, #900);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 5px #f00;
+    border-color: #500;
+}
+
+.mini-btn.sld.active {
+    background: linear-gradient(to bottom, #ddd, #aaa);
+    color: #111;
+    text-shadow: none;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 5px #fff;
+    border-color: #888;
 }
 
 .mini-btn.acc.active {

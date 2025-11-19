@@ -13,9 +13,8 @@
     <!-- Transport -->
     <div class="top-bar">
       <div class="transport-controls">
-        <button id="initBtn" class="init">INIT AUDIO</button>
-        <button id="playBtn" class="play">RUN</button>
-        <button id="stopBtn" class="stop">STOP</button>
+        <button id="playBtn" class="play">Run</button>
+        <button id="stopBtn" class="stop">Stop</button>
         <button id="randomBtn">RANDOMIZE</button>
         <button id="clearBtn">CLEAR</button>
         <button id="shareBtn" class="share">SHARE URL</button>
@@ -29,25 +28,42 @@
       </div>
     </div>
 
-    <!-- TB-303 -->
+    <!-- TB-303 Unit 1 -->
     <div class="machine tb-303">
       <div class="machine-header">
-        <h2>TB-303 <small>BASS LINE</small></h2>
-        <!-- Waveform Switch -->
+        <h2>TB-303 <small>UNIT 1</small></h2>
         <div class="waveform-control">
           <div class="switch-label">WAVEFORM</div>
           <div class="waveform-switch">
-            <input type="radio" name="wave303" id="wave-saw" value="sawtooth" checked>
-            <label for="wave-saw" title="Sawtooth"><span class="icon-saw"></span></label>
-            <input type="radio" name="wave303" id="wave-sq" value="square">
-            <label for="wave-sq" title="Square"><span class="icon-sq"></span></label>
+            <input type="radio" name="wave303_1" id="wave-saw-1" value="sawtooth" checked>
+            <label for="wave-saw-1" title="Sawtooth"><span class="icon-saw"></span></label>
+            <input type="radio" name="wave303_1" id="wave-sq-1" value="square">
+            <label for="wave-sq-1" title="Square"><span class="icon-sq"></span></label>
             <div class="switch-handle"></div>
           </div>
         </div>
       </div>
+      <div class="knob-group" id="knobs303_1"></div>
+      <div id="grid303_1" class="sequencer-303"></div>
+    </div>
 
-      <div class="knob-group" id="knobs303"></div>
-      <div id="grid303" class="sequencer-303"></div>
+    <!-- TB-303 Unit 2 -->
+    <div class="machine tb-303">
+      <div class="machine-header">
+        <h2>TB-303 <small>UNIT 2</small></h2>
+        <div class="waveform-control">
+          <div class="switch-label">WAVEFORM</div>
+          <div class="waveform-switch">
+            <input type="radio" name="wave303_2" id="wave-saw-2" value="sawtooth" checked>
+            <label for="wave-saw-2" title="Sawtooth"><span class="icon-saw"></span></label>
+            <input type="radio" name="wave303_2" id="wave-sq-2" value="square">
+            <label for="wave-sq-2" title="Square"><span class="icon-sq"></span></label>
+            <div class="switch-handle"></div>
+          </div>
+        </div>
+      </div>
+      <div class="knob-group" id="knobs303_2"></div>
+      <div id="grid303_2" class="sequencer-303"></div>
     </div>
 
     <!-- TR-909 -->

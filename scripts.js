@@ -142,22 +142,30 @@ const AudioEngine = {
             this.master = this.ctx.createDynamicsCompressor();
             this.master.threshold.value = -8;
             this.master.ratio.value = 12;
-            this.master.connect(this.ctx.destination);
 
-            const size = this.ctx.sampleRate * 2.0;
+            const outGain = this.ctx.createGain();
+            outGain.gain.value = 0.8;
 
-            this.metalBuffer = this.ctx.createBuffer(1, size, this.ctx.sampleRate);
-            const data = this.metalBuffer.getChannelData(0);
-            const freqs = [263, 400, 421, 474, 587, 845];
-            for (let i = 0; i < size; i++) {
-                let sample = 0;
-                for (let f of freqs) sample += ((i * f * 2 * Math.PI / this.ctx.sampleRate) % (2 * Math.PI) < Math.PI ? 1 : -1);
-                data[i] = sample / 6;
+            this.master.connect(outGain);
+            outGain.connect(this.ctx.destination);
+
+            this.active303_1 = null;
+            this.active303_2 = null;
+            this.nextNoteTime = 0;
+            this.currentStep = 0;
+            this.tempo = 125;
+            this.isPlaying = false;
+            this.lookahead = 25.0;
+            this.scheduleAheadTime = 0.1;
+
+            // Load Noise Buffer for 909
+            const bufferSize = this.ctx.sampleRate * 2;
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
             }
-
-            this.noiseBuffer = this.ctx.createBuffer(1, size, this.ctx.sampleRate);
-            const nData = this.noiseBuffer.getChannelData(0);
-            for (let i = 0; i < size; i++) nData[i] = Math.random() * 2 - 1;
+            this.noiseBuffer = buffer;
         }
         if (this.ctx.state === 'suspended') this.ctx.resume();
     },
@@ -165,25 +173,27 @@ const AudioEngine = {
     play() {
         if (!this.ctx) this.init();
         if (this.isPlaying) return;
+        if (this.ctx.state === 'suspended') this.ctx.resume();
         this.isPlaying = true;
         this.currentStep = 0;
-        this.nextNoteTime = this.ctx.currentTime + 0.1;
+        this.nextNoteTime = this.ctx.currentTime;
+        this.active303_1 = null;
+        this.active303_2 = null;
         this.scheduler();
     },
 
     stop() {
         this.isPlaying = false;
-        window.cancelAnimationFrame(this.timerID);
-        this.kill303(this.ctx.currentTime);
+        window.clearTimeout(this.timerID);
         UI.clearPlayhead();
     },
 
     scheduler() {
         while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
-            this.scheduleNote(this.currentStep, this.nextNoteTime);
+            this.schedule(this.nextNoteTime);
             this.nextNote();
         }
-        if (this.isPlaying) this.timerID = requestAnimationFrame(this.scheduler.bind(this));
+        if (this.isPlaying) this.timerID = window.setTimeout(this.scheduler.bind(this), 25);
     },
 
     nextNote() {
@@ -192,74 +202,144 @@ const AudioEngine = {
         this.currentStep = (this.currentStep + 1) % 16;
     },
 
-    scheduleNote(step, time) {
-        UI.drawPlayhead(step);
+    schedule(time) {
+        const stepIndex = this.currentStep % 16;
 
-        const s303 = Data.seq303[step];
-        const prev303 = step === 0 ? Data.seq303[15] : Data.seq303[step - 1];
-        this.voice303(time, s303, prev303);
+        // 303 Unit 1
+        const s3_1 = Data.seq303_1[stepIndex];
+        if (s3_1 && s3_1.active) {
+            this.voice303(time, s3_1, UI.get303Params(1), 1);
+        }
 
-        const t = Data.seq909;
-        if (t.bd[step]) this.voice909BD(time);
-        if (t.sd[step]) this.voice909SD(time);
-        if (t.ch[step]) this.voice909Hat(time, false);
-        else if (t.oh[step]) this.voice909Hat(time, true);
-        if (t.cp[step]) this.voice909CP(time);
+        // 303 Unit 2
+        const s3_2 = Data.seq303_2[stepIndex];
+        if (s3_2 && s3_2.active) {
+            this.voice303(time, s3_2, UI.get303Params(2), 2);
+        }
+
+        // 909
+        const s9 = Data.seq909;
+        if (s9.bd[stepIndex]) this.voice909BD(time);
+        if (s9.sd[stepIndex]) this.voice909SD(time);
+        if (s9.ch[stepIndex]) this.voice909Hat(time, false);
+        if (s9.oh[stepIndex]) this.voice909Hat(time, true);
+        if (s9.cp[stepIndex]) this.voice909CP(time);
+
+        // UI Update
+        UI.drawPlayhead(stepIndex);
     },
 
-    voice303(time, step, prevStep) {
-        if (!step.active && !step.slide) {
-            if (this.active303.osc && !prevStep?.slide) this.kill303(time);
-            return;
-        }
-        const P = UI.get303Params();
+    noteToFreq(note, octave) {
         const noteMap = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        const semi = (step.octave * 12) + noteMap.indexOf(step.note);
-        let freq = 16.35 * Math.pow(2, semi / 12);
+        const semi = (octave * 12) + noteMap.indexOf(note);
+        return 16.35 * Math.pow(2, semi / 12);
+    },
+
+    voice303(time, step, P, unitId) {
+        let active = unitId === 1 ? this.active303_1 : this.active303_2;
+
+        // Calculate Frequency
+        let freq = this.noteToFreq(step.note, step.octave);
         freq *= Math.pow(2, P.tune / 1200);
+
+        // Check Slide
+        const prevStep = unitId === 1 ? (this.currentStep === 0 ? Data.seq303_1[15] : Data.seq303_1[this.currentStep - 1]) : (this.currentStep === 0 ? Data.seq303_2[15] : Data.seq303_2[this.currentStep - 1]);
         const isSliding = prevStep && prevStep.active && prevStep.slide && step.active;
 
-        if (isSliding && this.active303.osc) {
-            this.active303.osc.frequency.linearRampToValueAtTime(freq, time + 0.1);
-            this.active303.freq = freq;
+        if (isSliding && active && active.osc) {
+            // --- SLIDE (Legato) ---
+            // Glide Pitch
+            active.osc.frequency.cancelScheduledValues(time);
+            active.osc.frequency.setValueAtTime(active.freq, time);
+            active.osc.frequency.linearRampToValueAtTime(freq, time + 0.1);
+            active.freq = freq;
+
+            // Update Filter (Smooth transition)
+            const baseCut = 300 + (P.cutoff * 8000) + (step.accent ? 800 : 0);
+            active.filter.frequency.cancelScheduledValues(time);
+            active.filter.frequency.linearRampToValueAtTime(baseCut, time + 0.1);
+
+            // Update Volume (Accent might change)
+            const targetVol = P.vol * (step.accent ? 1.0 : 0.7);
+            active.gain.gain.cancelScheduledValues(time);
+            active.gain.gain.linearRampToValueAtTime(targetVol, time + 0.1);
+
+            // Extend Oscillator life
+            active.osc.stop(time + 2.0); // Extend safety stop
+
+            // If this step is NOT a slide start for the NEXT step, we need to gate off eventually?
+            // But here we are AT the slide step. If THIS step also has slide=true, we keep holding.
+            // If THIS step has slide=false, we should gate off at the end of this step.
+            if (!step.slide) {
+                const gateTime = (60 / this.tempo) * 0.5;
+                active.gain.gain.setTargetAtTime(0, time + gateTime, 0.02);
+            }
+
         } else {
-            this.kill303(time);
+            // --- NEW NOTE (Retrigger) ---
+            this.kill303(unitId, time);
+
             if (!step.active) return;
-            const t = time;
+
             const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
             const filter = this.ctx.createBiquadFilter();
-            const vca = this.ctx.createGain();
-            const out = this.ctx.createGain();
+
             osc.type = P.wave;
-            osc.frequency.setValueAtTime(freq, t);
+            osc.frequency.setValueAtTime(freq, time);
+
+            // Filter Setup
+            const baseCut = 300 + (P.cutoff * 8000) + (step.accent ? 800 : 0);
             filter.type = 'lowpass';
             filter.Q.value = P.reso * (step.accent ? 1.5 : 1.0);
-            const baseCut = 300 + (P.cutoff * 100) + (step.accent ? 800 : 0);
-            const envAmt = (P.env * 60) + (step.accent ? 2000 : 0);
-            const dec = 0.2 + (P.decay / 100) * (step.accent ? 0.5 : 1.0);
-            filter.frequency.setValueAtTime(baseCut, t);
-            filter.frequency.linearRampToValueAtTime(baseCut + envAmt, t + 0.005);
-            filter.frequency.setTargetAtTime(baseCut, t + 0.01, dec / 3);
-            vca.gain.setValueAtTime(0, t);
-            const peakVol = step.accent ? 1.0 : 0.7;
-            vca.gain.linearRampToValueAtTime(peakVol, t + 0.005);
-            vca.gain.setTargetAtTime(0, t + 0.01, dec);
-            out.gain.value = P.vol;
+            filter.frequency.setValueAtTime(baseCut, time);
+
+            // Filter Envelope
+            const envAmount = (P.env * 5000) + (step.accent ? 2000 : 0);
+            const decay = 0.2 + (P.decay / 100) * (step.accent ? 0.5 : 1.0);
+            filter.frequency.linearRampToValueAtTime(baseCut + envAmount, time + 0.005);
+            filter.frequency.setTargetAtTime(baseCut, time + 0.01, decay / 3);
+
+            // Amp Envelope
+            const peakVol = P.vol * (step.accent ? 1.0 : 0.7);
+            gain.gain.setValueAtTime(0, time);
+            gain.gain.linearRampToValueAtTime(peakVol, time + 0.005);
+            gain.gain.setTargetAtTime(0, time + 0.01, decay);
+
             osc.connect(filter);
-            filter.connect(vca);
-            vca.connect(out);
-            out.connect(this.master);
-            osc.start(t);
-            this.active303 = { osc, filter, gain: vca, freq };
-            if (!step.slide) osc.stop(t + (0.5 * (60 / this.tempo)));
-            else osc.stop(t + 2.0);
+            filter.connect(gain);
+            gain.connect(this.master);
+
+            // Start Oscillator BEFORE scheduling stop
+            osc.start(time);
+
+            // Gate Logic
+            if (!step.slide) {
+                // Normal Step: Gate Off after 50% duration
+                const gateTime = (60 / this.tempo) * 0.5;
+                gain.gain.setTargetAtTime(0, time + gateTime, 0.02);
+                osc.stop(time + gateTime + 0.2);
+            } else {
+                // Slide Start: Sustain (Don't gate off immediately)
+                osc.stop(time + 2.0); // Safety stop long enough for next step
+            }
+
+            const newState = { osc, filter, gain, freq };
+            if (unitId === 1) this.active303_1 = newState;
+            else this.active303_2 = newState;
         }
     },
 
-    kill303(time) {
-        if (this.active303.osc) {
-            try { this.active303.osc.stop(time); this.active303.gain.gain.setTargetAtTime(0, time, 0.005); } catch (e) { }
-            this.active303 = { osc: null, filter: null, gain: null, freq: 0 };
+    kill303(unitId, time) {
+        const active = unitId === 1 ? this.active303_1 : this.active303_2;
+        if (active && active.osc) {
+            try {
+                active.osc.stop(time);
+                active.gain.gain.cancelScheduledValues(time);
+                active.gain.gain.setValueAtTime(0, time);
+            } catch (e) { }
+            if (unitId === 1) this.active303_1 = null;
+            else this.active303_2 = null;
         }
     },
 
@@ -343,8 +423,24 @@ const AudioEngine = {
    ================================================================
 */
 const Data = {
-    seq303: Array(16).fill(null).map(() => ({ active: false, note: 'C', octave: 2, accent: false, slide: false })),
+    seq303_1: [],
+    seq303_2: [],
     seq909: { bd: [], sd: [], ch: [], oh: [], cp: [] },
+
+    init() {
+        this.init303(1);
+        this.init303(2);
+        this.init909();
+    },
+
+    init303(unitId) {
+        const seq = [];
+        for (let i = 0; i < 16; i++) {
+            seq.push({ active: false, note: 'C', octave: 2, accent: false, slide: false });
+        }
+        if (unitId === 1) this.seq303_1 = seq;
+        else this.seq303_2 = seq;
+    },
 
     init909() {
         ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(k => this.seq909[k] = Array(16).fill(0));
@@ -358,18 +454,17 @@ const Data = {
             }
         };
 
-        // Set Waveform Radio
-        const wave = Math.random() > 0.5 ? 'sawtooth' : 'square';
-        if (wave === 'sawtooth') document.getElementById('wave-saw').checked = true;
-        else document.getElementById('wave-sq').checked = true;
+        // Randomize 303 Unit 1
+        const wave1 = Math.random() > 0.5 ? 'sawtooth' : 'square';
+        document.getElementById(wave1 === 'sawtooth' ? 'wave-saw-1' : 'wave-sq-1').checked = true;
+        setK('tune303_1', 0, 0); setK('cutoff303_1', 20, 90); setK('reso303_1', 0, 15);
+        setK('env303_1', 30, 90); setK('decay303_1', 30, 80); setK('accent303_1', 50, 100); setK('vol303_1', 70, 90);
 
-        setK('tune303', 0, 0);
-        setK('cutoff303', 20, 90);
-        setK('reso303', 0, 15);
-        setK('env303', 30, 90);
-        setK('decay303', 30, 80);
-        setK('accent303', 50, 100);
-        setK('vol303', 70, 90);
+        // Randomize 303 Unit 2
+        const wave2 = Math.random() > 0.5 ? 'sawtooth' : 'square';
+        document.getElementById(wave2 === 'sawtooth' ? 'wave-saw-2' : 'wave-sq-2').checked = true;
+        setK('tune303_2', 0, 0); setK('cutoff303_2', 20, 90); setK('reso303_2', 0, 15);
+        setK('env303_2', 30, 90); setK('decay303_2', 30, 80); setK('accent303_2', 50, 100); setK('vol303_2', 70, 90);
 
         setK('bd_p1', 10, 60); setK('bd_p2', 30, 80); setK('bd_p3', 60, 100); setK('bd_level', 80, 100);
         setK('sd_p1', 40, 70); setK('sd_p2', 20, 50); setK('sd_p3', 50, 90); setK('sd_level', 80, 100);
@@ -377,14 +472,124 @@ const Data = {
         setK('oh_p1', 40, 80); setK('oh_level', 80, 100);
         setK('cp_p1', 40, 70); setK('cp_level', 80, 100);
 
-        const scales = ['C', 'D#', 'F', 'F#', 'G', 'A#'];
-        this.seq303.forEach((step) => {
-            step.active = Math.random() > 0.35;
-            step.note = scales[Math.floor(Math.random() * scales.length)];
-            step.octave = Math.floor(Math.random() * 3) + 1;
-            step.accent = Math.random() > 0.8;
-            step.slide = step.active && (Math.random() > 0.75);
-        });
+        // 12반음 기준 전체 노트 정의
+        const ALL_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F',
+            'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+        // 기존 스케일 (C blues 계열)
+        const SCALE = ['C', 'D#', 'F', 'F#', 'G', 'A#'];
+
+        // 베이스가 강박에서 주로 잡을 음 (루트/서브돔/도미넌트 느낌)
+        const BASS_STRONG_NOTES = ['C', 'F', 'G']; // SCALE의 부분집합
+
+        // 협화 간격(반음 수): 유니즌, m3, M3, P5, m6, M6
+        // 0, 3, 4, 7, 8, 9 semitones
+        const CONSONANT_INTERVALS = [0, 3, 4, 7, 8, 9];
+
+        // 강박에서 더 엄격하게: 3도/6도 위주
+        const STRONG_MELODY_INTERVALS = [3, 4, 8, 9]; // m3, M3, m6, M6
+        // 약박: 위 + 유니즌/5도 허용
+        const WEAK_MELODY_INTERVALS = [0, 3, 4, 7, 8, 9];
+
+        const noteToIndex = (note) => ALL_NOTES.indexOf(note);
+
+
+        // ---------- 베이스 라인 생성 ----------
+        const randBassSeq = (seq) => {
+            seq.forEach((step, i) => {
+                const isStrongBeat = (i % 4 === 0); // 0,4,8,12를 강박으로 가정
+
+                // 베이스는 강박에서 더 자주 울리게
+                step.active = Math.random() > (isStrongBeat ? 0.1 : 0.5);
+
+                if (!step.active) {
+                    step.note = null;
+                    step.octave = 1;
+                    step.accent = false;
+                    step.slide = false;
+                    return;
+                }
+
+                let note;
+                if (isStrongBeat) {
+                    // 강박: 루트/서브돔/도미넌트 위주
+                    note = BASS_STRONG_NOTES[Math.floor(Math.random() * BASS_STRONG_NOTES.length)];
+                } else {
+                    // 약박: 직전 음을 유지하거나, 스케일 내에서 한 번 점프
+                    const prev = i > 0 ? seq[i - 1].note : null;
+                    if (prev && Math.random() > 0.5) {
+                        note = prev;
+                    } else {
+                        note = SCALE[Math.floor(Math.random() * SCALE.length)];
+                    }
+                }
+
+                step.note = note;
+                step.octave = 1 + Math.floor(Math.random() * 1); // 주로 1옥타브 (원하면 1~2로 바꿔도 됨)
+                step.accent = Math.random() > 0.85;
+                step.slide = step.active && (Math.random() > 0.8);
+            });
+        };
+
+
+        // ---------- 멜로디(상성부) 생성 ----------
+        const pickMelodyNoteFromBass = (bassNote, isStrongBeat) => {
+            const bassIndex = noteToIndex(bassNote);
+            if (bassIndex === -1) {
+                // 예외: 베이스 음을 못 찾으면 그냥 스케일 랜덤
+                return SCALE[Math.floor(Math.random() * SCALE.length)];
+            }
+
+            const allowedIntervals = isStrongBeat
+                ? STRONG_MELODY_INTERVALS
+                : WEAK_MELODY_INTERVALS;
+
+            const candidates = SCALE.filter((note) => {
+                const idx = noteToIndex(note);
+                if (idx === -1) return false;
+                const diff = (idx - bassIndex + 12) % 12;
+                return allowedIntervals.includes(diff);
+            });
+
+            if (candidates.length > 0) {
+                return candidates[Math.floor(Math.random() * candidates.length)];
+            } else {
+                // 만약 협화 후보가 없다면 스케일 랜덤 (실제로는 거의 안 일어날 것)
+                return SCALE[Math.floor(Math.random() * SCALE.length)];
+            }
+        };
+
+        const randMelodySeq = (seq, bassSeq) => {
+            seq.forEach((step, i) => {
+                const isStrongBeat = (i % 4 === 0);
+                const bassStep = bassSeq[i];
+
+                // 멜로디는 베이스보다 더 자주 울리게
+                step.active = Math.random() > 0.2;
+
+                let note;
+                if (bassStep && bassStep.active && step.active && bassStep.note) {
+                    // 베이스 음에 대해 협화 간격을 갖는 멜로디 음 선택
+                    note = pickMelodyNoteFromBass(bassStep.note, isStrongBeat);
+                } else {
+                    // 베이스가 비어 있거나 멜로디가 쉬는 경우
+                    note = SCALE[Math.floor(Math.random() * SCALE.length)];
+                }
+
+                step.note = note;
+                // 멜로디는 항상 더 높은 옥타브
+                step.octave = 2 + Math.floor(Math.random() * 2); // 2~3옥타브
+                step.accent = Math.random() > 0.7;
+                step.slide = step.active && (Math.random() > 0.75);
+            });
+        };
+
+
+        // ---------- 호출 예시 ----------
+
+        // this.seq303_2 = 베이스, this.seq303_1 = 멜로디
+        randBassSeq(this.seq303_2);                  // 먼저 베이스 생성
+        randMelodySeq(this.seq303_1, this.seq303_2); // 베이스를 기준으로 멜로디 생성
 
         this.init909();
         const t = this.seq909;
@@ -408,39 +613,38 @@ const Data = {
             knobs[el.id] = parseFloat(el.value);
         });
 
-        const wave = document.querySelector('input[name="wave303"]:checked').value;
-
         const state = {
-            ver: 1,
+            ver: 2,
             bpm: AudioEngine.tempo,
-            wave: wave,
+            wave1: document.querySelector('input[name="wave303_1"]:checked').value,
+            wave2: document.querySelector('input[name="wave303_2"]:checked').value,
             k: knobs,
-            s3: this.seq303,
+            s3_1: this.seq303_1,
+            s3_2: this.seq303_2,
             s9: this.seq909
         };
         return btoa(JSON.stringify(state));
     },
 
-    importState(encoded) {
+    importState(code) {
         try {
-            const state = JSON.parse(atob(encoded));
-            AudioEngine.tempo = state.bpm;
+            const state = JSON.parse(atob(code));
+            if (state.bpm) AudioEngine.tempo = state.bpm;
+
+            if (state.k) {
+                Object.keys(state.k).forEach(id => {
+                    if (window.knobInstances[id]) window.knobInstances[id].setValue(state.k[id]);
+                });
+            }
+
+            if (state.s3_1) this.seq303_1 = state.s3_1;
+            if (state.s3_2) this.seq303_2 = state.s3_2;
+            // Backwards compatibility for v1
+            if (state.s3) this.seq303_1 = state.s3;
+
+            if (state.s9) this.seq909 = state.s9;
 
             // Update Tempo Knob
-            if (window.knobInstances['tempo']) window.knobInstances['tempo'].setValue(state.bpm);
-            document.getElementById('tempoVal').innerText = state.bpm;
-
-            // Update Waveform
-            if (state.wave === 'sawtooth') document.getElementById('wave-saw').checked = true;
-            else document.getElementById('wave-sq').checked = true;
-
-            setTimeout(() => {
-                for (const [id, val] of Object.entries(state.k)) {
-                    if (window.knobInstances[id]) window.knobInstances[id].setValue(val);
-                }
-            }, 0);
-
-            this.seq303 = state.s3;
             this.seq909 = state.s9;
 
             UI.renderAll();
@@ -458,22 +662,24 @@ const Data = {
 */
 const UI = {
     init() {
-        this.render303();
+        this.init303Knobs(1);
+        this.init303Knobs(2);
+        this.render303Grid(1);
+        this.render303Grid(2);
         this.render909();
 
-        // Initialize Tempo Knob
-        new RotaryKnob(document.getElementById('tempo-knob-container'), '', 'tempo', 60, 160, 125, 1, 'large');
-
-        document.getElementById('initBtn').onclick = () => { AudioEngine.init(); document.getElementById('initBtn').style.display = 'none'; };
         document.getElementById('playBtn').onclick = () => AudioEngine.play();
         document.getElementById('stopBtn').onclick = () => AudioEngine.stop();
         document.getElementById('randomBtn').onclick = () => Data.randomize();
         document.getElementById('clearBtn').onclick = () => {
-            Data.seq303.forEach(s => { s.active = false; s.slide = false; s.accent = false; });
+            Data.seq303_1.forEach(s => { s.active = false; s.slide = false; s.accent = false; });
+            Data.seq303_2.forEach(s => { s.active = false; s.slide = false; s.accent = false; });
             Object.keys(Data.seq909).forEach(k => Data.seq909[k].fill(0));
             this.renderAll();
         };
 
+        // Tempo Knob
+        new RotaryKnob(document.getElementById('tempo-knob-container'), 'TEMPO', 'tempo', 60, 200, 125, 1, 'large');
         // Listen for Tempo Knob changes via the hidden input
         document.getElementById('tempo').addEventListener('input', (e) => {
             AudioEngine.tempo = parseInt(e.target.value);
@@ -494,22 +700,28 @@ const UI = {
         if (window.location.hash && window.location.hash.length > 10) {
             Data.importState(window.location.hash.substring(1));
         } else {
-            Data.init909();
+            Data.init();
             setTimeout(() => Data.randomize(), 500);
         }
     },
 
-    get303Params() {
-        const getV = (id) => parseFloat(document.getElementById(id).value);
+    get303Params(unitId) {
+        const getV = (id) => {
+            const el = document.getElementById(id);
+            return el ? parseFloat(el.value) : 0;
+        };
+        const waveEl = document.querySelector(`input[name="wave303_${unitId}"]:checked`);
+        const wave = waveEl ? waveEl.value : 'sawtooth';
+
         return {
-            wave: document.querySelector('input[name="wave303"]:checked').value,
-            tune: getV('tune303'),
-            cutoff: getV('cutoff303'),
-            reso: getV('reso303'),
-            env: getV('env303'),
-            decay: getV('decay303'),
-            accent: getV('accent303'),
-            vol: getV('vol303') / 100
+            wave: wave,
+            tune: getV(`tune303_${unitId}`),
+            cutoff: getV(`cutoff303_${unitId}`) / 100,
+            reso: getV(`reso303_${unitId}`),
+            env: getV(`env303_${unitId}`) / 100,
+            decay: getV(`decay303_${unitId}`),
+            accent: getV(`accent303_${unitId}`) / 100,
+            vol: getV(`vol303_${unitId}`) / 100
         };
     },
 
@@ -525,71 +737,79 @@ const UI = {
     },
 
     renderAll() {
-        this.updateSequencer303();
-        this.update909Grid();
+        this.render303Grid(1);
+        this.render303Grid(2);
+        this.render909();
     },
 
-    render303() {
-        const kContainer = document.getElementById('knobs303');
-        kContainer.innerHTML = '';
-        const p303 = [
-            { l: 'TUNE', id: 'tune303', min: -1200, max: 1200, v: 0 },
-            { l: 'CUTOFF', id: 'cutoff303', min: 0, max: 100, v: 40 },
-            { l: 'RESO', id: 'reso303', min: 0, max: 100, v: 70 },
-            { l: 'ENV MOD', id: 'env303', min: 0, max: 100, v: 60 },
-            { l: 'DECAY', id: 'decay303', min: 0, max: 100, v: 40 },
-            { l: 'ACCENT', id: 'accent303', min: 0, max: 100, v: 80 },
-            { l: 'VOL', id: 'vol303', min: 0, max: 100, v: 80 }
+    init303Knobs(unitId) {
+        const container = document.getElementById(`knobs303_${unitId}`);
+        container.innerHTML = '';
+        const params = [
+            { l: 'TUNE', id: `tune303_${unitId}`, min: -1200, max: 1200, v: 0 },
+            { l: 'CUTOFF', id: `cutoff303_${unitId}`, min: 0, max: 100, v: 50 },
+            { l: 'RESO', id: `reso303_${unitId}`, min: 0, max: 15, v: 0 },
+            { l: 'ENV MOD', id: `env303_${unitId}`, min: 0, max: 100, v: 50 },
+            { l: 'DECAY', id: `decay303_${unitId}`, min: 0, max: 100, v: 50 },
+            { l: 'ACCENT', id: `accent303_${unitId}`, min: 0, max: 100, v: 50 },
+            { l: 'VOLUME', id: `vol303_${unitId}`, min: 0, max: 100, v: 80 }
         ];
-        p303.forEach(p => new RotaryKnob(kContainer, p.l, p.id, p.min, p.max, p.v));
-        this.updateSequencer303();
+        params.forEach(p => {
+            new RotaryKnob(container, p.l, p.id, p.min, p.max, p.v);
+        });
     },
 
-    updateSequencer303() {
-        const grid = document.getElementById('grid303');
+    render303Grid(unitId) {
+        const grid = document.getElementById(`grid303_${unitId}`);
         grid.innerHTML = '';
-        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const seq = unitId === 1 ? Data.seq303_1 : Data.seq303_2;
 
-        Data.seq303.forEach((step, i) => {
+        seq.forEach((step, i) => {
             const el = document.createElement('div');
-            el.className = 'step-303';
-            if (step.active) el.classList.add('active');
+            el.className = `step-303 ${step.active ? 'active' : ''}`;
+            el.onclick = () => {
+                step.active = !step.active;
+                this.render303Grid(unitId);
+            };
 
             const led = document.createElement('div'); led.className = 'led';
-            el.appendChild(led);
 
-            const nSel = document.createElement('select');
-            nSel.style.fontSize = '9px';
-            notes.forEach(n => {
-                const o = document.createElement('option'); o.text = n; o.value = n; if (n === step.note) o.selected = true;
-                nSel.add(o);
+            const noteSel = document.createElement('select');
+            ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].forEach(n => {
+                const opt = document.createElement('option'); opt.value = n; opt.innerText = n;
+                if (step.note === n) opt.selected = true;
+                noteSel.appendChild(opt);
             });
-            nSel.onchange = (e) => step.note = e.target.value;
-            el.appendChild(nSel);
+            noteSel.onclick = (e) => e.stopPropagation();
+            noteSel.onchange = (e) => { step.note = e.target.value; };
 
-            const oSel = document.createElement('select');
-            oSel.style.fontSize = '9px';
+            const octSel = document.createElement('select');
             [1, 2, 3].forEach(o => {
-                const op = document.createElement('option'); op.text = o; op.value = o; if (o === step.octave) op.selected = true;
-                oSel.add(op);
+                const opt = document.createElement('option'); opt.value = o; opt.innerText = o;
+                if (step.octave === o) opt.selected = true;
+                octSel.appendChild(opt);
             });
-            oSel.onchange = (e) => step.octave = parseInt(e.target.value);
-            el.appendChild(oSel);
+            octSel.onclick = (e) => e.stopPropagation();
+            octSel.onchange = (e) => { step.octave = parseInt(e.target.value); };
+
+            const ctrls = document.createElement('div'); ctrls.className = 'step-ctrls';
 
             const mkBtn = (lbl, prop, cls) => {
                 const b = document.createElement('div');
                 b.innerText = lbl; b.className = 'mini-btn ' + cls;
                 if (step[prop]) b.classList.add('active');
-                b.onclick = () => {
+                b.onclick = (e) => {
+                    e.stopPropagation();
                     step[prop] = !step[prop];
-                    b.classList.toggle('active');
-                    if (prop === 'active') el.classList.toggle('active');
+                    this.render303Grid(unitId);
                 };
                 return b;
             }
-            el.appendChild(mkBtn('GATE', 'active', ''));
-            el.appendChild(mkBtn('ACC', 'accent', 'acc'));
-            el.appendChild(mkBtn('SLD', 'slide', 'sld'));
+
+            ctrls.appendChild(mkBtn('ACC', 'accent', 'acc'));
+            ctrls.appendChild(mkBtn('SLD', 'slide', 'sld'));
+
+            el.appendChild(led); el.appendChild(noteSel); el.appendChild(octSel); el.appendChild(ctrls);
             grid.appendChild(el);
         });
     },
@@ -634,18 +854,24 @@ const UI = {
     },
 
     drawPlayhead(step) {
-        requestAnimationFrame(() => {
-            document.querySelectorAll('.step-303').forEach((el, i) => {
-                if (i === step) el.classList.add('current'); else el.classList.remove('current');
-            });
-            document.querySelectorAll('.step-909').forEach((el, i) => {
-                if ((i % 16) === step) el.classList.add('current'); else el.classList.remove('current');
-            });
+        this.clearPlayhead();
+        const s1 = document.getElementById(`grid303_1`).children[step];
+        if (s1) s1.classList.add('current');
+        const s2 = document.getElementById(`grid303_2`).children[step];
+        if (s2) s2.classList.add('current');
+
+        const s9 = document.querySelectorAll('.sequencer-909');
+        s9.forEach(seq => {
+            if (seq.children[step]) seq.children[step].classList.add('current');
         });
     },
 
     clearPlayhead() {
         document.querySelectorAll('.current').forEach(el => el.classList.remove('current'));
+    },
+
+    highlightStep(step) {
+        this.drawPlayhead(step);
     }
 };
 
