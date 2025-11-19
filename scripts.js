@@ -166,6 +166,14 @@ const AudioEngine = {
                 data[i] = Math.random() * 2 - 1;
             }
             this.noiseBuffer = buffer;
+
+            // Load Metal Buffer for 909 Hats
+            const mb = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const md = mb.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                md[i] = Math.random() * 2 - 1;
+            }
+            this.metalBuffer = mb;
         }
         if (this.ctx.state === 'suspended') this.ctx.resume();
     },
