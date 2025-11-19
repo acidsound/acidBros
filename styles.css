@@ -1,242 +1,581 @@
-        :root {
-            --bg-main: #1a1a1a;
-            --303-panel: #c8c8c8;
-            --909-panel: #dcd8d0;
-            --knob-body: #2a2a2a;
-            --knob-line: #eee;
-            --accent: #ff3333;
-            --led-on: #ff0000;
-            --led-off: #4a0000;
-            --toast-bg: #333;
-        }
+:root {
+    --bg-main: #111;
+    --rack-bg: #222;
+    --panel-303: linear-gradient(180deg, #c8c8c8 0%, #a8a8a8 100%);
+    --panel-909: linear-gradient(180deg, #e0dcd0 0%, #c0bcb0 100%);
+    --knob-body: linear-gradient(135deg, #ddd 0%, #999 100%);
+    --knob-top: #ccc;
+    --knob-indicator: #333;
+    --switch-bg: #222;
+    --switch-handle: #ddd;
+    --led-on: #ff3333;
+    --led-off: #4a0000;
+    --lcd-bg: #2b0000;
+    --lcd-text: #ff4444;
+    --btn-grey: linear-gradient(to bottom, #eee, #ccc);
+    --btn-grey-active: linear-gradient(to bottom, #ccc, #eee);
+    --shadow-inset: inset 1px 1px 2px rgba(0, 0, 0, 0.6), inset -1px -1px 2px rgba(255, 255, 255, 0.1);
+    --shadow-out: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
 
-        body {
-            background-color: var(--bg-main);
-            color: #333;
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0;
-            padding: 20px;
-            user-select: none;
-            /* Removed global touch-action: none to allow scrolling */
-        }
+body {
+    background-color: var(--bg-main);
+    color: #222;
+    font-family: 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 20px;
+    user-select: none;
+}
 
-        h1, h2, h3 { margin: 0; text-transform: uppercase; letter-spacing: -1px; }
-        
-        .rack {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            width: 100%;
-            max-width: 920px;
-            padding-bottom: 50px; /* Extra space for mobile scrolling */
-        }
+h1,
+h2,
+h3 {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    font-weight: 800;
+    color: #222;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
 
-        /* --- Global Controls --- */
-        .top-bar {
-            background: #333;
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 4px solid #555;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+.rack {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 920px;
+    padding: 20px;
+    background: var(--rack-bg);
+    border-radius: 8px;
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), 0 0 0 4px #444;
+    border: 1px solid #000;
+    padding-bottom: 50px;
+}
 
-        .transport-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+/* --- Global Controls --- */
+.top-bar {
+    background: #333;
+    background: linear-gradient(180deg, #444 0%, #222 100%);
+    color: #ddd;
+    padding: 15px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #000;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    flex-wrap: wrap;
+    gap: 15px;
+}
 
-        .transport-controls button {
-            background: #eee;
-            border: 2px solid #999;
-            padding: 8px 15px;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            border-radius: 4px;
-            font-size: 11px;
-            transition: background 0.1s;
-            touch-action: manipulation; /* Improve tap response */
-        }
-        .transport-controls button:active { transform: translateY(2px); }
-        .transport-controls button.play { background: #cfc; }
-        .transport-controls button.stop { background: #fcc; }
-        .transport-controls button.init { background: var(--accent); color: white; border:none; }
-        .transport-controls button.share { background: #ccf; border-color: #88b; }
+.transport-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
 
-        /* --- Machine Panel Common --- */
-        .machine {
-            padding: 15px;
-            border-radius: 6px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            position: relative;
-            border: 1px solid #000;
-        }
+.transport-controls button {
+    background: var(--btn-grey);
+    border: 1px solid #000;
+    padding: 6px 12px;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    border-radius: 3px;
+    font-size: 10px;
+    color: #333;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    transition: all 0.1s;
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 0.5px;
+}
 
-        .machine-header {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 2px solid rgba(0,0,0,0.2);
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
+.transport-controls button:active {
+    background: var(--btn-grey-active);
+    transform: translateY(1px);
+    box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.4);
+}
 
-        /* --- ROTARY KNOB STYLES --- */
-        .knob-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
-            background: rgba(0,0,0,0.05);
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-        }
+.transport-controls button.play {
+    background: linear-gradient(to bottom, #cfc, #aea);
+}
 
-        .knob-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 50px;
-            position: relative;
-        }
+.transport-controls button.stop {
+    background: linear-gradient(to bottom, #fcc, #caa);
+}
 
-        .knob-label {
-            font-size: 9px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            text-align: center;
-            pointer-events: none;
-        }
+.transport-controls button.init {
+    background: linear-gradient(to bottom, #f66, #c00);
+    color: white;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3);
+}
 
-        .rotary-knob {
-            width: 40px;
-            height: 40px;
-            background: var(--knob-body);
-            border-radius: 50%;
-            position: relative;
-            cursor: ns-resize; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.2);
-            border: 2px solid #111;
-            /* IMPORTANT: Only disable scrolling when touching the knob */
-            touch-action: none; 
-        }
+.transport-controls button.share {
+    background: linear-gradient(to bottom, #ccf, #aab);
+}
 
-        .rotary-knob::after {
-            content: '';
-            position: absolute;
-            top: 5px;
-            left: 50%;
-            width: 2px;
-            height: 12px;
-            background: var(--knob-line);
-            transform-origin: bottom center;
-            transform: translateX(-50%);
-        }
+/* Tempo Display */
+.led-display {
+    background: #000;
+    padding: 6px 10px;
+    border: 2px solid #555;
+    border-radius: 2px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 1);
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 80px;
+    justify-content: flex-end;
+}
 
-        .knob-input { display: none; }
+#tempoVal {
+    font-family: 'DSEG7 Classic', monospace;
+    color: #ff3333;
+    font-size: 18px;
+    font-weight: normal;
+    text-shadow: 0 0 2px #ff0000, 0 0 5px #ff0000;
+    letter-spacing: 2px;
+    line-height: 1;
+    font-style: italic;
+    /* Classic LED look */
+}
 
-        /* --- TB-303 Specific --- */
-        .tb-303 { background-color: var(--303-panel); }
-        
-        .sequencer-303 {
-            display: grid;
-            grid-template-columns: repeat(16, 1fr);
-            gap: 3px;
-        }
-        .step-303 {
-            background: #ddd;
-            border: 1px solid #999;
-            padding: 5px 2px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            border-radius: 3px;
-            min-height: 50px; /* Make touch targets bigger */
-        }
-        .step-303.current { background: #ffffaa; border-color: #cccc00; }
-        
-        .led { width: 8px; height: 8px; background: var(--led-off); border-radius: 50%; margin-bottom: 4px; box-shadow: inset 1px 1px 1px rgba(0,0,0,0.5); }
-        .step-303.active .led { background: var(--led-on); box-shadow: 0 0 5px red; }
+.led-unit {
+    font-family: 'Arial', sans-serif;
+    font-size: 9px;
+    color: #ff3333;
+    opacity: 0.8;
+    font-weight: bold;
+    text-shadow: 0 0 2px #ff0000;
+}
 
-        .mini-btn {
-            font-size: 9px; width: 100%; text-align: center;
-            cursor: pointer; background: #eee; border: 1px solid #aaa; margin-top: 2px;
-            padding: 2px 0;
-        }
-        .mini-btn.active { background: #888; color: white; }
-        .mini-btn.acc.active { background: #ffcccc; color: black; }
-        .mini-btn.sld.active { background: #ccffcc; color: black; }
+/* --- Machine Panel Common --- */
+.machine {
+    padding: 20px;
+    border-radius: 4px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    position: relative;
+    border: 1px solid #000;
+}
 
-        /* --- TR-909 Specific --- */
-        .tr-909 { background-color: var(--909-panel); }
-        
-        .drum-track-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 8px;
-            background: rgba(255,255,255,0.3);
-            padding: 5px;
-            border-radius: 4px;
-            /* Allow scrolling on the row, buttons handle their own click */
-        }
-        .track-header {
-            width: 180px;
-            display: flex;
-            align-items: center;
-            padding-right: 10px;
-            margin-right: 10px;
-            justify-content: space-between;
-        }
-        .track-knobs { display: flex; gap: 8px; }
-        .track-name { font-weight: bold; font-size: 10px; width: 40px; text-align: right; display: none; }
-        /* Show name on larger screens */
-        @media (min-width: 600px) {
-            .track-name { display: block; }
-        }
-        
-        .sequencer-909 {
-            display: grid;
-            grid-template-columns: repeat(16, 1fr);
-            gap: 2px;
-            flex-grow: 1;
-        }
-        .step-909 {
-            height: 35px; /* Taller for touch */
-            background: #eee;
-            border: 1px solid #bbb;
-            border-radius: 4px;
-            cursor: pointer;
-            box-shadow: inset 1px 1px 0 white;
-        }
-        .sequencer-909 .step-909:nth-child(-n+4),
-        .sequencer-909 .step-909:nth-child(n+9):nth-child(-n+12) { background: #ffccaa; }
-        
-        .step-909.active { background: #ff5555 !important; box-shadow: 0 0 5px red; border-color: red; }
-        .step-909.current { border: 2px solid #333; }
+.machine-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.3);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
 
-        /* Toast Notification */
-        #toast {
-            visibility: hidden;
-            min-width: 250px;
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            border-radius: 4px;
-            padding: 16px;
-            position: fixed;
-            z-index: 100;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            font-size: 14px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+.machine-header h2 small {
+    font-size: 0.6em;
+    opacity: 0.7;
+    font-weight: normal;
+}
 
-        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+/* --- ROTARY KNOB STYLES --- */
+.knob-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.knob-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 50px;
+    position: relative;
+}
+
+.knob-label {
+    font-size: 9px;
+    font-weight: bold;
+    margin-bottom: 6px;
+    text-align: center;
+    pointer-events: none;
+    text-transform: uppercase;
+    color: #333;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.rotary-knob {
+    width: 40px;
+    height: 40px;
+    background: var(--knob-body);
+    border-radius: 50%;
+    position: relative;
+    cursor: ns-resize;
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 1px solid #666;
+    touch-action: none;
+}
+
+.rotary-knob.large {
+    width: 60px;
+    height: 60px;
+}
+
+/* Static gloss overlay */
+.knob-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 50%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.knob-wrapper.large::after {
+    width: 60px;
+    height: 60px;
+    top: 20px;
+}
+
+/* Knob Indicator Line */
+.rotary-knob::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    width: 3px;
+    height: 14px;
+    background: var(--knob-indicator);
+    transform-origin: bottom center;
+    transform: translateX(-50%);
+    border-radius: 1px;
+}
+
+.rotary-knob.large::after {
+    width: 4px;
+    height: 20px;
+    top: 5px;
+}
+
+/* Waveform Switch Styles */
+.waveform-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.switch-label {
+    font-size: 8px;
+    font-weight: bold;
+    color: #333;
+}
+
+.waveform-switch {
+    position: relative;
+    width: 60px;
+    height: 24px;
+    background: #111;
+    border-radius: 2px;
+    display: flex;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+    border: 1px solid #555;
+}
+
+.waveform-switch input {
+    display: none;
+}
+
+.waveform-switch label {
+    flex: 1;
+    z-index: 2;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.switch-handle {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 28px;
+    height: 20px;
+    background: linear-gradient(to bottom, #ccc, #999);
+    border-radius: 1px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Logic for switch handle movement */
+#wave-sq:checked~.switch-handle {
+    transform: translateX(28px);
+}
+
+/* Icons for waveform */
+.icon-saw {
+    width: 12px;
+    height: 12px;
+    background:
+        linear-gradient(to bottom right, transparent 50%, #888 50%) no-repeat 0 0/6px 6px,
+        linear-gradient(to bottom right, transparent 50%, #888 50%) no-repeat 6px 6px/6px 6px;
+    opacity: 0.5;
+}
+
+.icon-sq {
+    width: 10px;
+    height: 10px;
+    border: 2px solid #888;
+    border-top: none;
+    border-right: none;
+    opacity: 0.5;
+}
+
+input:checked+label .icon-saw,
+input:checked+label .icon-sq {
+    opacity: 1;
+    filter: drop-shadow(0 0 2px #fff);
+}
+
+/* Tempo Group */
+.tempo-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 5px 15px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.knob-input {
+    display: none;
+}
+
+/* --- TB-303 Specific --- */
+.tb-303 {
+    background: var(--panel-303);
+}
+
+.sequencer-303 {
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    gap: 4px;
+    padding: 10px;
+    background: #222;
+    border-radius: 4px;
+    border: 2px solid #111;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.step-303 {
+    background: linear-gradient(to bottom, #ccc, #aaa);
+    border: 1px solid #000;
+    padding: 4px 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 2px;
+    min-height: 55px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 2px 2px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.step-303.current {
+    background: linear-gradient(to bottom, #ffeb3b, #fbc02d);
+    box-shadow: 0 0 5px #ffeb3b;
+}
+
+.led {
+    width: 10px;
+    height: 10px;
+    background: var(--led-off);
+    border-radius: 50%;
+    margin-bottom: 6px;
+    box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.2);
+    border: 1px solid #333;
+}
+
+.step-303.active .led {
+    background: var(--led-on);
+    box-shadow: 0 0 8px #ff0000, inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.mini-btn {
+    font-size: 8px;
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+    background: linear-gradient(to bottom, #555, #333);
+    color: #ccc;
+    border: 1px solid #000;
+    margin-top: 3px;
+    padding: 3px 0;
+    border-radius: 2px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+.mini-btn:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.mini-btn.active {
+    background: linear-gradient(to bottom, #999, #777);
+    color: white;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.mini-btn.acc.active {
+    background: linear-gradient(to bottom, #e57373, #c62828);
+    color: white;
+}
+
+.mini-btn.sld.active {
+    background: linear-gradient(to bottom, #81c784, #2e7d32);
+    color: white;
+}
+
+/* --- TR-909 Specific --- */
+.tr-909 {
+    background: var(--panel-909);
+}
+
+.drum-track-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.track-header {
+    width: 180px;
+    display: flex;
+    align-items: center;
+    padding-right: 15px;
+    margin-right: 10px;
+    justify-content: space-between;
+    border-right: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.track-knobs {
+    display: flex;
+    gap: 10px;
+}
+
+.track-name {
+    font-weight: 900;
+    font-size: 11px;
+    width: 40px;
+    text-align: right;
+    display: none;
+    color: #444;
+}
+
+@media (min-width: 600px) {
+    .track-name {
+        display: block;
+    }
+}
+
+.sequencer-909 {
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    gap: 3px;
+    flex-grow: 1;
+}
+
+.step-909 {
+    height: 40px;
+    background: linear-gradient(to bottom, #f0f0f0, #dcdcdc);
+    border: 1px solid #999;
+    border-bottom-color: #777;
+    border-radius: 3px;
+    cursor: pointer;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2), inset 0 1px 0 white;
+    position: relative;
+}
+
+/* Classic 909 coloring: First 4 grey/white, next 4 orange, etc. */
+.sequencer-909 .step-909:nth-child(-n+4),
+.sequencer-909 .step-909:nth-child(n+9):nth-child(-n+12) {
+    background: linear-gradient(to bottom, #f0f0f0, #dcdcdc);
+}
+
+.sequencer-909 .step-909:nth-child(n+5):nth-child(-n+8),
+.sequencer-909 .step-909:nth-child(n+13) {
+    background: linear-gradient(to bottom, #ffccaa, #ffaa88);
+}
+
+.step-909.active {
+    background: linear-gradient(to bottom, #ff5555, #cc0000) !important;
+    box-shadow: 0 0 10px #ff0000, inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    border-color: #900;
+}
+
+.step-909.current {
+    border: 2px solid #222;
+    transform: scale(0.95);
+}
+
+/* Toast Notification */
+#toast {
+    visibility: hidden;
+    min-width: 250px;
+    background-color: #222;
+    color: #fff;
+    text-align: center;
+    border-radius: 4px;
+    padding: 16px;
+    position: fixed;
+    z-index: 100;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%);
+    font-size: 14px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+    border: 1px solid #444;
+}
+
+#toast.show {
+    visibility: visible;
+    animation: fadein 0.5s, fadeout 0.5s 2.5s;
+}
+
+@keyframes fadein {
+    from {
+        bottom: 0;
+        opacity: 0;
+    }
+
+    to {
+        bottom: 30px;
+        opacity: 1;
+    }
+}
+
+@keyframes fadeout {
+    from {
+        bottom: 30px;
+        opacity: 1;
+    }
+
+    to {
+        bottom: 0;
+        opacity: 0;
+    }
+}

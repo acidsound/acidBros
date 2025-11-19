@@ -1,13 +1,13 @@
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Web Audio Acid Studio (Share Edition)</title>
   <link rel="stylesheet" type="text/css" href="styles.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.min.css">
 </head>
+
 <body>
   <div class="rack">
     <!-- Transport -->
@@ -20,17 +20,12 @@
         <button id="clearBtn">CLEAR</button>
         <button id="shareBtn" class="share">SHARE URL</button>
       </div>
-      <div style="display: flex; gap: 10px; align-items: center">
-        <label>TEMPO</label>
-        <input
-          type="range"
-          id="tempo"
-          min="60"
-          max="160"
-          value="125"
-          style="width: 100px"
-        />
-        <span id="tempoVal" style="font-size: 12px; width: 60px">125 BPM</span>
+      <div class="tempo-group">
+        <div id="tempo-knob-container"></div>
+        <div class="led-display">
+          <span id="tempoVal">125</span>
+          <span class="led-unit">BPM</span>
+        </div>
       </div>
     </div>
 
@@ -38,10 +33,17 @@
     <div class="machine tb-303">
       <div class="machine-header">
         <h2>TB-303 <small>BASS LINE</small></h2>
-        <select id="wave303">
-          <option value="sawtooth">SAWTOOTH</option>
-          <option value="square">SQUARE</option>
-        </select>
+        <!-- Waveform Switch -->
+        <div class="waveform-control">
+          <div class="switch-label">WAVEFORM</div>
+          <div class="waveform-switch">
+            <input type="radio" name="wave303" id="wave-saw" value="sawtooth" checked>
+            <label for="wave-saw" title="Sawtooth"><span class="icon-saw"></span></label>
+            <input type="radio" name="wave303" id="wave-sq" value="square">
+            <label for="wave-sq" title="Square"><span class="icon-sq"></span></label>
+            <div class="switch-handle"></div>
+          </div>
+        </div>
       </div>
 
       <div class="knob-group" id="knobs303"></div>
@@ -61,4 +63,5 @@
   <div id="toast">Link copied to clipboard!</div>
 </body>
 <script src="scripts.js"></script>
+
 </html>
