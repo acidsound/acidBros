@@ -806,8 +806,8 @@ const UI = {
                 return b;
             }
 
-            ctrls.appendChild(mkBtn('ACC', 'accent', 'acc'));
-            ctrls.appendChild(mkBtn('SLD', 'slide', 'sld'));
+            ctrls.appendChild(mkBtn('AC', 'accent', 'acc'));
+            ctrls.appendChild(mkBtn('SL', 'slide', 'sld'));
 
             el.appendChild(led); el.appendChild(noteSel); el.appendChild(octSel); el.appendChild(ctrls);
             grid.appendChild(el);
