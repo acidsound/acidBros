@@ -2,6 +2,8 @@
 
 **acidBros** is a web-based synthesizer and sequencer inspired by the legendary Roland TB-303 Bass Line and TR-909 Rhythm Composer. It runs directly in your browser using the Web Audio API.
 
+🎹 **[Try it live!](https://acidsound.github.io/acidBros/)**
+
 ## Screenshots
 
 ### Desktop View
