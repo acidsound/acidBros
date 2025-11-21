@@ -586,6 +586,12 @@ h3 {
     color: white;
 }
 
+.mini-btn.oct.active {
+    background: linear-gradient(to bottom, #64b5f6, #1976d2);
+    color: white;
+    box-shadow: 0 0 5px #2196f3;
+}
+
 /* --- TR-909 Specific --- */
 .tr-909 {
     background: var(--panel-909);
@@ -671,15 +677,30 @@ h3 {
     font-size: 10px;
     width: 50px;
     text-align: right;
-    display: none;
     color: #d85c2e;
-    /* 909 Orange */
     font-family: 'Arial', sans-serif;
+    display: block;
 }
 
-@media (min-width: 600px) {
+@media (max-width: 600px) {
+    .track-header {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
     .track-name {
-        display: block;
+        width: auto;
+        flex-shrink: 0;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .track-knobs {
+        flex-wrap: wrap;
+        justify-content: flex-start;
     }
 }
 
@@ -778,14 +799,372 @@ h3 {
     transform: translate(-50%, -50%);
     width: 6px;
     height: 6px;
-    background: #ffcccc;
+    background: #fff;
     border-radius: 50%;
     box-shadow: 0 0 5px #fff;
 }
 
 .step-909.current {
-    border: 2px solid #222;
-    transform: scale(0.95);
+    border: 2px solid #ffff00;
+    box-shadow: 0 0 8px #ffff00;
+    z-index: 10;
+}
+
+/* --- Advanced Note Editor Popover --- */
+.piano-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+
+.note-editor {
+    width: 90%;
+    max-width: 400px;
+    background: #222;
+    border: 1px solid #555;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: #333;
+    border-bottom: 1px solid #444;
+}
+
+.step-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.step-nav button {
+    background: linear-gradient(to bottom, #444, #333);
+    border: 1px solid #222;
+    color: #ddd;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
+    font-weight: bold;
+}
+
+.step-nav button:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.step-indicator {
+    font-family: 'DSEG7 Classic', monospace;
+    color: #ff3333;
+    font-size: 20px;
+    background: #000;
+    padding: 6px 10px;
+    border-radius: 2px;
+    border: 1px solid #555;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.8);
+    min-width: 40px;
+    text-align: center;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 10px;
+}
+
+.close-btn:hover {
+    color: #fff;
+}
+
+.editor-controls {
+    padding: 15px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    background: #2a2a2a;
+}
+
+.control-row {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.control-label {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: bold;
+}
+
+.octave-selector {
+    display: flex;
+    background: #111;
+    border-radius: 4px;
+    padding: 3px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.octave-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #666;
+    padding: 10px 0;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    font-weight: bold;
+}
+
+.octave-btn:hover {
+    color: #999;
+}
+
+.octave-btn.active {
+    background: #444;
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.toggle-row {
+    display: flex;
+    gap: 10px;
+}
+
+.toggle-btn {
+    flex: 1;
+    padding: 12px;
+    background: linear-gradient(to bottom, #3a3a3a, #2a2a2a);
+    border: 1px solid #111;
+    color: #888;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.1s;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
+    font-size: 12px;
+}
+
+.toggle-btn:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.toggle-btn.active {
+    color: white;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.toggle-btn.accent.active {
+    background: linear-gradient(to bottom, #e53935, #b71c1c);
+    box-shadow: 0 0 10px #e53935;
+}
+
+.toggle-btn.slide.active {
+    background: linear-gradient(to bottom, #43a047, #2e7d32);
+    box-shadow: 0 0 10px #43a047;
+}
+
+.preview-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #aaa;
+    cursor: pointer;
+    user-select: none;
+}
+
+.preview-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #d85c2e;
+    cursor: pointer;
+}
+
+.piano-container {
+    position: relative;
+    height: 160px;
+    background: #1a1a1a;
+    border-top: 1px solid #444;
+    margin-top: auto;
+    padding: 0 10px;
+    /* Spacing for keys */
+}
+
+.piano-key-new {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border: 1px solid #888;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    cursor: pointer;
+    box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.1), 2px 2px 5px rgba(0, 0, 0, 0.3);
+    transition: background 0.05s;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 10px;
+    font-size: 10px;
+    font-weight: bold;
+    color: #444;
+}
+
+.piano-key-new:active {
+    transform: translateY(2px);
+    box-shadow: inset 0 -2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.piano-key-new.white {
+    background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+    z-index: 1;
+}
+
+.piano-key-new.white.active {
+    background: #d85c2e;
+    border-color: #a33;
+    color: white;
+    box-shadow: 0 0 15px #d85c2e;
+}
+
+.piano-key-new.black {
+    background: linear-gradient(to bottom, #333 0%, #000 100%);
+    z-index: 2;
+    height: 60%;
+    border: 1px solid #000;
+    border-bottom: 1px solid #333;
+    color: #ccc;
+}
+
+.piano-key-new.black.active {
+    background: #d85c2e;
+    border-color: #fff;
+    color: white;
+    box-shadow: 0 0 15px #d85c2e;
+}
+
+.mute-btn {
+    width: 100%;
+    padding: 15px;
+    background: #222;
+    color: #888;
+    border: none;
+    border-top: 1px solid #444;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: background 0.2s;
+    font-size: 12px;
+}
+
+.mute-btn:hover {
+    background: #333;
+    color: #fff;
+}
+
+.mute-btn.active {
+    background: #333;
+    color: #d85c2e;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 600px) {
+    .piano-overlay {
+        align-items: flex-end;
+        /* Align to bottom on mobile */
+        background: rgba(0, 0, 0, 0.5);
+        /* Lighter overlay to see behind */
+    }
+
+    .note-editor {
+        width: 100%;
+        max-width: none;
+        border-radius: 4px 4px 0 0;
+        /* Position it to cover the sequencer area roughly, or just stick to bottom */
+        /* User asked to match .sequencer-303 size so top-bar and knob-group are visible. 
+           The sequencer is at the bottom of the machine div. 
+           However, the overlay is fixed full screen. 
+           To achieve the effect of "not covering top-bar", we can just make it a bottom sheet 
+           that doesn't go too high. 
+        */
+        height: auto;
+        max-height: 60vh;
+        /* Ensure it doesn't cover the whole screen */
+        border-bottom: none;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .piano-container {
+        flex-grow: 0;
+        height: 140px;
+        /* Fixed height for keys on mobile */
+    }
+
+    .editor-controls {
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .toggle-btn {
+        padding: 10px;
+        font-size: 12px;
+    }
+
+    .octave-btn {
+        padding: 10px 0;
+        font-size: 12px;
+    }
 }
 
 /* Toast Notification */
