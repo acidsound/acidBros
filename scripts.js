@@ -1208,9 +1208,15 @@ const UI = {
 
             // Keys
             document.querySelectorAll('.piano-key-new').forEach(el => {
-                // Highlight key if it matches note (even if gate is off, we show the pitch)
-                if (el.innerText === s.note) el.classList.add('active');
-                else el.classList.remove('active');
+                // Highlight key if it matches note
+                if (el.innerText === s.note) {
+                    el.classList.add('active');
+                    // If gate is OFF (s.active is false), add disabled style
+                    if (!s.active) el.classList.add('disabled');
+                    else el.classList.remove('disabled');
+                } else {
+                    el.classList.remove('active', 'disabled');
+                }
             });
 
             // Update Main Grid Background

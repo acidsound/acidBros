@@ -1140,6 +1140,13 @@ h3 {
     color: #444;
 }
 
+.piano-key-new.active.disabled {
+    background: #555 !important;
+    color: #888 !important;
+    box-shadow: inset 0 0 10px #333 !important;
+    border-color: #444 !important;
+}
+
 .piano-key-new:active {
     transform: translateY(2px);
     box-shadow: inset 0 -2px 5px rgba(0, 0, 0, 0.2);
