@@ -13,6 +13,7 @@ class RotaryKnob {
         this.min = min;
         this.max = max;
         this.value = value;
+        this.defaultVal = value; // Store initial value as default
         this.step = step;
         this.id = id;
         this.size = size;
@@ -62,6 +63,9 @@ class RotaryKnob {
 
         if (!window.knobInstances) window.knobInstances = {};
         window.knobInstances[id] = this;
+
+        // Removed dblclick listener to handle it manually in startDrag
+        this.lastTap = 0;
     }
 
     updateVisuals() {
@@ -80,10 +84,32 @@ class RotaryKnob {
     }
 
     startDrag(e) {
-        if (e.type === 'touchstart') e.preventDefault();
+        // Safety: Ensure any previous drag is cleaned up
+        if (this.isDragging) {
+            this.endDrag();
+        }
+
+        const now = new Date().getTime();
+        const isDouble = (now - this.lastTap < 400); // Increased threshold to 400ms
+
+        if (isDouble) {
+            if (e.cancelable) e.preventDefault(); // Prevent default only if cancelable
+            e.stopPropagation(); // Stop event propagation
+
+            this.setValue(this.defaultVal);
+            this.lastTap = 0; // Reset tap timer
+            return; // Do not start drag
+        }
+
+        this.lastTap = now;
+
+        if (e.type === 'touchstart') {
+            // Prevent scroll only on drag start
+            if (e.cancelable) e.preventDefault();
+        }
 
         this.isDragging = true;
-        this.startY = e.clientY || e.touches[0].clientY;
+        this.startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
         this.startVal = parseFloat(this.value);
 
         window.addEventListener('mousemove', this.boundMove);

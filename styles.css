@@ -28,6 +28,8 @@ body {
     margin: 0;
     padding: 20px;
     user-select: none;
+    touch-action: manipulation;
+    /* Prevent double-tap zoom */
 }
 
 h1,
