@@ -32,6 +32,8 @@
     *   Tempo control (BPM) with 7-segment LED display.
     *   Play, Stop, Clear, and Randomize functions.
     *   **Share URL**: Export your current pattern state to a URL to share with others.
+*   **PWA Support**: Installable as a Progressive Web App (PWA) for offline use on Desktop and Mobile.
+*   **[User Manual](USER_MANUAL.md)**: Comprehensive guide on how to use the application.
 
 ## Usage
 

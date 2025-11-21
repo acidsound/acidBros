@@ -1,0 +1,16 @@
+{
+  "name": "AcidBros - Web Audio Acid Studio",
+  "short_name": "AcidBros",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#333333",
+  "description": "A web-based TB-303 and TR-909 emulator.",
+  "icons": [
+    {
+      "src": "assets/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
