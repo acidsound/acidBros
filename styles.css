@@ -359,7 +359,7 @@ h3 {
 .knob-wrapper.large::after {
     width: 60px;
     height: 60px;
-    top: 20px;
+    top: 0;
 }
 
 /* Knob Indicator Line */
