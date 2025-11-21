@@ -766,8 +766,15 @@ const UI = {
         document.getElementById('stopBtn').onclick = () => AudioEngine.stop();
         document.getElementById('randomBtn').onclick = () => Data.randomize();
         document.getElementById('clearBtn').onclick = () => {
-            Data.seq303_1.forEach(s => { s.active = false; s.slide = false; s.accent = false; });
-            Data.seq303_2.forEach(s => { s.active = false; s.slide = false; s.accent = false; });
+            [Data.seq303_1, Data.seq303_2].forEach(seq => {
+                seq.forEach(s => {
+                    s.active = false;
+                    s.accent = false;
+                    s.slide = false;
+                    s.octave = 2;
+                    s.note = 'C';
+                });
+            });
             Object.keys(Data.seq909).forEach(k => Data.seq909[k].fill(0));
             this.renderAll();
         };
