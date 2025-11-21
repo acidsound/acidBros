@@ -317,7 +317,7 @@ const AudioEngine = {
             active.filter.frequency.linearRampToValueAtTime(baseCut, time + 0.1);
 
             // Update Volume (Accent might change)
-            const targetVol = P.vol * (step.accent ? 1.0 : 0.7);
+            const targetVol = (P.vol * 0.7) * (step.accent ? 1.0 : 0.7);
             active.gain.gain.cancelScheduledValues(time);
             active.gain.gain.linearRampToValueAtTime(targetVol, time + 0.1);
 
@@ -363,7 +363,7 @@ const AudioEngine = {
             filter.frequency.setTargetAtTime(baseCut, time + 0.01, decay / 3);
 
             // Amp Envelope
-            const peakVol = P.vol * (step.accent ? 1.0 : 0.7);
+            const peakVol = (P.vol * 0.7) * (step.accent ? 1.0 : 0.7);
             gain.gain.setValueAtTime(0, time);
             gain.gain.linearRampToValueAtTime(peakVol, time + 0.005);
             gain.gain.setTargetAtTime(0, time + 0.01, decay);
@@ -424,7 +424,7 @@ const AudioEngine = {
         osc.frequency.exponentialRampToValueAtTime(endFreq, time + pitchEnvMs);
 
         gain.gain.setValueAtTime(0, time);
-        gain.gain.linearRampToValueAtTime(1.0 * P.vol, time + 0.002);
+        gain.gain.linearRampToValueAtTime(1.5 * P.vol, time + 0.002); // Boosted BD
         gain.gain.exponentialRampToValueAtTime(0.001, time + ampDecay);
 
         osc.connect(gain);
@@ -463,7 +463,7 @@ const AudioEngine = {
         tone.frequency.exponentialRampToValueAtTime(endF, time + 0.03); // 짧은 pitch env
 
         const toneDecay = 0.15;
-        toneGain.gain.setValueAtTime(0.8 * P.vol, time);
+        toneGain.gain.setValueAtTime(1.2 * P.vol, time); // Boosted SD Tone
         toneGain.gain.exponentialRampToValueAtTime(0.001, time + toneDecay);
 
         // ---- NOISE: Tone & Snappy ----
@@ -479,7 +479,7 @@ const AudioEngine = {
         const toneNorm = P.p2 / 100;                  // 0..1
         const snapNorm = P.p3 / 100;
 
-        const snapVol = snapNorm * P.vol;
+        const snapVol = snapNorm * P.vol * 1.2; // Boosted SD Noise
         const noiseDecay = 0.08 + (1.0 - toneNorm) * 0.20;
 
         noiseFilter.frequency.setValueAtTime(1000 + toneNorm * 5000, time);
@@ -512,7 +512,7 @@ const AudioEngine = {
         hp.type = 'highpass'; hp.frequency.value = 7000;
         const gain = this.ctx.createGain();
         const baseDecay = isOpen ? (0.2 + P.p1 * 0.01) : (0.05 + P.p1 * 0.001);
-        gain.gain.setValueAtTime(1.2 * P.vol, time);
+        gain.gain.setValueAtTime(1.5 * P.vol, time); // Boosted Hats
         gain.gain.exponentialRampToValueAtTime(0.001, time + baseDecay);
         src.connect(bp); bp.connect(hp); hp.connect(gain); gain.connect(this.master);
         src.start(time); src.stop(time + baseDecay + 0.1);
@@ -523,7 +523,7 @@ const AudioEngine = {
         const ctx = this.ctx;
 
         const voiceGain = ctx.createGain();
-        voiceGain.gain.value = P.vol;
+        voiceGain.gain.value = P.vol * 1.2; // Boosted Clap
         voiceGain.connect(this.master);
 
         // 공통 노이즈 + BP 필터
@@ -622,11 +622,11 @@ const Data = {
         setK('tune303_2', 0, 0); setK('cutoff303_2', 20, 90); setK('reso303_2', 0, 15);
         setK('env303_2', 30, 90); setK('decay303_2', 30, 80); setK('accent303_2', 50, 100); setK('vol303_2', 70, 90);
 
-        setK('bd_p1', 10, 60); setK('bd_p2', 30, 80); setK('bd_p3', 60, 100); setK('bd_level', 80, 100);
-        setK('sd_p1', 40, 70); setK('sd_p2', 20, 50); setK('sd_p3', 50, 90); setK('sd_level', 80, 100);
-        setK('ch_p1', 10, 40); setK('ch_level', 80, 100);
-        setK('oh_p1', 40, 80); setK('oh_level', 80, 100);
-        setK('cp_p1', 40, 70); setK('cp_level', 80, 100);
+        setK('bd_p1', 10, 60); setK('bd_p2', 30, 80); setK('bd_p3', 60, 100); setK('bd_level', 90, 100);
+        setK('sd_p1', 40, 70); setK('sd_p2', 20, 50); setK('sd_p3', 50, 90); setK('sd_level', 90, 100);
+        setK('ch_p1', 10, 40); setK('ch_level', 90, 100);
+        setK('oh_p1', 40, 80); setK('oh_level', 90, 100);
+        setK('cp_p1', 40, 70); setK('cp_level', 90, 100);
 
         // 12반음 기준 전체 노트 정의
         const ALL_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F',
