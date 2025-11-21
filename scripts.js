@@ -46,6 +46,12 @@ class RotaryKnob {
 
         this.wrapper.appendChild(this.knobEl);
         this.wrapper.appendChild(this.inputEl);
+
+        // Tooltip
+        this.tooltip = document.createElement('div');
+        this.tooltip.className = 'knob-tooltip';
+        this.wrapper.appendChild(this.tooltip);
+
         container.appendChild(this.wrapper);
 
         this.isDragging = false;
@@ -74,6 +80,12 @@ class RotaryKnob {
         const deg = -150 + (percent * 300);
         this.knobEl.style.transform = `rotate(${deg}deg)`;
         this.inputEl.value = this.value;
+
+        // Update Tooltip
+        if (this.tooltip) {
+            this.tooltip.innerText = Math.round(this.value);
+        }
+
         // Trigger input event for listeners
         this.inputEl.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -97,6 +109,11 @@ class RotaryKnob {
             e.stopPropagation(); // Stop event propagation
 
             this.setValue(this.defaultVal);
+
+            // Briefly show tooltip on reset then hide
+            this.tooltip.classList.add('visible');
+            setTimeout(() => this.tooltip.classList.remove('visible'), 500);
+
             this.lastTap = 0; // Reset tap timer
             return; // Do not start drag
         }
@@ -109,6 +126,7 @@ class RotaryKnob {
         }
 
         this.isDragging = true;
+        this.tooltip.classList.add('visible'); // Show tooltip
         this.startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
         this.startVal = parseFloat(this.value);
 
@@ -137,6 +155,7 @@ class RotaryKnob {
 
     endDrag() {
         this.isDragging = false;
+        this.tooltip.classList.remove('visible'); // Hide tooltip
         window.removeEventListener('mousemove', this.boundMove);
         window.removeEventListener('touchmove', this.boundMove);
         window.removeEventListener('mouseup', this.boundEnd);

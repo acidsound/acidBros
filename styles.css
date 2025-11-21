@@ -18,6 +18,13 @@
     --shadow-out: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
 
+@font-face {
+    font-family: 'DSEG7Classic';
+    src: url('assets/DSEG7Classic-Bold.woff2') format('woff2');
+    font-weight: bold;
+    font-style: normal;
+}
+
 body {
     background-color: var(--bg-main);
     color: #222;
@@ -566,7 +573,32 @@ h3 {
 
 .step-303.current {
     background: linear-gradient(to bottom, #ffeb3b, #fbc02d);
-    box-shadow: 0 0 5px #ffeb3b;
+    box-shadow: 0 0 5px #ff3333;
+}
+
+/* Knob Tooltip */
+.knob-tooltip {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    color: #f00;
+    font-family: 'DSEG7Classic', monospace;
+    font-size: 12px;
+    padding: 2px 4px;
+    border: 1px solid #555;
+    border-radius: 2px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s;
+    z-index: 100;
+    white-space: nowrap;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.knob-tooltip.visible {
+    opacity: 1;
 }
 
 .led {
