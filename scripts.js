@@ -773,13 +773,18 @@ const UI = {
         };
 
         // Tempo Knob
-        new RotaryKnob(document.getElementById('tempo-knob-container'), 'TEMPO', 'tempo', 60, 200, 125, 1, 'large');
+        new RotaryKnob(document.getElementById('tempo-knob-container'), null, 'tempo', 60, 200, 125, 1, 'large');
+
+        // Initialize 7-Segment Display
+        this.initSevenSegment();
+        this.updateSevenSegment(125);
+
         // Listen for Tempo Knob changes via the hidden input
         document.getElementById('tempo').addEventListener('input', (e) => {
-            AudioEngine.tempo = parseInt(e.target.value);
-            document.getElementById('tempoVal').innerText = e.target.value;
+            const val = parseInt(e.target.value);
+            AudioEngine.tempo = val;
+            this.updateSevenSegment(val);
         });
-
         document.getElementById('shareBtn').onclick = () => {
             const code = Data.exportState();
             const url = window.location.origin + window.location.pathname + "#" + code;
@@ -797,6 +802,50 @@ const UI = {
             Data.init();
             setTimeout(() => Data.randomize(), 500);
         }
+    },
+
+    initSevenSegment() {
+        ['digit-100', 'digit-10', 'digit-1'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = '';
+            ['a', 'b', 'c', 'd', 'e', 'f', 'g'].forEach(seg => {
+                const s = document.createElement('div');
+                s.className = `segment ${seg}`;
+                el.appendChild(s);
+            });
+        });
+    },
+
+    updateSevenSegment(val) {
+        const s = val.toString().padStart(3, '0');
+        const map = {
+            '0': ['a', 'b', 'c', 'd', 'e', 'f'],
+            '1': ['b', 'c'],
+            '2': ['a', 'b', 'd', 'e', 'g'],
+            '3': ['a', 'b', 'c', 'd', 'g'],
+            '4': ['b', 'c', 'f', 'g'],
+            '5': ['a', 'c', 'd', 'f', 'g'],
+            '6': ['a', 'c', 'd', 'e', 'f', 'g'],
+            '7': ['a', 'b', 'c'],
+            '8': ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+            '9': ['a', 'b', 'c', 'd', 'f', 'g']
+        };
+
+        const updateDigit = (id, char) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const activeSegs = map[char] || [];
+            Array.from(el.children).forEach(seg => {
+                const segClass = seg.className.split(' ')[1]; // 'a', 'b', etc.
+                if (activeSegs.includes(segClass)) seg.classList.add('on');
+                else seg.classList.remove('on');
+            });
+        };
+
+        updateDigit('digit-100', s[0]);
+        updateDigit('digit-10', s[1]);
+        updateDigit('digit-1', s[2]);
     },
 
     get303Params(unitId) {
