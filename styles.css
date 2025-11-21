@@ -18,6 +18,10 @@
     --shadow-out: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
 
+* {
+    box-sizing: border-box;
+}
+
 @font-face {
     font-family: 'DSEG7Classic';
     src: url('assets/DSEG7Classic-Bold.woff2') format('woff2');
@@ -240,7 +244,7 @@ h3 {
 @media (max-width: 768px) {
     .rack {
         margin: 0;
-        padding: 10px;
+        padding: 0;
         border-radius: 0;
         border: none;
     }
