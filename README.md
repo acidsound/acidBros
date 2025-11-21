@@ -7,12 +7,12 @@
 ## Screenshots
 
 ### Desktop View
-![Desktop View](screenshot-desktop.png)
+![Desktop View](assets/screenshot-desktop.png)
 
 ### Mobile Views
 | Landscape | Portrait |
 |:---:|:---:|
-| ![Mobile Landscape](screenshot-mobile-landscape.png) | ![Mobile Portrait](screenshot-mobile-portrait.png) |
+| ![Mobile Landscape](assets/screenshot-mobile-landscape.png) | ![Mobile Portrait](assets/screenshot-mobile-portrait.png) |
 
 ## Features
 
