@@ -21,6 +21,7 @@
     *   Sawtooth & Square waveforms.
     *   Classic controls: Tuning, Cutoff, Resonance, Envelope Modulation, Decay, Accent.
     *   16-step sequencer with Note, Octave, Slide (SL), and Accent (AC) controls per step.
+    *   **Piano Roll Note Selection**: Intuitive popover keyboard for selecting notes.
     *   **Monophonic Logic**: Authentic slide and gate behavior.
 *   **TR-909 Emulation**:
     *   5 Drum Tracks: Bass Drum, Snare Drum, Closed Hat, Open Hat, Clap.
