@@ -3,7 +3,11 @@ const ASSETS = [
     './',
     './index.html',
     './styles.css',
-    './scripts.js',
+    './js/main.js',
+    './js/RotaryKnob.js',
+    './js/audio/AudioEngine.js',
+    './js/data/Data.js',
+    './js/ui/UI.js',
     './manifest.json',
     './assets/favicon.png',
     './assets/DSEG7Classic-Bold.woff2'
