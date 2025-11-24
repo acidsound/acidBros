@@ -389,8 +389,16 @@ h3 {
 /* Waveform Switch Styles */
 .waveform-control {
     display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.waveform-switch-group {
+    display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 4px;
 }
 
@@ -409,6 +417,11 @@ h3 {
     display: flex;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
     border: 1px solid #555;
+}
+
+/* 303 Clear Button Positioning */
+.clear-303-btn {
+    margin-left: 0;
 }
 
 /* Waveform Switch Logic */
@@ -749,7 +762,6 @@ h3 {
     /* Wider for extra knob */
     display: flex;
     align-items: center;
-    padding-right: 15px;
     margin-right: 10px;
     justify-content: space-between;
     border-right: 2px solid #d85c2e;
@@ -1338,4 +1350,200 @@ h3 {
         bottom: 0;
         opacity: 0;
     }
+}
+
+/* --- Mode Controls --- */
+.mode-controls {
+    background: #2a2a2a;
+    border: 1px solid #000;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+    color: #ddd;
+}
+
+.mode-switch-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    justify-content: center;
+}
+
+.mode-switch-row button {
+    background: #444;
+    color: #888;
+    border: 1px solid #111;
+    padding: 8px 20px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 3px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+}
+
+.mode-switch-row button.active {
+    background: #ddd;
+    color: #111;
+    box-shadow: 0 0 5px #fff;
+}
+
+.mode-context-controls {
+    background: #222;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #000;
+}
+
+/* Pattern Mode UI */
+.pattern-select-row {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.pat-btn {
+    width: 40px;
+    height: 40px;
+    background: #444;
+    color: #aaa;
+    border: 1px solid #000;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.pat-btn.active {
+    background: #ff3333;
+    color: #fff;
+    box-shadow: 0 0 10px #ff3333;
+    border-color: #ff0000;
+}
+
+.pattern-actions,
+.song-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.pattern-actions button,
+.song-actions button {
+    background: #555;
+    color: #fff;
+    border: 1px solid #000;
+    padding: 5px 15px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.pattern-actions button:hover,
+.song-actions button:hover {
+    background: #666;
+}
+
+/* Song Mode UI */
+.song-timeline {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    background: #111;
+    padding: 10px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    min-height: 50px;
+    align-items: flex-start;
+}
+
+.song-block {
+    background: #444;
+    color: #aaa;
+    padding: 5px 10px;
+    border-radius: 2px;
+    font-size: 0.8em;
+    border: 1px solid #222;
+    min-width: 30px;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.song-block:hover {
+    background: #555;
+    border-color: #ff3333;
+    transform: translateY(-2px);
+}
+
+.song-block.playing {
+    background: #ffcc00;
+    color: #000;
+    border-color: #ffaa00;
+    box-shadow: 0 0 5px #ffcc00;
+    font-weight: bold;
+    transform: scale(1.1);
+}
+
+
+
+/* --- Track Controls (909) --- */
+.track-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+}
+
+.track-controls .track-name {
+    margin-bottom: 4px;
+    text-align: center;
+    width: 100%;
+}
+
+.track-controls .mini-btn.icon-btn {
+    margin: 0 auto;
+    width: 24px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- Header Clear Button (909) --- */
+.header-clear-btn {
+    background: linear-gradient(to bottom, #444, #222);
+    border: 1px solid #111;
+    border-radius: 2px;
+    padding: 3px 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
+    margin-left: auto;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    margin-bottom: 1px;
+}
+
+.header-clear-btn:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+    background: #222;
+}
+
+.header-clear-btn:hover {
+    background: linear-gradient(to bottom, #555, #333);
+}
+
+.header-clear-btn svg {
+    stroke: #888;
+    transition: stroke 0.2s;
+}
+
+.header-clear-btn:hover svg {
+    stroke: #ff3333;
 }

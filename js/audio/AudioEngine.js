@@ -36,6 +36,7 @@ export const AudioEngine = {
 
             this.nextNoteTime = 0;
             this.currentStep = 0;
+            this.currentSongIndex = 0; // Track Song Position (Bar)
             this.tempo = 125;
             this.isPlaying = false;
             this.scheduleAheadTime = 0.1;
@@ -53,6 +54,7 @@ export const AudioEngine = {
         if (this.ctx.state === 'suspended') this.ctx.resume();
         this.isPlaying = true;
         this.currentStep = 0;
+        this.currentSongIndex = 0; // Reset Song Position
         this.nextNoteTime = this.ctx.currentTime;
 
         // Reset all instruments
@@ -65,6 +67,7 @@ export const AudioEngine = {
 
     stop() {
         this.isPlaying = false;
+        this.currentSongIndex = 0; // Reset Song Position
         window.clearTimeout(this.timerID);
         UI.clearPlayhead();
         if (this.ctx) {
@@ -85,7 +88,25 @@ export const AudioEngine = {
     nextNote() {
         const secondsPerBeat = 60.0 / this.tempo;
         this.nextNoteTime += 0.25 * secondsPerBeat;
-        this.currentStep = (this.currentStep + 1) % 16;
+        this.currentStep++;
+
+        if (this.currentStep === 16) {
+            this.currentStep = 0;
+            // End of Bar Logic
+            if (Data.mode === 'song') {
+                this.currentSongIndex++;
+                if (this.currentSongIndex >= Data.song.length) {
+                    this.currentSongIndex = 0; // Loop Song
+                }
+                // Update UI to show progress in Song Timeline
+                // We use requestAnimationFrame or just call UI update directly (async safe)
+                // Since this is audio thread timing, better to be careful, but UI updates are usually fine.
+                // We'll trigger a visual update for the timeline.
+                UI.updateSongTimeline();
+                // Also need to re-render grid if the pattern changed!
+                UI.renderAll();
+            }
+        }
     },
 
     schedule(time) {

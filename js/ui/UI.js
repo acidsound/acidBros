@@ -4,6 +4,15 @@ import { Data } from '../data/Data.js';
 
 export const UI = {
     init() {
+        // Create Mode Control Section if not exists
+        if (!document.getElementById('mode-controls')) {
+            const topBar = document.querySelector('.top-bar');
+            const modeDiv = document.createElement('div');
+            modeDiv.id = 'mode-controls';
+            modeDiv.className = 'mode-controls';
+            topBar.parentNode.insertBefore(modeDiv, topBar.nextSibling);
+        }
+
         this.init303Knobs(1);
         this.init303Knobs(2);
         this.render303Grid(1);
@@ -14,17 +23,107 @@ export const UI = {
         document.getElementById('stopBtn').onclick = () => AudioEngine.stop();
         document.getElementById('randomBtn').onclick = () => Data.randomize();
         document.getElementById('clearBtn').onclick = () => {
-            [Data.seq303_1, Data.seq303_2].forEach(seq => {
-                seq.forEach(s => {
-                    s.active = false;
-                    s.accent = false;
-                    s.slide = false;
-                    s.octave = 2;
-                    s.note = 'C';
+            if (Data.mode === 'song') {
+                Data.clearSong();
+            } else {
+                const s1 = Data.getSequence('tb303_1');
+                const s2 = Data.getSequence('tb303_2');
+                const s9 = Data.getSequence('tr909');
+
+                [s1, s2].forEach(seq => {
+                    seq.forEach(s => {
+                        s.active = false;
+                        s.accent = false;
+                        s.slide = false;
+                        s.octave = 2;
+                        s.note = 'C';
+                    });
                 });
-            });
-            Object.keys(Data.seq909).forEach(k => Data.seq909[k].fill(0));
-            this.renderAll();
+                Object.keys(s9).forEach(k => s9[k].fill(0));
+                this.renderAll();
+            }
+        };
+
+        // Clear/Randomize all 909 tracks
+        document.getElementById('clear909Btn').onclick = () => {
+            const s9 = Data.getSequence('tr909');
+            if (!s9) return;
+
+            const allEmpty = ['bd', 'sd', 'ch', 'oh', 'cp'].every(id =>
+                s9[id].every(v => v === 0)
+            );
+
+            if (allEmpty) {
+                // Randomize all tracks
+                ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(id => {
+                    for (let i = 0; i < 16; i++) {
+                        s9[id][i] = Math.random() > 0.7 ? 1 : 0;
+                    }
+                });
+            } else {
+                // Clear all tracks
+                Object.keys(s9).forEach(k => s9[k].fill(0));
+            }
+            this.update909Grid();
+            this.update909ClearButtons();
+        };
+
+        // Clear/Randomize TB-303 Unit 1
+        document.getElementById('clear303_1').onclick = () => {
+            const s1 = Data.getSequence('tb303_1');
+            if (!s1) return;
+
+            const isEmpty = s1.every(step => !step.active);
+            if (isEmpty) {
+                // Randomize
+                s1.forEach((step, i) => {
+                    step.active = Math.random() > 0.3;
+                    step.note = ['C', 'D#', 'F', 'F#', 'G', 'A#'][Math.floor(Math.random() * 6)];
+                    step.octave = 1 + Math.floor(Math.random() * 2);
+                    step.accent = Math.random() > 0.8;
+                    step.slide = step.active && Math.random() > 0.8;
+                });
+            } else {
+                // Clear
+                s1.forEach(step => {
+                    step.active = false;
+                    step.accent = false;
+                    step.slide = false;
+                    step.octave = 2;
+                    step.note = 'C';
+                });
+            }
+            this.render303Grid(1);
+            this.update303ClearButtons();
+        };
+
+        // Clear/Randomize TB-303 Unit 2
+        document.getElementById('clear303_2').onclick = () => {
+            const s2 = Data.getSequence('tb303_2');
+            if (!s2) return;
+
+            const isEmpty = s2.every(step => !step.active);
+            if (isEmpty) {
+                // Randomize
+                s2.forEach((step, i) => {
+                    step.active = Math.random() > 0.3;
+                    step.note = ['C', 'D#', 'F', 'F#', 'G', 'A#'][Math.floor(Math.random() * 6)];
+                    step.octave = 2 + Math.floor(Math.random() * 2);
+                    step.accent = Math.random() > 0.7;
+                    step.slide = step.active && Math.random() > 0.75;
+                });
+            } else {
+                // Clear
+                s2.forEach(step => {
+                    step.active = false;
+                    step.accent = false;
+                    step.slide = false;
+                    step.octave = 2;
+                    step.note = 'C';
+                });
+            }
+            this.render303Grid(2);
+            this.update303ClearButtons();
         };
 
         // Tempo Knob
@@ -53,10 +152,157 @@ export const UI = {
 
         if (window.location.hash && window.location.hash.length > 10) {
             Data.importState(window.location.hash.substring(1));
+            this.update303ClearButtons();
+            this.update909ClearButtons();
         } else {
             Data.init();
-            setTimeout(() => Data.randomize(), 500);
+            setTimeout(() => {
+                Data.randomize();
+                this.update303ClearButtons();
+                this.update909ClearButtons();
+            }, 500);
         }
+
+        this.renderModeControls();
+    },
+
+    renderModeControls() {
+        const container = document.getElementById('mode-controls');
+        container.innerHTML = '';
+
+        // --- Mode Switcher ---
+        const switchRow = document.createElement('div');
+        switchRow.className = 'mode-switch-row';
+
+        const pBtn = document.createElement('button');
+        pBtn.innerText = 'PATTERN MODE';
+        pBtn.className = Data.mode === 'pattern' ? 'active' : '';
+        pBtn.onclick = () => { Data.mode = 'pattern'; this.renderModeControls(); this.renderAll(); };
+
+        const sBtn = document.createElement('button');
+        sBtn.innerText = 'SONG MODE';
+        sBtn.className = Data.mode === 'song' ? 'active' : '';
+        sBtn.onclick = () => { Data.mode = 'song'; this.renderModeControls(); this.renderAll(); };
+
+        switchRow.appendChild(pBtn);
+        switchRow.appendChild(sBtn);
+        container.appendChild(switchRow);
+
+        // --- Context Controls ---
+        const controls = document.createElement('div');
+        controls.className = 'mode-context-controls';
+
+        if (Data.mode === 'pattern') {
+            this.renderPatternControls(controls);
+        } else {
+            this.renderSongControls(controls);
+        }
+        container.appendChild(controls);
+    },
+
+    renderPatternControls(container) {
+        // Pattern Selectors 1-16
+        const patRow = document.createElement('div');
+        patRow.className = 'pattern-select-row';
+
+        for (let i = 0; i < 16; i++) {
+            const b = document.createElement('button');
+            b.innerText = `P${i + 1}`;
+            b.className = Data.currentPatternId === i ? 'pat-btn active' : 'pat-btn';
+            b.onclick = () => Data.selectPattern(i);
+            patRow.appendChild(b);
+        }
+
+        // Actions
+        const actRow = document.createElement('div');
+        actRow.className = 'pattern-actions';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.innerText = 'COPY';
+        copyBtn.onclick = () => Data.copyPattern();
+
+        const pasteBtn = document.createElement('button');
+        pasteBtn.innerText = 'PASTE';
+        pasteBtn.onclick = () => Data.pastePattern();
+
+        actRow.appendChild(copyBtn);
+        actRow.appendChild(pasteBtn);
+
+        container.appendChild(patRow);
+        container.appendChild(actRow);
+    },
+
+    renderSongControls(container) {
+        // Pattern Selectors - Click to select AND add to song
+        const patRow = document.createElement('div');
+        patRow.className = 'pattern-select-row';
+
+        for (let i = 0; i < 16; i++) {
+            const b = document.createElement('button');
+            b.innerText = `P${i + 1}`;
+            b.className = Data.currentPatternId === i ? 'pat-btn active' : 'pat-btn';
+            b.title = 'Click to select and add to song';
+
+            // Click: select pattern AND add to song
+            b.onclick = () => {
+                Data.selectPattern(i);
+                Data.addToSong(i);
+                this.renderModeControls(); // Refresh to update timeline and active state
+            };
+
+            patRow.appendChild(b);
+        }
+
+        // Timeline
+        const timeline = document.createElement('div');
+        timeline.className = 'song-timeline';
+        timeline.id = 'song-timeline';
+
+        this.updateSongTimelineDOM(timeline);
+
+        container.appendChild(patRow);
+        container.appendChild(timeline);
+    },
+
+    updateSongTimeline() {
+        // Called from AudioEngine or Data
+        const timeline = document.getElementById('song-timeline');
+        if (timeline) this.updateSongTimelineDOM(timeline);
+    },
+
+    updateSongTimelineDOM(container) {
+        container.innerHTML = '';
+
+        if (Data.song.length === 0) {
+            const emptyMsg = document.createElement('div');
+            emptyMsg.style.color = '#666';
+            emptyMsg.style.fontSize = '0.9em';
+            emptyMsg.style.fontStyle = 'italic';
+            emptyMsg.innerText = 'Click pattern buttons above to build your song...';
+            container.appendChild(emptyMsg);
+            return;
+        }
+
+        Data.song.forEach((patId, idx) => {
+            const block = document.createElement('div');
+            block.className = 'song-block';
+            block.innerText = `P${patId + 1}`;
+            block.title = 'Click to remove';
+            block.style.cursor = 'pointer';
+
+            // Highlight current playing block
+            if (AudioEngine.isPlaying && AudioEngine.currentSongIndex === idx) {
+                block.classList.add('playing');
+            }
+
+            // Click to remove
+            block.onclick = () => {
+                Data.song.splice(idx, 1);
+                this.renderModeControls(); // Refresh timeline
+            };
+
+            container.appendChild(block);
+        });
     },
 
     initSevenSegment() {
@@ -153,6 +399,7 @@ export const UI = {
         this.render303Grid(1);
         this.render303Grid(2);
         this.render909();
+        this.renderModeControls(); // Refresh mode controls (buttons, timeline)
     },
 
     init303Knobs(unitId) {
@@ -175,7 +422,8 @@ export const UI = {
     render303Grid(unitId) {
         const grid = document.getElementById(`grid303_${unitId}`);
         grid.innerHTML = '';
-        const seq = unitId === 1 ? Data.seq303_1 : Data.seq303_2;
+        const seq = Data.getSequence(`tb303_${unitId}`);
+        if (!seq) return;
 
         seq.forEach((step, i) => {
             const el = document.createElement('div');
@@ -183,6 +431,7 @@ export const UI = {
             el.onclick = () => {
                 step.active = !step.active;
                 this.render303Grid(unitId);
+                this.update303ClearButtons();
             };
 
             const led = document.createElement('div'); led.className = 'led';
@@ -250,7 +499,7 @@ export const UI = {
         if (existing) existing.remove();
 
         // Find index of current step
-        const seq = unitId === 1 ? Data.seq303_1 : Data.seq303_2;
+        const seq = Data.getSequence(`tb303_${unitId}`);
         let currentIndex = seq.indexOf(step);
 
         // Create Overlay
@@ -450,7 +699,11 @@ export const UI = {
         document.body.appendChild(overlay);
 
         // --- Logic ---
-        const getCurrentStep = () => seq[currentIndex];
+        const getCurrentStep = () => {
+            // Re-fetch sequence in case it changed (though popover usually blocks interaction)
+            const s = Data.getSequence(`tb303_${unitId}`);
+            return s[currentIndex];
+        };
 
         const updateUI = () => {
             const s = getCurrentStep();
@@ -551,25 +804,119 @@ export const UI = {
             const hdr = document.createElement('div'); hdr.className = 'track-header';
             const knobDiv = document.createElement('div'); knobDiv.className = 'track-knobs';
             t.params.forEach(p => { new RotaryKnob(knobDiv, p.l, p.id, 0, 100, p.v, 1, 'small'); });
-            const name = document.createElement('div'); name.className = 'track-name'; name.innerText = t.id.toUpperCase();
-            hdr.appendChild(knobDiv); hdr.appendChild(name); row.appendChild(hdr);
+            const name = document.createElement('div');
+            name.className = 'track-name';
+            name.innerText = t.id.toUpperCase();
+
+            const clearBtn = document.createElement('div');
+            clearBtn.className = 'mini-btn icon-btn';
+            clearBtn.id = `clear-${t.id}`;
+            clearBtn.title = 'Clear Track';
+            clearBtn.onclick = () => {
+                const s9 = Data.getSequence('tr909');
+                if (!s9 || !s9[t.id]) return;
+
+                const isEmpty = s9[t.id].every(v => v === 0);
+                if (isEmpty) {
+                    // Randomize
+                    for (let i = 0; i < 16; i++) {
+                        s9[t.id][i] = Math.random() > 0.7 ? 1 : 0;
+                    }
+                } else {
+                    // Clear
+                    s9[t.id].fill(0);
+                }
+                this.update909Grid();
+                this.update909ClearButtons();
+            };
+
+            const nameContainer = document.createElement('div');
+            nameContainer.className = 'track-controls';
+            nameContainer.appendChild(name);
+            nameContainer.appendChild(clearBtn);
+
+            hdr.appendChild(knobDiv); hdr.appendChild(nameContainer); row.appendChild(hdr);
             const seqDiv = document.createElement('div'); seqDiv.className = 'sequencer-909'; seqDiv.id = `seq909_${t.id}`;
-            for (let i = 0; i < 16; i++) {
-                const s = document.createElement('div'); s.className = 'step-909';
-                s.onclick = () => { Data.seq909[t.id][i] = Data.seq909[t.id][i] ? 0 : 1; s.classList.toggle('active'); }
-                seqDiv.appendChild(s);
+            const s9 = Data.getSequence('tr909');
+            if (s9) {
+                for (let i = 0; i < 16; i++) {
+                    const s = document.createElement('div'); s.className = 'step-909';
+                    s.onclick = () => {
+                        s9[t.id][i] = s9[t.id][i] ? 0 : 1;
+                        s.classList.toggle('active');
+                        this.update909ClearButtons();
+                    }
+                    seqDiv.appendChild(s);
+                }
             }
             row.appendChild(seqDiv); container.appendChild(row);
         });
         this.update909Grid();
+        this.update909ClearButtons();
+    },
+
+    update909ClearButtons() {
+        const s9 = Data.getSequence('tr909');
+        if (!s9) return;
+
+        const trashIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+        const diceIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1"></circle><circle cx="15.5" cy="8.5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="8.5" cy="15.5" r="1"></circle><circle cx="15.5" cy="15.5" r="1"></circle></svg>';
+
+        let allEmpty = true;
+        ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(id => {
+            const btn = document.getElementById(`clear-${id}`);
+            if (!btn) return;
+
+            const isEmpty = s9[id].every(v => v === 0);
+            if (!isEmpty) allEmpty = false;
+
+            btn.innerHTML = isEmpty ? diceIcon : trashIcon;
+            btn.title = isEmpty ? 'Randomize Track' : 'Clear Track';
+        });
+
+        // Update header clear button
+        const headerBtn = document.getElementById('clear909Btn');
+        if (headerBtn) {
+            headerBtn.innerHTML = allEmpty ? diceIcon : trashIcon;
+            headerBtn.title = allEmpty ? 'Randomize All Tracks' : 'Clear All Tracks';
+        }
+    },
+
+    update303ClearButtons() {
+        const trashIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+        const diceIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1"></circle><circle cx="15.5" cy="8.5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="8.5" cy="15.5" r="1"></circle><circle cx="15.5" cy="15.5" r="1"></circle></svg>';
+
+        // Update Unit 1
+        const s1 = Data.getSequence('tb303_1');
+        if (s1) {
+            const btn1 = document.getElementById('clear303_1');
+            if (btn1) {
+                const isEmpty1 = s1.every(step => !step.active);
+                btn1.innerHTML = isEmpty1 ? diceIcon : trashIcon;
+                btn1.title = isEmpty1 ? 'Randomize Sequence' : 'Clear Sequence';
+            }
+        }
+
+        // Update Unit 2
+        const s2 = Data.getSequence('tb303_2');
+        if (s2) {
+            const btn2 = document.getElementById('clear303_2');
+            if (btn2) {
+                const isEmpty2 = s2.every(step => !step.active);
+                btn2.innerHTML = isEmpty2 ? diceIcon : trashIcon;
+                btn2.title = isEmpty2 ? 'Randomize Sequence' : 'Clear Sequence';
+            }
+        }
     },
 
     update909Grid() {
+        const s9 = Data.getSequence('tr909');
+        if (!s9) return;
         ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(id => {
             const div = document.getElementById(`seq909_${id}`);
             if (!div) return;
             Array.from(div.children).forEach((child, i) => {
-                if (Data.seq909[id][i]) child.classList.add('active');
+                if (s9[id][i]) child.classList.add('active');
                 else child.classList.remove('active');
             });
         });

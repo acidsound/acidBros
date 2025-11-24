@@ -47,14 +47,23 @@
       <div class="machine-header">
         <h2>TB-303 <small>UNIT 1</small></h2>
         <div class="waveform-control">
-          <div class="switch-label">WAVEFORM</div>
-          <div class="waveform-switch">
-            <input type="radio" name="wave303_1" id="wave-saw-1" value="sawtooth" checked>
-            <label for="wave-saw-1" title="Sawtooth"><span class="icon-saw"></span></label>
-            <input type="radio" name="wave303_1" id="wave-sq-1" value="square">
-            <label for="wave-sq-1" title="Square"><span class="icon-sq"></span></label>
-            <div class="switch-handle"></div>
+          <div class="waveform-switch-group">
+            <div class="switch-label">WAVEFORM</div>
+            <div class="waveform-switch">
+              <input type="radio" name="wave303_1" id="wave-saw-1" value="sawtooth" checked>
+              <label for="wave-saw-1" title="Sawtooth"><span class="icon-saw"></span></label>
+              <input type="radio" name="wave303_1" id="wave-sq-1" value="square">
+              <label for="wave-sq-1" title="Square"><span class="icon-sq"></span></label>
+              <div class="switch-handle"></div>
+            </div>
           </div>
+          <button id="clear303_1" class="header-clear-btn clear-303-btn" title="Clear Sequence">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
         </div>
       </div>
       <div class="knob-group" id="knobs303_1"></div>
@@ -66,14 +75,23 @@
       <div class="machine-header">
         <h2>TB-303 <small>UNIT 2</small></h2>
         <div class="waveform-control">
-          <div class="switch-label">WAVEFORM</div>
-          <div class="waveform-switch">
-            <input type="radio" name="wave303_2" id="wave-saw-2" value="sawtooth" checked>
-            <label for="wave-saw-2" title="Sawtooth"><span class="icon-saw"></span></label>
-            <input type="radio" name="wave303_2" id="wave-sq-2" value="square">
-            <label for="wave-sq-2" title="Square"><span class="icon-sq"></span></label>
-            <div class="switch-handle"></div>
+          <div class="waveform-switch-group">
+            <div class="switch-label">WAVEFORM</div>
+            <div class="waveform-switch">
+              <input type="radio" name="wave303_2" id="wave-saw-2" value="sawtooth" checked>
+              <label for="wave-saw-2" title="Sawtooth"><span class="icon-saw"></span></label>
+              <input type="radio" name="wave303_2" id="wave-sq-2" value="square">
+              <label for="wave-sq-2" title="Square"><span class="icon-sq"></span></label>
+              <div class="switch-handle"></div>
+            </div>
           </div>
+          <button id="clear303_2" class="header-clear-btn clear-303-btn" title="Clear Sequence">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
         </div>
       </div>
       <div class="knob-group" id="knobs303_2"></div>
@@ -84,6 +102,13 @@
     <div class="machine tr-909">
       <div class="machine-header">
         <h2>TR-909 <small>RHYTHM COMPOSER</small></h2>
+        <button id="clear909Btn" class="header-clear-btn" title="Clear All Tracks">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
       </div>
       <div id="tracks909"></div>
     </div>

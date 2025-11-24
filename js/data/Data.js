@@ -2,34 +2,102 @@ import { UI } from '../ui/UI.js';
 import { AudioEngine } from '../audio/AudioEngine.js';
 
 export const Data = {
-    seq303_1: [],
-    seq303_2: [],
-    seq909: { bd: [], sd: [], ch: [], oh: [], cp: [] },
+    mode: 'pattern', // 'pattern' | 'song'
+    currentPatternId: 0, // 0-15
+    song: [], // Array of pattern IDs: [0, 0, 1, 2, ...]
+
+    // Pattern Bank (16 Patterns)
+    patterns: [],
+
+    init() {
+        // Initialize 16 Patterns
+        for (let i = 0; i < 16; i++) {
+            this.patterns.push(this.createEmptyPattern());
+        }
+        // Default Song
+        this.song = [0];
+    },
+
+    createEmptyPattern() {
+        const p = {
+            seq303_1: [],
+            seq303_2: [],
+            seq909: { bd: [], sd: [], ch: [], oh: [], cp: [] }
+        };
+        // Init 303s
+        for (let i = 0; i < 16; i++) {
+            p.seq303_1.push({ active: false, note: 'C', octave: 2, accent: false, slide: false });
+            p.seq303_2.push({ active: false, note: 'C', octave: 2, accent: false, slide: false });
+        }
+        // Init 909
+        ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(k => p.seq909[k] = Array(16).fill(0));
+        return p;
+    },
 
     getSequence(id) {
-        if (id === 'tb303_1') return this.seq303_1;
-        if (id === 'tb303_2') return this.seq303_2;
-        if (id === 'tr909') return this.seq909;
+        let patternId = this.currentPatternId;
+
+        if (this.mode === 'song' && AudioEngine.isPlaying) {
+            // In Song Mode, AudioEngine tells us which pattern to play via currentSongIndex
+            // But AudioEngine logic needs to handle the song index.
+            // Actually, AudioEngine should ask Data "what is the sequence for the current moment?"
+            // Let's rely on AudioEngine to track song position, but it needs to ask Data for the pattern ID at that position.
+            const songIdx = AudioEngine.currentSongIndex;
+            if (this.song.length > 0) {
+                patternId = this.song[songIdx % this.song.length];
+            }
+        }
+
+        const p = this.patterns[patternId];
+        if (!p) return null;
+
+        if (id === 'tb303_1') return p.seq303_1;
+        if (id === 'tb303_2') return p.seq303_2;
+        if (id === 'tr909') return p.seq909;
         return null;
     },
 
-    init() {
-        this.init303(1);
-        this.init303(2);
-        this.init909();
+    // --- Pattern Management ---
+    selectPattern(id) {
+        if (id < 0 || id > 15) return;
+        this.currentPatternId = id;
+        UI.renderAll();
     },
 
-    init303(unitId) {
-        const seq = [];
-        for (let i = 0; i < 16; i++) {
-            seq.push({ active: false, note: 'C', octave: 2, accent: false, slide: false });
+    // --- Song Management ---
+    addToSong(patternId) {
+        this.song.push(patternId);
+        UI.updateSongTimeline();
+    },
+
+    removeFromSong() {
+        this.song.pop();
+        UI.updateSongTimeline();
+    },
+
+    clearSong() {
+        this.song = [];
+        UI.updateSongTimeline();
+    },
+
+    // --- Clipboard ---
+    clipboard: null,
+    copyPattern() {
+        this.clipboard = JSON.parse(JSON.stringify(this.patterns[this.currentPatternId]));
+        // Show toast instead of alert
+        const toast = document.getElementById('toast');
+        if (toast) {
+            toast.innerText = 'Pattern copied!';
+            toast.className = 'show';
+            setTimeout(() => {
+                toast.className = toast.className.replace('show', '');
+            }, 3000);
         }
-        if (unitId === 1) this.seq303_1 = seq;
-        else this.seq303_2 = seq;
     },
-
-    init909() {
-        ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(k => this.seq909[k] = Array(16).fill(0));
+    pastePattern() {
+        if (!this.clipboard) return;
+        this.patterns[this.currentPatternId] = JSON.parse(JSON.stringify(this.clipboard));
+        UI.renderAll();
     },
 
     randomize() {
@@ -40,6 +108,7 @@ export const Data = {
             }
         };
 
+        // Knobs are Global - Randomize them
         // Randomize 303 Unit 1
         const wave1 = Math.random() > 0.5 ? 'sawtooth' : 'square';
         document.getElementById(wave1 === 'sawtooth' ? 'wave-saw-1' : 'wave-sq-1').checked = true;
@@ -58,6 +127,9 @@ export const Data = {
         setK('oh_p1', 40, 80); setK('oh_level', 90, 100);
         setK('cp_p1', 40, 70); setK('cp_level', 90, 100);
 
+        // Randomize Sequence Data for CURRENT Pattern
+        const p = this.patterns[this.currentPatternId];
+
         // 12반음 기준 전체 노트 정의
         const ALL_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F',
             'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -69,103 +141,69 @@ export const Data = {
         const BASS_STRONG_NOTES = ['C', 'F', 'G']; // SCALE의 부분집합
 
         // 협화 간격(반음 수): 유니즌, m3, M3, P5, m6, M6
-        // 0, 3, 4, 7, 8, 9 semitones
         const CONSONANT_INTERVALS = [0, 3, 4, 7, 8, 9];
-
-        // 강박에서 더 엄격하게: 3도/6도 위주
         const STRONG_MELODY_INTERVALS = [3, 4, 8, 9]; // m3, M3, m6, M6
-        // 약박: 위 + 유니즌/5도 허용
         const WEAK_MELODY_INTERVALS = [0, 3, 4, 7, 8, 9];
 
         const noteToIndex = (note) => ALL_NOTES.indexOf(note);
 
-
         // ---------- 베이스 라인 생성 ----------
         const randBassSeq = (seq) => {
             seq.forEach((step, i) => {
-                const isStrongBeat = (i % 4 === 0); // 0,4,8,12를 강박으로 가정
-
-                // 베이스는 강박에서 더 자주 울리게
+                const isStrongBeat = (i % 4 === 0);
                 step.active = Math.random() > (isStrongBeat ? 0.1 : 0.5);
-
                 let note;
                 if (isStrongBeat) {
-                    // 강박: 루트/서브돔/도미넌트 위주
                     note = BASS_STRONG_NOTES[Math.floor(Math.random() * BASS_STRONG_NOTES.length)];
                 } else {
-                    // 약박: 직전 음을 유지하거나, 스케일 내에서 한 번 점프
-                    // Note: inactive steps now also get a note, so we can look at previous step's note safely
                     const prev = i > 0 ? seq[i - 1].note : null;
-                    if (prev && Math.random() > 0.5) {
-                        note = prev;
-                    } else {
-                        note = SCALE[Math.floor(Math.random() * SCALE.length)];
-                    }
+                    if (prev && Math.random() > 0.5) note = prev;
+                    else note = SCALE[Math.floor(Math.random() * SCALE.length)];
                 }
-                step.note = note || 'C'; // Fallback to C if something goes wrong
-                step.octave = 1 + Math.floor(Math.random() * 1); // 주로 1옥타브
+                step.note = note || 'C';
+                step.octave = 1 + Math.floor(Math.random() * 1);
                 step.accent = Math.random() > 0.85;
                 step.slide = step.active && (Math.random() > 0.8);
             });
         };
 
-
         // ---------- 멜로디(상성부) 생성 ----------
         const pickMelodyNoteFromBass = (bassNote, isStrongBeat) => {
             const bassIndex = noteToIndex(bassNote);
-            if (bassIndex === -1) {
-                return SCALE[Math.floor(Math.random() * SCALE.length)];
-            }
-
-            const allowedIntervals = isStrongBeat
-                ? STRONG_MELODY_INTERVALS
-                : WEAK_MELODY_INTERVALS;
-
+            if (bassIndex === -1) return SCALE[Math.floor(Math.random() * SCALE.length)];
+            const allowedIntervals = isStrongBeat ? STRONG_MELODY_INTERVALS : WEAK_MELODY_INTERVALS;
             const candidates = SCALE.filter((note) => {
                 const idx = noteToIndex(note);
                 if (idx === -1) return false;
                 const diff = (idx - bassIndex + 12) % 12;
                 return allowedIntervals.includes(diff);
             });
-
-            if (candidates.length > 0) {
-                return candidates[Math.floor(Math.random() * candidates.length)];
-            } else {
-                return SCALE[Math.floor(Math.random() * SCALE.length)];
-            }
+            return candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : SCALE[Math.floor(Math.random() * SCALE.length)];
         };
 
         const randMelodySeq = (seq, bassSeq) => {
             seq.forEach((step, i) => {
                 const isStrongBeat = (i % 4 === 0);
                 const bassStep = bassSeq[i];
-
                 step.active = Math.random() > 0.2;
-
                 let note;
-                // Even if bass step is inactive, it has a note now, so we can harmonize
-                if (bassStep && bassStep.note) {
-                    note = pickMelodyNoteFromBass(bassStep.note, isStrongBeat);
-                } else {
-                    note = SCALE[Math.floor(Math.random() * SCALE.length)];
-                }
-
+                if (bassStep && bassStep.note) note = pickMelodyNoteFromBass(bassStep.note, isStrongBeat);
+                else note = SCALE[Math.floor(Math.random() * SCALE.length)];
                 step.note = note;
-                step.octave = 2 + Math.floor(Math.random() * 2); // 2~3옥타브
+                step.octave = 2 + Math.floor(Math.random() * 2);
                 step.accent = Math.random() > 0.7;
                 step.slide = step.active && (Math.random() > 0.75);
             });
         };
 
+        randBassSeq(p.seq303_2);
+        randMelodySeq(p.seq303_1, p.seq303_2);
 
-        // ---------- 호출 예시 ----------
+        // Randomize 909
+        const t = p.seq909;
+        // Reset
+        ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(k => t[k].fill(0));
 
-        // this.seq303_2 = 베이스, this.seq303_1 = 멜로디
-        randBassSeq(this.seq303_2);                  // 먼저 베이스 생성
-        randMelodySeq(this.seq303_1, this.seq303_2); // 베이스를 기준으로 멜로디 생성
-
-        this.init909();
-        const t = this.seq909;
         [0, 4, 8, 12].forEach(i => t.bd[i] = 1);
         if (Math.random() > 0.6) t.bd[14] = 1;
         if (Math.random() > 0.85) t.bd[7] = 1;
@@ -187,14 +225,13 @@ export const Data = {
         });
 
         const state = {
-            ver: 2,
+            ver: 3,
             bpm: AudioEngine.tempo,
             wave1: document.querySelector('input[name="wave303_1"]:checked').value,
             wave2: document.querySelector('input[name="wave303_2"]:checked').value,
             k: knobs,
-            s3_1: this.seq303_1,
-            s3_2: this.seq303_2,
-            s9: this.seq909
+            patterns: this.patterns,
+            song: this.song
         };
         return btoa(JSON.stringify(state));
     },
@@ -210,15 +247,15 @@ export const Data = {
                 });
             }
 
-            if (state.s3_1) this.seq303_1 = state.s3_1;
-            if (state.s3_2) this.seq303_2 = state.s3_2;
-            // Backwards compatibility for v1
-            if (state.s3) this.seq303_1 = state.s3;
-
-            if (state.s9) this.seq909 = state.s9;
-
-            // Update Tempo Knob
-            this.seq909 = state.s9;
+            if (state.ver === 3) {
+                this.patterns = state.patterns;
+                this.song = state.song || [0];
+            } else {
+                // Migrate v2 to v3 (Single pattern to Pattern 0)
+                this.patterns[0].seq303_1 = state.s3_1 || state.s3;
+                this.patterns[0].seq303_2 = state.s3_2;
+                this.patterns[0].seq909 = state.s9;
+            }
 
             UI.renderAll();
         } catch (e) {
