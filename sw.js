@@ -1,4 +1,4 @@
-const CACHE_NAME = 'acidbros-v1';
+const CACHE_NAME = 'acidbros-v3';
 const ASSETS = [
     './',
     './index.html',
@@ -14,6 +14,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
+    self.skipWaiting(); // Force waiting service worker to become active
     e.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(ASSETS);
@@ -39,6 +40,6 @@ self.addEventListener('activate', (e) => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim()) // Immediately control all clients
     );
 });
