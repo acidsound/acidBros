@@ -1,11 +1,13 @@
-const CACHE_NAME = 'acidbros-v3';
+const CACHE_NAME = 'acidbros-v5';
 const ASSETS = [
     './',
     './index.html',
     './styles.css',
     './js/main.js',
-    './js/RotaryKnob.js',
+    './js/ui/RotaryKnob.js',
     './js/audio/AudioEngine.js',
+    './js/audio/TB303.js',
+    './js/audio/TR909.js',
     './js/data/Data.js',
     './js/ui/UI.js',
     './manifest.json',

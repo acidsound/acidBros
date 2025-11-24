@@ -6,6 +6,13 @@ export const Data = {
     seq303_2: [],
     seq909: { bd: [], sd: [], ch: [], oh: [], cp: [] },
 
+    getSequence(id) {
+        if (id === 'tb303_1') return this.seq303_1;
+        if (id === 'tb303_2') return this.seq303_2;
+        if (id === 'tr909') return this.seq909;
+        return null;
+    },
+
     init() {
         this.init303(1);
         this.init303(2);

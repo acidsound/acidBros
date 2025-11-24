@@ -1,4 +1,4 @@
-import { RotaryKnob } from '../RotaryKnob.js';
+import { RotaryKnob } from './RotaryKnob.js';
 import { AudioEngine } from '../audio/AudioEngine.js';
 import { Data } from '../data/Data.js';
 
@@ -132,6 +132,21 @@ export const UI = {
         if (track === 'oh') return { p1: getV('oh_p1'), vol: lvl('oh_level') };
         if (track === 'cp') return { p1: getV('cp_p1'), vol: lvl('cp_level') };
         return {};
+    },
+
+    getParams(id) {
+        if (id === 'tb303_1') return this.get303Params(1);
+        if (id === 'tb303_2') return this.get303Params(2);
+        if (id === 'tr909') {
+            return {
+                bd: this.get909Params('bd'),
+                sd: this.get909Params('sd'),
+                ch: this.get909Params('ch'),
+                oh: this.get909Params('oh'),
+                cp: this.get909Params('cp')
+            };
+        }
+        return null;
     },
 
     renderAll() {

@@ -1,0 +1,134 @@
+export class TB303 {
+    constructor(ctx, output) {
+        this.ctx = ctx;
+        this.output = output;
+        this.activeState = null; // { osc, filter, gain, freq }
+    }
+
+    noteToFreq(note, octave) {
+        const noteMap = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const semi = (octave * 12) + noteMap.indexOf(note);
+        return 16.35 * Math.pow(2, semi / 12);
+    }
+
+    playStep(time, step, P, prevStep, tempo) {
+        let active = this.activeState;
+
+        // Calculate Frequency
+        let freq = this.noteToFreq(step.note, step.octave);
+        freq *= Math.pow(2, P.tune / 1200);
+
+        // Check Slide
+        // Slide condition: Previous step was active, had slide on, and current step is active.
+        const isSliding = prevStep && prevStep.active && prevStep.slide && step.active;
+
+        if (isSliding && active && active.osc) {
+            // --- SLIDE (Legato) ---
+            // Glide Pitch
+            active.osc.frequency.cancelScheduledValues(time);
+            active.osc.frequency.setValueAtTime(active.freq, time);
+            active.osc.frequency.linearRampToValueAtTime(freq, time + 0.1);
+            active.freq = freq;
+
+            // Update Filter (Smooth transition)
+            const baseCut = 300 + (P.cutoff * 8000) + (step.accent ? 800 : 0);
+            active.filter.frequency.cancelScheduledValues(time);
+            active.filter.frequency.linearRampToValueAtTime(baseCut, time + 0.1);
+
+            // Update Volume (Accent might change)
+            const targetVol = (P.vol * 0.7) * (step.accent ? 1.0 : 0.7);
+            active.gain.gain.cancelScheduledValues(time);
+            active.gain.gain.linearRampToValueAtTime(targetVol, time + 0.1);
+
+            // Extend Oscillator life
+            active.osc.stop(time + 2.0); // Extend safety stop
+
+            // If this step is NOT a slide start for the NEXT step, we need to gate off eventually?
+            // But here we are AT the slide step. If THIS step also has slide=true, we keep holding.
+            // If THIS step has slide=false, we should gate off at the end of this step.
+            if (!step.slide) {
+                const gateTime = (60 / tempo) * 0.5;
+                active.gain.gain.setTargetAtTime(0, time + gateTime, 0.02);
+            }
+
+        } else {
+            // --- NEW NOTE (Retrigger) ---
+            this.kill(time);
+
+            if (!step.active) return;
+
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+
+            osc.type = P.wave;
+            osc.frequency.setValueAtTime(freq, time);
+
+            // Filter Setup
+            const baseCut = 300 + (P.cutoff * 8000) + (step.accent ? 800 : 0);
+            filter.type = 'lowpass';
+
+            // TB-303 Resonance: Extended range for "Acid" character
+            // Map 0-15 UI range to Q approx 1.0 to 20.0
+            const normReso = P.reso / 15;
+            const qVal = 1.0 + (normReso * 19.0);
+            filter.Q.value = qVal * (step.accent ? 1.5 : 1.0); // Max approx 30.0
+            filter.frequency.setValueAtTime(baseCut, time);
+
+            // Filter Envelope
+            const envAmount = (P.env * 5000) + (step.accent ? 2000 : 0);
+            const decay = 0.2 + (P.decay / 100) * (step.accent ? 0.5 : 1.0);
+            filter.frequency.linearRampToValueAtTime(baseCut + envAmount, time + 0.005);
+            filter.frequency.setTargetAtTime(baseCut, time + 0.01, decay / 3);
+
+            // Amp Envelope
+            const peakVol = (P.vol * 0.7) * (step.accent ? 1.0 : 0.7);
+            gain.gain.setValueAtTime(0, time);
+            gain.gain.linearRampToValueAtTime(peakVol, time + 0.005);
+            gain.gain.setTargetAtTime(0, time + 0.01, decay);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.output);
+
+            // Start Oscillator BEFORE scheduling stop
+            osc.start(time);
+
+            // Gate Logic
+            if (!step.slide) {
+                // Normal Step: Gate Off after 50% duration
+                const gateTime = (60 / tempo) * 0.5;
+                gain.gain.setTargetAtTime(0, time + gateTime, 0.02);
+                osc.stop(time + gateTime + 0.2);
+            } else {
+                // Slide Start: Sustain (Don't gate off immediately)
+                osc.stop(time + 2.0); // Safety stop long enough for next step
+            }
+
+            this.activeState = { osc, filter, gain, freq };
+        }
+    }
+
+    processStep(time, stepIndex, seqData, params, tempo) {
+        const step = seqData[stepIndex];
+        const prevStepIndex = (stepIndex === 0) ? 15 : stepIndex - 1;
+        const prevStep = seqData[prevStepIndex];
+
+        if (step && step.active) {
+            this.playStep(time, step, params, prevStep, tempo);
+        } else {
+            this.kill(time);
+        }
+    }
+
+    kill(time) {
+        if (this.activeState && this.activeState.osc) {
+            try {
+                this.activeState.osc.stop(time);
+                this.activeState.gain.gain.cancelScheduledValues(time);
+                this.activeState.gain.gain.setValueAtTime(0, time);
+            } catch (e) { }
+            this.activeState = null;
+        }
+    }
+}
