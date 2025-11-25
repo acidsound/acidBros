@@ -3,6 +3,24 @@ export class TB303 {
         this.ctx = ctx;
         this.output = output;
         this.activeState = null; // { osc, filter, gain, freq }
+
+        // Delay Effect
+        this.delayNode = this.ctx.createDelay(6.0); // Max delay 6s
+        this.feedbackGain = this.ctx.createGain();
+        this.wetGain = this.ctx.createGain();
+
+        // Delay Connections
+        this.delayNode.connect(this.feedbackGain);
+        this.feedbackGain.connect(this.delayNode);
+
+        // Wet Output
+        this.delayNode.connect(this.wetGain);
+        this.wetGain.connect(this.output);
+
+        // Defaults
+        this.delayNode.delayTime.value = 0.3;
+        this.feedbackGain.gain.value = 0.4;
+        this.wetGain.gain.value = 0; // Start muted
     }
 
     noteToFreq(note, octave) {
@@ -91,6 +109,9 @@ export class TB303 {
             filter.connect(gain);
             gain.connect(this.output);
 
+            // Connect to Delay
+            gain.connect(this.delayNode);
+
             // Start Oscillator BEFORE scheduling stop
             osc.start(time);
 
@@ -110,6 +131,33 @@ export class TB303 {
     }
 
     processStep(time, stepIndex, seqData, params, tempo) {
+        // Update Delay Params
+        if (this.delayNode && this.feedbackGain && this.wetGain) {
+            // Calculate Tempo-Synced Delay Time
+            // params.delayTime is 0-200 (%)
+            // 50% = Half Note. 100% = Whole Note.
+            // Whole Note = 4 Beats.
+            const secondsPerBeat = 60.0 / tempo;
+            const wholeNote = secondsPerBeat * 4;
+
+            // Calculate target delay time
+            let dTime = (params.delayTime / 100) * wholeNote;
+
+            // Clamp to max buffer size (6.0s) and min safe value
+            dTime = Math.min(Math.max(dTime, 0.01), 6.0);
+
+            // Feedback: 0-100 -> 0.0 to 0.95
+            const dFeed = (params.delayFeedback / 100) * 0.95;
+
+            // Wet Level Logic:
+            // Mute if delayTime % is very low (e.g. < 1%) to avoid phasing at 0
+            const wetLevel = (params.delayTime < 1) ? 0 : 0.5;
+
+            this.delayNode.delayTime.setTargetAtTime(dTime, time, 0.05);
+            this.feedbackGain.gain.setTargetAtTime(dFeed, time, 0.02);
+            this.wetGain.gain.setTargetAtTime(wetLevel, time, 0.02);
+        }
+
         const step = seqData[stepIndex];
         const prevStepIndex = (stepIndex === 0) ? 15 : stepIndex - 1;
         const prevStep = seqData[prevStepIndex];
@@ -129,6 +177,17 @@ export class TB303 {
                 this.activeState.gain.gain.setValueAtTime(0, time);
             } catch (e) { }
             this.activeState = null;
+        }
+    }
+
+    stop(time) {
+        this.kill(time);
+        if (this.feedbackGain && this.wetGain) {
+            this.feedbackGain.gain.cancelScheduledValues(time);
+            this.feedbackGain.gain.setValueAtTime(0, time);
+
+            this.wetGain.gain.cancelScheduledValues(time);
+            this.wetGain.gain.setValueAtTime(0, time);
         }
     }
 }

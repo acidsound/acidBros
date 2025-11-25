@@ -59,7 +59,8 @@ export const AudioEngine = {
 
         // Reset all instruments
         this.instruments.forEach(inst => {
-            if (inst.kill) inst.kill(this.ctx.currentTime);
+            if (inst.stop) inst.stop(this.ctx.currentTime);
+            else if (inst.kill) inst.kill(this.ctx.currentTime);
         });
 
         this.scheduler();
@@ -72,7 +73,8 @@ export const AudioEngine = {
         UI.clearPlayhead();
         if (this.ctx) {
             this.instruments.forEach(inst => {
-                if (inst.kill) inst.kill(this.ctx.currentTime);
+                if (inst.stop) inst.stop(this.ctx.currentTime);
+                else if (inst.kill) inst.kill(this.ctx.currentTime);
             });
         }
     },

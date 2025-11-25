@@ -143,10 +143,7 @@ export const UI = {
             const code = Data.exportState();
             const url = window.location.origin + window.location.pathname + "#" + code;
             navigator.clipboard.writeText(url).then(() => {
-                const toast = document.getElementById('toast');
-                toast.innerText = "Link copied! Share your beat.";
-                toast.className = "show";
-                setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+                this.showToast("Link copied! Share your beat.");
             });
         };
 
@@ -166,38 +163,104 @@ export const UI = {
         this.renderModeControls();
     },
 
+    showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.innerText = message;
+        toast.className = 'show';
+        setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+    },
+
     renderModeControls() {
         const container = document.getElementById('mode-controls');
-        container.innerHTML = '';
 
-        // --- Mode Switcher ---
-        const switchRow = document.createElement('div');
-        switchRow.className = 'mode-switch-row';
+        // Check if mode switch already exists
+        let switchRow = container.querySelector('.mode-switch-group');
 
-        const pBtn = document.createElement('button');
-        pBtn.innerText = 'PATTERN MODE';
-        pBtn.className = Data.mode === 'pattern' ? 'active' : '';
-        pBtn.onclick = () => { Data.mode = 'pattern'; this.renderModeControls(); this.renderAll(); };
+        if (!switchRow) {
+            // First time: create the mode switch
+            switchRow = document.createElement('div');
+            switchRow.className = 'mode-switch-group';
 
-        const sBtn = document.createElement('button');
-        sBtn.innerText = 'SONG MODE';
-        sBtn.className = Data.mode === 'song' ? 'active' : '';
-        sBtn.onclick = () => { Data.mode = 'song'; this.renderModeControls(); this.renderAll(); };
+            // Label
+            const lbl = document.createElement('div');
+            lbl.className = 'switch-label';
+            lbl.innerText = 'MODE';
+            switchRow.appendChild(lbl);
 
-        switchRow.appendChild(pBtn);
-        switchRow.appendChild(sBtn);
-        container.appendChild(switchRow);
+            // Switch Container
+            const switchContainer = document.createElement('div');
+            switchContainer.className = 'mode-switch';
+
+            // Pattern Radio
+            const pInput = document.createElement('input');
+            pInput.type = 'radio';
+            pInput.name = 'mode_switch';
+            pInput.id = 'mode_pattern';
+            pInput.value = 'pattern';
+            pInput.onchange = () => { Data.mode = 'pattern'; this.updateModeSwitch(); this.renderAll(); };
+
+            const pLabel = document.createElement('label');
+            pLabel.htmlFor = 'mode_pattern';
+            pLabel.title = 'Pattern Mode';
+            const pIcon = document.createElement('span');
+            pIcon.className = 'icon-pattern';
+            pLabel.appendChild(pIcon);
+
+            // Song Radio
+            const sInput = document.createElement('input');
+            sInput.type = 'radio';
+            sInput.name = 'mode_switch';
+            sInput.id = 'mode_song';
+            sInput.value = 'song';
+            sInput.onchange = () => { Data.mode = 'song'; this.updateModeSwitch(); this.renderAll(); };
+
+            const sLabel = document.createElement('label');
+            sLabel.htmlFor = 'mode_song';
+            sLabel.title = 'Song Mode';
+            const sIcon = document.createElement('span');
+            sIcon.className = 'icon-song';
+            sLabel.appendChild(sIcon);
+
+            // Handle
+            const handle = document.createElement('div');
+            handle.className = 'switch-handle';
+
+            switchContainer.appendChild(pInput);
+            switchContainer.appendChild(pLabel);
+            switchContainer.appendChild(sInput);
+            switchContainer.appendChild(sLabel);
+            switchContainer.appendChild(handle);
+
+            switchRow.appendChild(switchContainer);
+            container.appendChild(switchRow);
+        }
+
+        // Update the checked state
+        this.updateModeSwitch();
 
         // --- Context Controls ---
-        const controls = document.createElement('div');
-        controls.className = 'mode-context-controls';
+        let controls = container.querySelector('.mode-context-controls');
+        if (!controls) {
+            controls = document.createElement('div');
+            controls.className = 'mode-context-controls';
+            container.appendChild(controls);
+        }
 
+        // Clear and rebuild context controls
+        controls.innerHTML = '';
         if (Data.mode === 'pattern') {
             this.renderPatternControls(controls);
         } else {
             this.renderSongControls(controls);
         }
-        container.appendChild(controls);
+    },
+
+    updateModeSwitch() {
+        // Update radio button checked state without recreating elements
+        const pInput = document.getElementById('mode_pattern');
+        const sInput = document.getElementById('mode_song');
+        if (pInput) pInput.checked = Data.mode === 'pattern';
+        if (sInput) sInput.checked = Data.mode === 'song';
     },
 
     renderPatternControls(container) {
@@ -218,12 +281,26 @@ export const UI = {
         actRow.className = 'pattern-actions';
 
         const copyBtn = document.createElement('button');
-        copyBtn.innerText = 'COPY';
-        copyBtn.onclick = () => Data.copyPattern();
+        copyBtn.className = 'icon-action-btn';
+        copyBtn.title = 'Copy Pattern';
+        const copyIcon = document.createElement('span');
+        copyIcon.className = 'icon-copy';
+        copyBtn.appendChild(copyIcon);
+        copyBtn.onclick = () => {
+            Data.copyPattern();
+            this.showToast("Pattern copied!");
+        };
 
         const pasteBtn = document.createElement('button');
-        pasteBtn.innerText = 'PASTE';
-        pasteBtn.onclick = () => Data.pastePattern();
+        pasteBtn.className = 'icon-action-btn';
+        pasteBtn.title = 'Paste Pattern';
+        const pasteIcon = document.createElement('span');
+        pasteIcon.className = 'icon-paste';
+        pasteBtn.appendChild(pasteIcon);
+        pasteBtn.onclick = () => {
+            Data.pastePattern();
+            this.showToast("Pattern pasted!");
+        };
 
         actRow.appendChild(copyBtn);
         actRow.appendChild(pasteBtn);
@@ -365,7 +442,9 @@ export const UI = {
             env: getV(`env303_${unitId}`) / 100,
             decay: getV(`decay303_${unitId}`),
             accent: getV(`accent303_${unitId}`) / 100,
-            vol: getV(`vol303_${unitId}`) / 100
+            vol: getV(`vol303_${unitId}`) / 100,
+            delayTime: getV(`delayTime303_${unitId}`),
+            delayFeedback: getV(`delayFb303_${unitId}`)
         };
     },
 
@@ -405,18 +484,39 @@ export const UI = {
     init303Knobs(unitId) {
         const container = document.getElementById(`knobs303_${unitId}`);
         container.innerHTML = '';
-        const params = [
+
+        // Synth Section
+        const synthSection = document.createElement('div');
+        synthSection.className = 'knob-group-section';
+        synthSection.dataset.label = 'SYNTH';
+
+        const synthParams = [
             { l: 'TUNE', id: `tune303_${unitId}`, min: -1200, max: 1200, v: 0 },
             { l: 'CUTOFF', id: `cutoff303_${unitId}`, min: 0, max: 100, v: 50 },
             { l: 'RESO', id: `reso303_${unitId}`, min: 0, max: 15, v: 0 },
             { l: 'ENV MOD', id: `env303_${unitId}`, min: 0, max: 100, v: 50 },
             { l: 'DECAY', id: `decay303_${unitId}`, min: 0, max: 100, v: 50 },
             { l: 'ACCENT', id: `accent303_${unitId}`, min: 0, max: 100, v: 50 },
-            { l: 'VOLUME', id: `vol303_${unitId}`, min: 0, max: 100, v: 80 }
+            { l: 'VOLUME', id: `vol303_${unitId}`, min: 0, max: 100, v: 60 }
         ];
-        params.forEach(p => {
-            new RotaryKnob(container, p.l, p.id, p.min, p.max, p.v);
+        synthParams.forEach(p => {
+            new RotaryKnob(synthSection, p.l, p.id, p.min, p.max, p.v);
         });
+        container.appendChild(synthSection);
+
+        // Delay Section
+        const delaySection = document.createElement('div');
+        delaySection.className = 'knob-group-section';
+        delaySection.dataset.label = 'DELAY';
+
+        const delayParams = [
+            { l: 'TIME', id: `delayTime303_${unitId}`, min: 0, max: 200, v: 0 },
+            { l: 'FEEDBACK', id: `delayFb303_${unitId}`, min: 0, max: 100, v: 0 }
+        ];
+        delayParams.forEach(p => {
+            new RotaryKnob(delaySection, p.l, p.id, p.min, p.max, p.v);
+        });
+        container.appendChild(delaySection);
     },
 
     render303Grid(unitId) {
