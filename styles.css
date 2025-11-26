@@ -76,7 +76,7 @@ h3 {
     background: #333;
     background: linear-gradient(180deg, #444 0%, #222 100%);
     color: #ddd;
-    padding: 15px;
+    padding: 10px;
     border-radius: 4px;
     display: flex;
     justify-content: space-between;
