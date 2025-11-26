@@ -63,6 +63,11 @@ export const AudioEngine = {
             else if (inst.kill) inst.kill(this.ctx.currentTime);
         });
 
+        // Update song timeline UI immediately if in song mode
+        if (Data.mode === 'song') {
+            UI.updateSongTimeline();
+        }
+
         this.scheduler();
     },
 
@@ -76,6 +81,10 @@ export const AudioEngine = {
                 if (inst.stop) inst.stop(this.ctx.currentTime);
                 else if (inst.kill) inst.kill(this.ctx.currentTime);
             });
+        }
+        // Update song timeline UI immediately if in song mode
+        if (Data.mode === 'song') {
+            UI.updateSongTimeline();
         }
     },
 
