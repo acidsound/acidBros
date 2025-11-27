@@ -15,6 +15,36 @@
           .catch(err => console.log('Service Worker registration failed:', err));
       });
     }
+
+    // Prevent pinch zoom
+    document.addEventListener('gesturestart', function (e) {
+      e.preventDefault();
+    });
+
+    document.addEventListener('gesturechange', function (e) {
+      e.preventDefault();
+    });
+
+    document.addEventListener('gestureend', function (e) {
+      e.preventDefault();
+    });
+
+    // Additional prevention for multi-touch zoom
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (e) {
+      const now = (new Date()).getTime();
+      if (now - lastTouchEnd <= 300) {
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+
+    // Prevent pinch zoom via wheel
+    document.addEventListener('wheel', function (e) {
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    }, { passive: false });
   </script>
 </head>
 
@@ -23,7 +53,7 @@
     <!-- Transport -->
     <div class="top-bar">
       <div class="transport-controls">
-        <div class="version-display">v45</div>
+        <div class="version-display">v46</div>
         <button id="playBtn" class="transport-icon-btn play" title="Run">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z" />

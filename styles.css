@@ -29,6 +29,11 @@
     font-style: normal;
 }
 
+html {
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+}
+
 body {
     background-color: var(--bg-main);
     color: #222;
@@ -41,6 +46,8 @@ body {
     user-select: none;
     touch-action: manipulation;
     /* Prevent double-tap zoom */
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 }
 
 h1,
