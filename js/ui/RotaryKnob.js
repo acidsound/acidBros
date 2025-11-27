@@ -90,7 +90,7 @@ export class RotaryKnob {
     startDrag(e) {
         // Safety: Ensure any previous drag is cleaned up
         if (this.isDragging) {
-            this.endDrag();
+            this.endDrag(e);
         }
 
         const now = new Date().getTime();
@@ -122,28 +122,60 @@ export class RotaryKnob {
 
         this.isDragging = true;
         this.inputType = e.type; // 'mousedown' or 'touchstart'
+        this.touchId = null;
 
         if (this.tooltip) this.tooltip.classList.add('visible'); // Show tooltip
 
-        const touch = e.touches ? e.touches[0] : e;
-        this.startY = touch.clientY;
-        this.startX = touch.clientX;
+        if (e.type === 'touchstart') {
+            // Use changedTouches to find the new touch that started this event
+            const touch = e.changedTouches[0];
+            this.touchId = touch.identifier;
+            this.startY = touch.clientY;
+            this.startX = touch.clientX;
+        } else {
+            this.startY = e.clientY;
+            this.startX = e.clientX; // For mouse, capture X as well, though not used in current mouse logic
+        }
+
         this.startVal = parseFloat(this.value);
 
         window.addEventListener('mousemove', this.boundMove);
         window.addEventListener('touchmove', this.boundMove, { passive: false });
         window.addEventListener('mouseup', this.boundEnd);
         window.addEventListener('touchend', this.boundEnd);
+        window.addEventListener('touchcancel', this.boundEnd);
     }
 
     handleMove(e) {
         if (!this.isDragging) return;
 
-        const touch = e.touches ? e.touches[0] : e;
+        let clientX, clientY;
 
         if (this.inputType === 'touchstart') {
-            const clientX = touch.clientX;
-            const clientY = touch.clientY;
+            // Find the specific touch that started this drag
+            let touch = null;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === this.touchId) {
+                    touch = e.changedTouches[i];
+                    break;
+                }
+            }
+
+            // If the touch that started this drag hasn't moved, check active touches just in case
+            if (!touch) {
+                for (let i = 0; i < e.touches.length; i++) {
+                    if (e.touches[i].identifier === this.touchId) {
+                        touch = e.touches[i];
+                        break;
+                    }
+                }
+            }
+
+            if (!touch) return; // This event is for another finger
+
+            clientX = touch.clientX;
+            clientY = touch.clientY;
+
             const deltaX = clientX - this.startX;
             const deltaY = clientY - this.startY;
 
@@ -168,7 +200,7 @@ export class RotaryKnob {
         } else {
             // Mouse: Vertical Drag (Standard)
             e.preventDefault();
-            const clientY = touch.clientY;
+            clientY = e.clientY;
             const delta = this.startY - clientY; // Up is positive
 
             const range = this.max - this.min;
@@ -183,12 +215,35 @@ export class RotaryKnob {
         }
     }
 
-    endDrag() {
+    endDrag(e) {
+        if (!this.isDragging) return;
+
+        // For touch, ensure the ending touch is the one we are tracking
+        if (this.inputType === 'touchstart' && e) {
+            let touchFound = false;
+            // Check changedTouches (touchend/cancel)
+            if (e.changedTouches) {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === this.touchId) {
+                        touchFound = true;
+                        break;
+                    }
+                }
+            }
+            // If the event doesn't contain our touch, it might be another finger lifting.
+            // We should only stop dragging if OUR finger lifted.
+            if (!touchFound && e.type !== 'touchcancel') {
+                return;
+            }
+        }
+
         this.isDragging = false;
+        this.touchId = null;
         if (this.tooltip) this.tooltip.classList.remove('visible'); // Hide tooltip
         window.removeEventListener('mousemove', this.boundMove);
         window.removeEventListener('touchmove', this.boundMove);
         window.removeEventListener('mouseup', this.boundEnd);
         window.removeEventListener('touchend', this.boundEnd);
+        window.removeEventListener('touchcancel', this.boundEnd);
     }
 }
