@@ -251,10 +251,97 @@ export const Data = {
                 this.patterns = state.patterns;
                 this.song = state.song || [0];
             } else {
+                // Initialize patterns array if it's empty or not properly set up
+                if (!this.patterns || this.patterns.length === 0) {
+                    this.patterns = [];
+                    for (let i = 0; i < 16; i++) {
+                        this.patterns.push(this.createEmptyPattern());
+                    }
+                }
+                
                 // Migrate v2 to v3 (Single pattern to Pattern 0)
-                this.patterns[0].seq303_1 = state.s3_1 || state.s3;
-                this.patterns[0].seq303_2 = state.s3_2;
-                this.patterns[0].seq909 = state.s9;
+                // Ensure proper structure for v2 data
+                const defaultStep = { active: false, note: 'C', octave: 2, accent: false, slide: false };
+                
+                // Migrate 303_1 sequence
+                if (state.s3_1) {
+                    // Make sure pattern 0 exists and has the seq303_1 property
+                    if (!this.patterns[0].seq303_1) {
+                        this.patterns[0].seq303_1 = [];
+                        for (let i = 0; i < 16; i++) {
+                            this.patterns[0].seq303_1.push({...defaultStep});
+                        }
+                    }
+                    
+                    for (let i = 0; i < 16; i++) {
+                        if (state.s3_1[i]) {
+                            // Copy the existing step data if it exists
+                            let stepData = {...defaultStep, ...state.s3_1[i]};
+                            
+                            // If the note is null or undefined, set to default C2
+                            if (stepData.note === null || stepData.note === undefined) {
+                                stepData.note = 'C';
+                                stepData.octave = 2;
+                            }
+                            
+                            this.patterns[0].seq303_1[i] = stepData;
+                        } else {
+                            // Use default step if no data exists for this position
+                            this.patterns[0].seq303_1[i] = {...defaultStep};
+                        }
+                    }
+                }
+                
+                // Migrate 303_2 sequence
+                if (state.s3_2) {
+                    // Make sure pattern 0 exists and has the seq303_2 property
+                    if (!this.patterns[0].seq303_2) {
+                        this.patterns[0].seq303_2 = [];
+                        for (let i = 0; i < 16; i++) {
+                            this.patterns[0].seq303_2.push({...defaultStep});
+                        }
+                    }
+                    
+                    for (let i = 0; i < 16; i++) {
+                        if (state.s3_2[i]) {
+                            // Copy the existing step data if it exists
+                            let stepData = {...defaultStep, ...state.s3_2[i]};
+                            
+                            // If the note is null or undefined, set to default C2
+                            if (stepData.note === null || stepData.note === undefined) {
+                                stepData.note = 'C';
+                                stepData.octave = 2;
+                            }
+                            
+                            this.patterns[0].seq303_2[i] = stepData;
+                        } else {
+                            // Use default step if no data exists for this position
+                            this.patterns[0].seq303_2[i] = {...defaultStep};
+                        }
+                    }
+                }
+                
+                // Migrate 909 sequence (if exists)
+                if (state.s9) {
+                    // Make sure pattern 0 exists and has the seq909 property
+                    if (!this.patterns[0].seq909) {
+                        this.patterns[0].seq909 = { bd: [], sd: [], ch: [], oh: [], cp: [] };
+                        // Initialize with 16 steps of 0s for each track
+                        ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(track => {
+                            this.patterns[0].seq909[track] = Array(16).fill(0);
+                        });
+                    }
+                    
+                    // Copy each track's data, ensuring it has 16 steps
+                    ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(track => {
+                        if (state.s9[track]) {
+                            const trackData = state.s9[track];
+                            for (let i = 0; i < 16; i++) {
+                                this.patterns[0].seq909[track][i] = trackData[i] || 0;
+                            }
+                        }
+                    });
+                }
             }
 
             UI.renderAll();
