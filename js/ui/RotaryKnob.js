@@ -114,14 +114,20 @@ export class RotaryKnob {
 
         this.lastTap = now;
 
-        if (e.type === 'touchstart') {
-            // Prevent scroll only on drag start
-            if (e.cancelable) e.preventDefault();
+        // For touch, we DO NOT prevent default here to allow scrolling to start.
+        // We only prevent default in handleMove if we are actively dragging horizontally.
+        if (e.type === 'mousedown') {
+            e.preventDefault();
         }
 
         this.isDragging = true;
+        this.inputType = e.type; // 'mousedown' or 'touchstart'
+
         if (this.tooltip) this.tooltip.classList.add('visible'); // Show tooltip
-        this.startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+
+        const touch = e.touches ? e.touches[0] : e;
+        this.startY = touch.clientY;
+        this.startX = touch.clientX;
         this.startVal = parseFloat(this.value);
 
         window.addEventListener('mousemove', this.boundMove);
@@ -132,19 +138,49 @@ export class RotaryKnob {
 
     handleMove(e) {
         if (!this.isDragging) return;
-        e.preventDefault();
 
-        const clientY = e.clientY || e.touches[0].clientY;
-        const deltaY = this.startY - clientY;
-        const range = this.max - this.min;
-        const sensitivity = 200;
-        const deltaVal = (deltaY / sensitivity) * range;
-        let newVal = this.startVal + deltaVal;
-        newVal = Math.min(Math.max(newVal, this.min), this.max);
-        if (this.step) newVal = Math.round(newVal / this.step) * this.step;
+        const touch = e.touches ? e.touches[0] : e;
 
-        this.value = newVal;
-        this.updateVisuals();
+        if (this.inputType === 'touchstart') {
+            const clientX = touch.clientX;
+            const clientY = touch.clientY;
+            const deltaX = clientX - this.startX;
+            const deltaY = clientY - this.startY;
+
+            // Check if movement is predominantly vertical (scrolling)
+            if (Math.abs(deltaY) > Math.abs(deltaX)) {
+                // It's a scroll! Let the browser handle it.
+                return;
+            }
+
+            // It's a horizontal drag (knob turn)
+            if (e.cancelable) e.preventDefault();
+
+            const range = this.max - this.min;
+            const sensitivity = 200;
+            const deltaVal = (deltaX / sensitivity) * range;
+            let newVal = this.startVal + deltaVal;
+            newVal = Math.min(Math.max(newVal, this.min), this.max);
+            if (this.step) newVal = Math.round(newVal / this.step) * this.step;
+
+            this.value = newVal;
+            this.updateVisuals();
+        } else {
+            // Mouse: Vertical Drag (Standard)
+            e.preventDefault();
+            const clientY = touch.clientY;
+            const delta = this.startY - clientY; // Up is positive
+
+            const range = this.max - this.min;
+            const sensitivity = 200;
+            const deltaVal = (delta / sensitivity) * range;
+            let newVal = this.startVal + deltaVal;
+            newVal = Math.min(Math.max(newVal, this.min), this.max);
+            if (this.step) newVal = Math.round(newVal / this.step) * this.step;
+
+            this.value = newVal;
+            this.updateVisuals();
+        }
     }
 
     endDrag() {

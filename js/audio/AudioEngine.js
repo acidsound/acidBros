@@ -6,9 +6,15 @@ import { TR909 } from './TR909.js';
 export const AudioEngine = {
     ctx: null,
     master: null,
+    analyser: null, // FFT Analyser
+    clockNode: null, // AudioWorkletNode
     isPlaying: false,
     tempo: 125,
     currentStep: 0,
+    currentSongIndex: 0,
+
+    // Fallback Scheduler State
+    useWorklet: false,
     nextNoteTime: 0.0,
     scheduleAheadTime: 0.1,
     timerID: null,
@@ -16,9 +22,14 @@ export const AudioEngine = {
     // Instruments Map
     instruments: new Map(),
 
-    init() {
+    async init() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+            // --- FFT Analyser Setup ---
+            this.analyser = this.ctx.createAnalyser();
+            this.analyser.fftSize = 2048; // High resolution for visuals
+
             this.master = this.ctx.createDynamicsCompressor();
             this.master.threshold.value = -8;
             this.master.ratio.value = 12;
@@ -26,7 +37,9 @@ export const AudioEngine = {
             const outGain = this.ctx.createGain();
             outGain.gain.value = 0.8;
 
-            this.master.connect(outGain);
+            // Chain: Master -> Analyser -> OutGain -> Destination
+            this.master.connect(this.analyser);
+            this.analyser.connect(outGain);
             outGain.connect(this.ctx.destination);
 
             // Initialize Instruments
@@ -34,28 +47,47 @@ export const AudioEngine = {
             this.addInstrument('tb303_2', new TB303(this.ctx, this.master));
             this.addInstrument('tr909', new TR909(this.ctx, this.master));
 
-            this.nextNoteTime = 0;
-            this.currentStep = 0;
-            this.currentSongIndex = 0; // Track Song Position (Bar)
-            this.tempo = 125;
-            this.isPlaying = false;
-            this.scheduleAheadTime = 0.1;
+            // --- AudioWorklet Setup ---
+            if (this.ctx.audioWorklet) {
+                try {
+                    await this.ctx.audioWorklet.addModule('js/audio/ClockProcessor.js');
+                    this.clockNode = new AudioWorkletNode(this.ctx, 'clock-processor');
+
+                    this.clockNode.port.onmessage = (e) => {
+                        if (e.data.type === 'tick') {
+                            this.handleTick(e.data);
+                        }
+                    };
+
+                    this.clockNode.connect(this.ctx.destination);
+                    this.useWorklet = true;
+                    console.log("AudioEngine: Using AudioWorklet for timing.");
+
+                } catch (err) {
+                    console.warn('AudioEngine: Failed to load AudioWorklet, falling back to setTimeout.', err);
+                    this.useWorklet = false;
+                }
+            } else {
+                console.warn('AudioEngine: AudioWorklet not supported (insecure context?), falling back to setTimeout.');
+                this.useWorklet = false;
+            }
         }
-        if (this.ctx.state === 'suspended') this.ctx.resume();
+        if (this.ctx.state === 'suspended') await this.ctx.resume();
     },
 
     addInstrument(id, instance) {
         this.instruments.set(id, instance);
     },
 
-    play() {
-        if (!this.ctx) this.init();
+    async play() {
+        if (!this.ctx) await this.init();
         if (this.isPlaying) return;
-        if (this.ctx.state === 'suspended') this.ctx.resume();
+        if (this.ctx.state === 'suspended') await this.ctx.resume();
+
         this.isPlaying = true;
         this.currentStep = 0;
-        this.currentSongIndex = 0; // Reset Song Position
-        this.nextNoteTime = this.ctx.currentTime;
+        this.currentSongIndex = 0;
+        this.nextNoteTime = this.ctx.currentTime; // For fallback scheduler
 
         // Reset all instruments
         this.instruments.forEach(inst => {
@@ -63,34 +95,75 @@ export const AudioEngine = {
             else if (inst.kill) inst.kill(this.ctx.currentTime);
         });
 
-        // Update song timeline UI immediately if in song mode
         if (Data.mode === 'song') {
             UI.updateSongTimeline();
         }
 
-        this.scheduler();
+        if (this.useWorklet && this.clockNode) {
+            // Send Start Message to Worklet
+            this.clockNode.port.postMessage({ type: 'start' });
+            this.clockNode.port.postMessage({ type: 'tempo', value: this.tempo });
+        } else {
+            // Start Fallback Scheduler
+            this.scheduler();
+        }
     },
 
     stop() {
         this.isPlaying = false;
-        this.currentSongIndex = 0; // Reset Song Position
-        window.clearTimeout(this.timerID);
+        this.currentSongIndex = 0;
         UI.clearPlayhead();
+
         if (this.ctx) {
             this.instruments.forEach(inst => {
                 if (inst.stop) inst.stop(this.ctx.currentTime);
                 else if (inst.kill) inst.kill(this.ctx.currentTime);
             });
         }
-        // Update song timeline UI immediately if in song mode
+
         if (Data.mode === 'song') {
             UI.updateSongTimeline();
         }
+
+        if (this.useWorklet && this.clockNode) {
+            this.clockNode.port.postMessage({ type: 'stop' });
+        } else {
+            window.clearTimeout(this.timerID);
+        }
     },
 
+    setTempo(newTempo) {
+        this.tempo = newTempo;
+        if (this.useWorklet && this.clockNode) {
+            this.clockNode.port.postMessage({ type: 'tempo', value: newTempo });
+        }
+    },
+
+    // --- Worklet Handler ---
+    handleTick(data) {
+        const { time, step } = data;
+        this.currentStep = step;
+
+        // Song Mode Logic
+        if (this.lastStep === 15 && step === 0) {
+            if (Data.mode === 'song') {
+                this.currentSongIndex++;
+                if (this.currentSongIndex >= Data.song.length) {
+                    this.currentSongIndex = 0;
+                }
+                UI.updateSongTimeline();
+                UI.renderAll();
+            }
+        }
+        this.lastStep = step;
+
+        this.schedule(time, step);
+    },
+
+    // --- Fallback Scheduler (setTimeout) ---
     scheduler() {
         while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
-            this.schedule(this.nextNoteTime);
+            this.schedule(this.nextNoteTime, this.currentStep);
             this.nextNote();
         }
         if (this.isPlaying) this.timerID = window.setTimeout(this.scheduler.bind(this), 25);
@@ -109,20 +182,13 @@ export const AudioEngine = {
                 if (this.currentSongIndex >= Data.song.length) {
                     this.currentSongIndex = 0; // Loop Song
                 }
-                // Update UI to show progress in Song Timeline
-                // We use requestAnimationFrame or just call UI update directly (async safe)
-                // Since this is audio thread timing, better to be careful, but UI updates are usually fine.
-                // We'll trigger a visual update for the timeline.
                 UI.updateSongTimeline();
-                // Also need to re-render grid if the pattern changed!
                 UI.renderAll();
             }
         }
     },
 
-    schedule(time) {
-        const stepIndex = this.currentStep % 16;
-
+    schedule(time, stepIndex) {
         this.instruments.forEach((inst, id) => {
             const seqData = Data.getSequence(id);
             const params = UI.getParams(id);
@@ -132,7 +198,12 @@ export const AudioEngine = {
         });
 
         // UI Update
-        UI.drawPlayhead(stepIndex);
+        // For fallback, we can draw immediately as timing is less precise anyway, 
+        // or use the same delay logic.
+        const delay = Math.max(0, (time - this.ctx.currentTime) * 1000);
+        setTimeout(() => {
+            UI.drawPlayhead(stepIndex);
+        }, delay);
     },
 
     // Expose kill methods for preview logic in UI
@@ -147,10 +218,14 @@ export const AudioEngine = {
         const id = `tb303_${unitId}`;
         const inst = this.instruments.get(id);
         if (inst) {
-            // For preview, we don't have a "previous step" context usually, so pass null
-            // processStep expects seqData array to find prev step, but playStep takes direct args.
-            // We call playStep directly here as it is a specific preview action.
             inst.playStep(time, step, params, null, this.tempo);
+        }
+    },
+
+    // FFT Data for Visuals
+    getAudioData(dataArray) {
+        if (this.analyser) {
+            this.analyser.getByteFrequencyData(dataArray);
         }
     }
 };
