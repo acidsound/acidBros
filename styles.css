@@ -650,7 +650,7 @@ h3 {
     box-sizing: border-box;
 }
 
-.temp-container {
+.tempo-container {
     display: flex;
     align-items: center;
     gap: 15px;
@@ -688,7 +688,7 @@ h3 {
     display: block;
 }
 
-/* Mobile Portrait: Space between oscilloscope and temp-container */
+/* Mobile Portrait: Space between oscilloscope and tempo-container */
 @media (max-width: 600px) and (orientation: portrait) {
     .tempo-group {
         width: 100%;
