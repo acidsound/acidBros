@@ -329,13 +329,16 @@ h3 {
     border-top: 1px solid rgba(255, 255, 255, 0.3);
     padding-bottom: 10px;
     margin-bottom: 20px;
-    cursor: pointer;
     user-select: none;
+}
+
+.machine-header h2 {
+    cursor: pointer;
     transition: opacity 0.2s;
 }
 
-.machine-header:hover {
-    opacity: 0.8;
+.machine-header h2:hover {
+    opacity: 0.7;
 }
 
 .machine-header h2::after {
@@ -343,7 +346,7 @@ h3 {
     font-size: 0.5em;
     opacity: 0.5;
     margin-left: 8px;
-    transition: transform 0.3s ease;
+    transition: transform 0.2s ease;
     display: inline-block;
 }
 
@@ -679,7 +682,7 @@ h3 {
     box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
     max-height: 1000px;
     overflow: hidden;
-    transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.4s ease, margin 0.4s ease;
+    transition: max-height 0.2s ease, opacity 0.2s ease, padding 0.2s ease, margin 0.2s ease;
     opacity: 1;
 }
 
@@ -1002,7 +1005,7 @@ h3 {
     border-radius: 2px;
     max-height: 1000px;
     overflow: hidden;
-    transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.4s ease;
+    transition: max-height 0.2s ease, opacity 0.2s ease, padding 0.2s ease;
     opacity: 1;
 }
 
@@ -1012,18 +1015,22 @@ h3 {
     padding: 0 4px;
 }
 
-@media (max-width: 768px) {
+/* Mobile Portrait: Tight layout */
+@media (max-width: 600px) and (orientation: portrait) {
     .drum-track-row {
         flex-direction: column;
         align-items: stretch;
+        border-bottom: none;
+        margin-bottom: 0;
+        padding: 4px;
     }
 
     .track-header {
         width: 100%;
         border-right: none;
         border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        margin-bottom: 5px;
-        padding-bottom: 5px;
+        margin-bottom: 3px;
+        padding-bottom: 3px;
         margin-right: 0;
     }
 
@@ -1039,6 +1046,57 @@ h3 {
         min-width: 0;
         width: 100%;
         height: 40px;
+    }
+}
+
+/* Mobile Landscape and Tablet: Flex-wrap layout */
+@media (min-width: 601px) and (max-width: 920px) {
+    .drum-track-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .track-header {
+        width: 200px;
+        min-width: 200px;
+        margin-right: 8px;
+    }
+
+    .sequencer-909 {
+        flex: 1;
+        min-width: 300px;
+    }
+}
+
+/* Original tablet styles */
+@media (max-width: 768px) and (min-width: 601px) {
+    .drum-track-row {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .track-header {
+        width: auto;
+        min-width: 180px;
+        border-right: 2px solid #d85c2e;
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+        margin-right: 10px;
+    }
+
+    .sequencer-909 {
+        display: grid;
+        grid-template-columns: repeat(16, 1fr);
+        gap: 3px;
+    }
+
+    .step-909 {
+        min-width: 0;
+        width: 100%;
+        height: 35px;
     }
 }
 

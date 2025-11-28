@@ -155,11 +155,12 @@ export const UI = {
             window.open('https://www.buymeacoffee.com/spectricki', '_blank');
         };
 
-        // Collapse/Expand functionality for machines
-        document.querySelectorAll('.machine-header').forEach(header => {
-            header.addEventListener('dblclick', (e) => {
+        // Collapse/Expand functionality for machines (click on h2 title)
+        document.querySelectorAll('.machine-header h2').forEach(title => {
+            title.addEventListener('click', (e) => {
                 e.preventDefault();
-                const machine = header.closest('.machine');
+                e.stopPropagation();
+                const machine = title.closest('.machine');
                 machine.classList.toggle('collapsed');
             });
         });
