@@ -84,12 +84,10 @@ h3 {
     color: #888;
     font-family: 'Courier New', monospace;
     font-weight: bold;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 4px 8px;
-    border-radius: 3px;
     user-select: none;
-    min-width: 44px;
-    height: 44px;
+    position: absolute;
+    top: 5px;
+    right: 5px;
 }
 
 /* --- Global Controls --- */
