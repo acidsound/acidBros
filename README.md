@@ -4,6 +4,8 @@
 
 🎹 **[Try it live!](https://acidsound.github.io/acidBros/)**
 
+☕ **[Buy me a coffee](https://www.buymeacoffee.com/spectricki)** if you enjoy this project!
+
 ## Screenshots
 
 ### Desktop View

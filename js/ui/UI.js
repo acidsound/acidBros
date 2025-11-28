@@ -151,6 +151,10 @@ export const UI = {
             });
         };
 
+        document.getElementById('bmcBtn').onclick = () => {
+            window.open('https://www.buymeacoffee.com/spectricki', '_blank');
+        };
+
         if (window.location.hash && window.location.hash.length > 10) {
             Data.importState(window.location.hash.substring(1));
             this.update303ClearButtons();
