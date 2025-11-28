@@ -673,13 +673,7 @@ h3 {
 }
 
 /* Mode Switch Styles */
-.mode-switch-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    margin: -3px 0 6px;
-}
+/* Mode Switch Styles */
 
 .mode-switch {
     position: relative;
@@ -1723,7 +1717,8 @@ h3 {
     border-radius: 4px;
     padding: 16px;
     position: fixed;
-    z-index: 100;
+    z-index: 2100;
+    /* Above all overlays (file-manager: 2000, piano: 2000) */
     left: 50%;
     bottom: 30px;
     transform: translateX(-50%);
@@ -1864,6 +1859,280 @@ h3 {
 .icon-action-btn:active {
     transform: translateY(0);
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* --- Mode & File Controls --- */
+.mode-switch-group {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: -3px 0 6px;
+    /* Ensure items are distributed: Spacer(Left), Mode(Center), File(Right) */
+}
+
+.mode-switch-group .spacer {
+    flex: 1;
+}
+
+.switch-group-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Center the Mode Switch (2nd item) */
+.mode-switch-group .switch-group-item:nth-child(2) {
+    flex: 1;
+    align-items: center;
+}
+
+/* Right align the File Manager (3rd item) */
+.mode-switch-group .switch-group-item:nth-child(3) {
+    flex: 1;
+    align-items: flex-end;
+}
+
+.mode-switch-group .switch-group-item:nth-child(3) .switch-label {
+    width: 80px;
+    text-align: center;
+}
+
+.switch-group-separator {
+    display: none;
+    /* Removed by user in HTML, but keeping safe */
+}
+
+.file-manager-btn {
+    width: 80px;
+    height: 28px;
+    background: #111;
+    border: 1px solid #555;
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.file-manager-btn:hover {
+    background: #333;
+}
+
+.file-manager-btn:active {
+    background: #111;
+    box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.6);
+}
+
+.icon-file {
+    width: 20px;
+    height: 20px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23888'%3E%3Cpath d='M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.file-manager-btn:hover .icon-file {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'%3E%3Cpath d='M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z'/%3E%3C/svg%3E");
+}
+
+/* File Manager Popover Overlay */
+.file-manager-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
+    /* Match piano-overlay z-index */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* File Manager Popover */
+.file-manager-popover {
+    width: 90%;
+    max-width: 600px;
+    background: #222;
+    /* Match note-editor background */
+    border: 1px solid #555;
+    /* Match note-editor border */
+    border-radius: 8px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: sans-serif;
+    animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.file-manager-header {
+    background: #333;
+    /* Match editor-header background */
+    padding: 10px 15px;
+    display: flex;
+    gap: 10px;
+    border-bottom: 1px solid #444;
+    align-items: center;
+    flex-wrap: wrap;
+    position: relative;
+    /* For absolute positioning of close button */
+    padding-right: 40px;
+    /* Make space for close button */
+}
+
+.file-action-btn {
+    background: linear-gradient(to bottom, #444, #333);
+    /* Darker theme to match popover */
+    border: 1px solid #222;
+    color: #ddd;
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
+}
+
+.file-action-btn:hover {
+    background: linear-gradient(to bottom, #555, #444);
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+.file-action-btn:active {
+    background: #222;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    transform: translateY(1px);
+}
+
+.file-action-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+/* Match .close-btn style but keep positioning */
+.file-close-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    box-shadow: none;
+    position: absolute;
+    top: 5px;
+    /* Adjusted for alignment */
+    right: 5px;
+}
+
+.file-close-btn:hover {
+    color: #fff;
+    background: transparent;
+}
+
+.file-list-container {
+    background: #2a2a2a;
+    /* Slightly lighter than popover bg */
+    border-top: 1px solid #000;
+    padding: 0;
+}
+
+.file-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 320px;
+    /* Approx 8 items (40px each) */
+    overflow-y: auto;
+}
+
+.file-item {
+    padding: 8px 15px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.1s;
+    height: 40px;
+    box-sizing: border-box;
+}
+
+.file-item:hover {
+    background: #333;
+}
+
+.file-item.active {
+    background: #3a3a3a;
+    border-left: 4px solid #ffcc00;
+}
+
+.file-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.file-name {
+    color: #eee;
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+.file-date {
+    color: #888;
+    font-size: 10px;
+}
+
+.file-item-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.file-action-icon-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-action-icon-btn:hover {
+    background: #444;
+    color: #fff;
+}
+
+.file-action-icon-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
+.file-delete-icon-btn:hover {
+    background: #cc3333;
+    color: #fff;
 }
 
 .icon-copy,

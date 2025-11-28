@@ -14,6 +14,15 @@ The top bar provides the main playback and project controls.
 - **CLEAR** – Reset all patterns (303 notes and 909 drums) to a blank state.
 - **SHARE URL** – Export the current pattern and settings as a shareable link. A toast notification confirms the link is copied.
 - **SWING/SHUFFLE (💃)** – Toggle the swing control panel. Adjust groove timing from 0% (straight) to 100% (maximum shuffle). 50% is the default straight timing. Double-click/tap the ribbon controller to reset to 50%.
+- **FILE MANAGER (📁)** – Save, load, and manage multiple patterns/songs with persistent browser storage. Click to open the file manager popover.
+  - **New** – Create a new file (clears current pattern).
+  - **Import/Export** – Import or export all files as JSON for backup.
+  - **Delete All** – Remove all saved files.
+  - **File List** – Click a file to load it. Each file shows:
+    - **Duplicate** – Create a copy of the file.
+    - **Rename** – Change the file name.
+    - **Delete** – Remove the file.
+  - Files are auto-saved every 5 seconds with timestamp-based names.
 - **Buy Me a Coffee** – (☕ icon) Support the developer by opening the Buy Me a Coffee page in a new tab.
 - **Oscilloscope** – Real-time visual feedback of the audio waveform (green CRT style), located next to the tempo controls.
 - **TEMPO (BPM)** – Large knob with a 7‑segment LED display (60-200 BPM). Drag vertically to adjust, double‑tap to reset to 125 BPM.

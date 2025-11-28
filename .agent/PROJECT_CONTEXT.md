@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v56
+- **Current Version**: v57
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -27,7 +27,9 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - **Touch ID Tracking**: Each knob tracks its specific touch identifier
   - **Double-tap**: Resets to default value
 - **Oscilloscope**: `js/ui/Oscilloscope.js` handles real-time waveform visualization
-- **Data Management**: `js/data/Data.js` handles patterns and song mode
+- **Data Management**: 
+  - `js/data/Data.js`: Handles patterns and song mode
+  - `js/data/FileManager.js`: Persistent file storage using localStorage
 
 ### Key Design Decisions
 
@@ -130,7 +132,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v52-v56)
+## Recent Changes (v52-v57)
 
 ### v52-v54: Live Performance & Mobile Layout
 - **Collapsible Sequencers**: Single click on machine headers to toggle sequencer visibility
@@ -146,9 +148,31 @@ acidBros/
 - **Swing Control**: Adjustable groove timing (0-100%, default 50%)
 - **UI**: Collapsible ribbon controller with yellow/red visual feedback
 - **Center Line**: White reference line at 50% for easy visual reference
-- **Double-tap Reset**: Quick return to straight timing
-- **AudioWorklet Integration**: Precise timing adjustment in both Worklet and fallback scheduler
-- **Mobile Optimization**: Fixed TR-909 bottom padding in portrait mode
+- **Audio Engine**: Integrated swing timing into both AudioWorklet and fallback scheduler
+- **Reset**: Double-click/tap ribbon to reset to 50%
+- **Layout**: Moved swing panel inside top-bar for consistent positioning
+
+### v57: File Manager
+- **File Management System**: Complete file save/load functionality
+  - **FileManager.js**: New module for persistent storage using localStorage
+  - **Auto-save**: Every 5 seconds with timestamp-based naming (yyyy-MM-ddhhmmss)
+  - **File Operations**: New, Load, Duplicate, Rename, Delete, Delete All
+  - **Import/Export**: JSON-based backup/restore for all files
+  - **UI**: Popover interface matching piano-overlay design
+    - Overlay backdrop with blur effect
+    - File list with active state highlighting
+    - Per-file action buttons (Duplicate, Rename, Delete)
+    - Header actions (New, Import, Export, Delete All)
+- **Layout Improvements**:
+  - Mode controls restructured with static HTML
+  - File Manager button added next to Mode Switch
+  - Consistent styling with mode-switch (rectangular, not round)
+  - Proper z-index for toast notifications (2100)
+- **UX Enhancements**:
+  - File Manager button positioned on right with FILE label
+  - Delete/Duplicate moved from header to individual file items
+  - Active file properly highlighted on first open
+  - Close button positioned absolutely in top-right corner
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

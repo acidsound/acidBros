@@ -2,6 +2,7 @@ import { RotaryKnob } from './RotaryKnob.js';
 import { AudioEngine } from '../audio/AudioEngine.js';
 import { Data } from '../data/Data.js';
 import { Oscilloscope } from './Oscilloscope.js';
+import { FileManager } from '../data/FileManager.js';
 
 export const UI = {
     init() {
@@ -266,7 +267,11 @@ export const UI = {
             }, 500);
         }
 
+        this.initModeControls();
         this.renderModeControls();
+
+        FileManager.init();
+        this.initFileManager();
     },
 
     showToast(message) {
@@ -276,89 +281,130 @@ export const UI = {
         setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
     },
 
-    renderModeControls() {
-        const container = document.getElementById('mode-controls');
+    initModeControls() {
+        // Mode Switch Listeners
+        const pInput = document.getElementById('mode_pattern');
+        const sInput = document.getElementById('mode_song');
 
-        // Check if mode switch already exists
-        let switchRow = container.querySelector('.mode-switch-group');
-
-        if (!switchRow) {
-            // First time: create the mode switch
-            switchRow = document.createElement('div');
-            switchRow.className = 'mode-switch-group';
-
-            // Label
-            const lbl = document.createElement('div');
-            lbl.className = 'switch-label';
-            lbl.innerText = 'MODE';
-            switchRow.appendChild(lbl);
-
-            // Switch Container
-            const switchContainer = document.createElement('div');
-            switchContainer.className = 'mode-switch';
-
-            // Pattern Radio
-            const pInput = document.createElement('input');
-            pInput.type = 'radio';
-            pInput.name = 'mode_switch';
-            pInput.id = 'mode_pattern';
-            pInput.value = 'pattern';
-            pInput.onchange = () => { Data.mode = 'pattern'; this.updateModeSwitch(); this.renderAll(); };
-
-            const pLabel = document.createElement('label');
-            pLabel.htmlFor = 'mode_pattern';
-            pLabel.title = 'Pattern Mode';
-            const pIcon = document.createElement('span');
-            pIcon.className = 'icon-pattern';
-            pLabel.appendChild(pIcon);
-
-            // Song Radio
-            const sInput = document.createElement('input');
-            sInput.type = 'radio';
-            sInput.name = 'mode_switch';
-            sInput.id = 'mode_song';
-            sInput.value = 'song';
-            sInput.onchange = () => { Data.mode = 'song'; this.updateModeSwitch(); this.renderAll(); };
-
-            const sLabel = document.createElement('label');
-            sLabel.htmlFor = 'mode_song';
-            sLabel.title = 'Song Mode';
-            const sIcon = document.createElement('span');
-            sIcon.className = 'icon-song';
-            sLabel.appendChild(sIcon);
-
-            // Handle
-            const handle = document.createElement('div');
-            handle.className = 'switch-handle';
-
-            switchContainer.appendChild(pInput);
-            switchContainer.appendChild(pLabel);
-            switchContainer.appendChild(sInput);
-            switchContainer.appendChild(sLabel);
-            switchContainer.appendChild(handle);
-
-            switchRow.appendChild(switchContainer);
-            container.appendChild(switchRow);
+        if (pInput) {
+            pInput.onchange = () => {
+                Data.mode = 'pattern';
+                this.updateModeSwitch();
+                this.renderAll();
+            };
         }
 
+        if (sInput) {
+            sInput.onchange = () => {
+                Data.mode = 'song';
+                this.updateModeSwitch();
+                this.renderAll();
+            };
+        }
+
+        // File Manager Button Listener
+        const fileBtn = document.getElementById('fileManagerBtn');
+        if (fileBtn) {
+            fileBtn.onclick = () => {
+                const overlay = document.getElementById('fileManagerOverlay');
+                if (overlay.style.display === 'none') {
+                    this.renderFileList();
+                    overlay.style.display = 'flex';
+                } else {
+                    overlay.style.display = 'none';
+                }
+            };
+        }
+
+        // --- Pattern Mode Controls Listeners ---
+        const patContainer = document.getElementById('pattern-controls-container');
+        if (patContainer) {
+            // Pattern Select Buttons
+            patContainer.querySelectorAll('.pat-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const id = parseInt(btn.dataset.pattern);
+                    Data.selectPattern(id);
+                };
+            });
+
+            // Copy/Paste
+            const copyBtn = document.getElementById('copyPatternBtn');
+            if (copyBtn) {
+                copyBtn.onclick = () => {
+                    Data.copyPattern();
+                    this.showToast("Pattern copied!");
+                };
+            }
+
+            const pasteBtn = document.getElementById('pastePatternBtn');
+            if (pasteBtn) {
+                pasteBtn.onclick = () => {
+                    Data.pastePattern();
+                    this.showToast("Pattern pasted!");
+                };
+            }
+        }
+
+        // --- Song Mode Controls Listeners ---
+        const songContainer = document.getElementById('song-controls-container');
+        if (songContainer) {
+            // Song Pattern Add Buttons
+            songContainer.querySelectorAll('.song-pat-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const id = parseInt(btn.dataset.pattern);
+                    Data.selectPattern(id);
+                    Data.addToSong(id);
+                    this.renderModeControls(); // Update timeline
+                };
+            });
+        }
+    },
+
+    renderModeControls() {
         // Update the checked state
         this.updateModeSwitch();
 
-        // --- Context Controls ---
-        let controls = container.querySelector('.mode-context-controls');
-        if (!controls) {
-            controls = document.createElement('div');
-            controls.className = 'mode-context-controls';
-            container.appendChild(controls);
-        }
+        const patContainer = document.getElementById('pattern-controls-container');
+        const songContainer = document.getElementById('song-controls-container');
 
-        // Clear and rebuild context controls
-        controls.innerHTML = '';
         if (Data.mode === 'pattern') {
-            this.renderPatternControls(controls);
+            if (patContainer) patContainer.style.display = 'block';
+            if (songContainer) songContainer.style.display = 'none';
+            this.updatePatternButtonsState();
         } else {
-            this.renderSongControls(controls);
+            if (patContainer) patContainer.style.display = 'none';
+            if (songContainer) songContainer.style.display = 'block';
+            this.updateSongButtonsState();
+            this.updateSongTimeline();
         }
+    },
+
+    updatePatternButtonsState() {
+        const patContainer = document.getElementById('pattern-controls-container');
+        if (!patContainer) return;
+
+        patContainer.querySelectorAll('.pat-btn').forEach(btn => {
+            const id = parseInt(btn.dataset.pattern);
+            if (id === Data.currentPatternId) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    },
+
+    updateSongButtonsState() {
+        const songContainer = document.getElementById('song-controls-container');
+        if (!songContainer) return;
+
+        songContainer.querySelectorAll('.song-pat-btn').forEach(btn => {
+            const id = parseInt(btn.dataset.pattern);
+            if (id === Data.currentPatternId) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
     },
 
     updateModeSwitch() {
@@ -369,82 +415,172 @@ export const UI = {
         if (sInput) sInput.checked = Data.mode === 'song';
     },
 
-    renderPatternControls(container) {
-        // Pattern Selectors 1-16
-        const patRow = document.createElement('div');
-        patRow.className = 'pattern-select-row';
+    initFileManager() {
+        // Event Listeners for File Manager
+        const overlay = document.getElementById('fileManagerOverlay');
 
-        for (let i = 0; i < 16; i++) {
-            const b = document.createElement('button');
-            b.innerText = `P${i + 1}`;
-            b.className = Data.currentPatternId === i ? 'pat-btn active' : 'pat-btn';
-            b.onclick = () => Data.selectPattern(i);
-            patRow.appendChild(b);
-        }
-
-        // Actions
-        const actRow = document.createElement('div');
-        actRow.className = 'pattern-actions';
-
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'icon-action-btn';
-        copyBtn.title = 'Copy Pattern';
-        const copyIcon = document.createElement('span');
-        copyIcon.className = 'icon-copy';
-        copyBtn.appendChild(copyIcon);
-        copyBtn.onclick = () => {
-            Data.copyPattern();
-            this.showToast("Pattern copied!");
+        // Close on overlay click
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                overlay.style.display = 'none';
+            }
         };
 
-        const pasteBtn = document.createElement('button');
-        pasteBtn.className = 'icon-action-btn';
-        pasteBtn.title = 'Paste Pattern';
-        const pasteIcon = document.createElement('span');
-        pasteIcon.className = 'icon-paste';
-        pasteBtn.appendChild(pasteIcon);
-        pasteBtn.onclick = () => {
-            Data.pastePattern();
-            this.showToast("Pattern pasted!");
+        document.getElementById('fileCloseBtn').onclick = () => {
+            overlay.style.display = 'none';
         };
 
-        actRow.appendChild(copyBtn);
-        actRow.appendChild(pasteBtn);
+        document.getElementById('fileNewBtn').onclick = () => {
+            if (confirm('Create new file? Unsaved changes will be lost.')) {
+                FileManager.newFile();
+                this.renderFileList();
+                this.update303ClearButtons();
+                this.update909ClearButtons();
+                this.renderAll();
+                this.showToast('New file created');
+            }
+        };
 
-        container.appendChild(patRow);
-        container.appendChild(actRow);
+        document.getElementById('fileDeleteAllBtn').onclick = () => {
+            if (FileManager.deleteAll()) {
+                this.renderFileList();
+                this.update303ClearButtons();
+                this.update909ClearButtons();
+                this.renderAll();
+                this.showToast('All files deleted');
+            }
+        };
+
+        document.getElementById('fileExportBtn').onclick = () => {
+            FileManager.exportAll();
+        };
+
+        const importInput = document.getElementById('fileImportInput');
+        document.getElementById('fileImportBtn').onclick = () => {
+            importInput.click();
+        };
+
+        importInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (FileManager.importAll(e.target.result)) {
+                        this.renderFileList();
+                        this.showToast('Files imported');
+                    } else {
+                        alert('Import failed. Invalid file format.');
+                    }
+                };
+                reader.readAsText(file);
+            }
+            importInput.value = '';
+        };
+
+        // Auto-save every 5 seconds
+        setInterval(() => {
+            if (FileManager.currentFileId) {
+                FileManager.autoSave();
+                // Just update time if popover is open?
+                if (overlay.style.display !== 'none') {
+                    this.renderFileList();
+                }
+            }
+        }, 5000);
     },
 
-    renderSongControls(container) {
-        // Pattern Selectors - Click to select AND add to song
-        const patRow = document.createElement('div');
-        patRow.className = 'pattern-select-row';
+    renderFileList() {
+        const list = document.getElementById('fileList');
+        list.innerHTML = '';
+        const files = FileManager.getFileList();
 
-        for (let i = 0; i < 16; i++) {
-            const b = document.createElement('button');
-            b.innerText = `P${i + 1}`;
-            b.className = Data.currentPatternId === i ? 'pat-btn active' : 'pat-btn';
-            b.title = 'Click to select and add to song';
+        files.forEach(file => {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            if (file.id === FileManager.currentFileId) {
+                item.classList.add('active');
+            }
 
-            // Click: select pattern AND add to song
-            b.onclick = () => {
-                Data.selectPattern(i);
-                Data.addToSong(i);
-                this.renderModeControls(); // Refresh to update timeline and active state
+            const info = document.createElement('div');
+            info.className = 'file-info';
+
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'file-name';
+            nameDiv.innerText = file.name;
+
+            const dateDiv = document.createElement('div');
+            dateDiv.className = 'file-date';
+            dateDiv.innerText = new Date(file.modified).toLocaleString();
+
+            info.appendChild(nameDiv);
+            info.appendChild(dateDiv);
+
+            // Button container
+            const btnContainer = document.createElement('div');
+            btnContainer.className = 'file-item-actions';
+
+            // Duplicate button
+            const duplicateBtn = document.createElement('button');
+            duplicateBtn.className = 'file-action-icon-btn';
+            duplicateBtn.title = 'Duplicate';
+            duplicateBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+            duplicateBtn.onclick = (e) => {
+                e.stopPropagation();
+                FileManager.duplicateFile(file.id);
+                this.renderFileList();
+                this.showToast('File duplicated');
             };
 
-            patRow.appendChild(b);
-        }
+            // Rename button
+            const renameBtn = document.createElement('button');
+            renameBtn.className = 'file-action-icon-btn';
+            renameBtn.title = 'Rename';
+            renameBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+            renameBtn.onclick = (e) => {
+                e.stopPropagation();
+                const newName = prompt('Enter new name:', file.name);
+                if (newName) {
+                    FileManager.renameFile(file.id, newName);
+                    this.renderFileList();
+                }
+            };
 
-        // Timeline
-        const timeline = document.createElement('div');
-        timeline.className = 'song-timeline';
-        timeline.id = 'song-timeline';
+            // Delete button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'file-action-icon-btn file-delete-icon-btn';
+            deleteBtn.title = 'Delete';
+            deleteBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                FileManager.deleteFile(file.id);
+                this.renderFileList();
+                this.update303ClearButtons();
+                this.update909ClearButtons();
+                this.renderAll();
+                this.showToast('File deleted');
+            };
 
-        this.updateSongTimelineDOM(timeline);
+            btnContainer.appendChild(duplicateBtn);
+            btnContainer.appendChild(renameBtn);
+            btnContainer.appendChild(deleteBtn);
 
-        container.appendChild(patRow);
-        container.appendChild(timeline);
+            item.appendChild(info);
+            item.appendChild(btnContainer);
+
+            item.onclick = () => {
+                if (file.id !== FileManager.currentFileId) {
+                    if (FileManager.loadFile(file.id)) {
+                        this.renderFileList();
+                        this.update303ClearButtons();
+                        this.update909ClearButtons();
+                        this.renderAll();
+                        this.showToast('File loaded');
+                    }
+                }
+            };
+
+            list.appendChild(item);
+        });
     },
 
     updateSongTimeline() {

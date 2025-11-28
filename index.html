@@ -54,7 +54,7 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v56</div>
+          <div class="version-display">v57</div>
           <button id="shuffleBtn" class="transport-icon-btn" title="Swing/Shuffle">💃</button>
           <button id="playBtn" class="transport-icon-btn play" title="Run">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -136,7 +136,124 @@
     </div>
 
     <!-- Mode Controls (Pattern/Song Mode) -->
-    <div id="mode-controls" class="mode-controls"></div>
+    <div id="mode-controls" class="mode-controls">
+      <div class="mode-switch-group">
+        <div class="spacer"></div>
+        <!-- Item 1: Mode Switch -->
+        <div class="switch-group-item">
+          <div class="switch-label">MODE</div>
+          <div class="mode-switch">
+            <input type="radio" name="mode_switch" id="mode_pattern" value="pattern" checked>
+            <label for="mode_pattern" title="Pattern Mode"><span class="icon-pattern"></span></label>
+
+            <input type="radio" name="mode_switch" id="mode_song" value="song">
+            <label for="mode_song" title="Song Mode"><span class="icon-song"></span></label>
+
+            <div class="switch-handle"></div>
+          </div>
+        </div>
+        <!-- Item 2: File Manager -->
+        <div class="switch-group-item">
+          <div class="switch-label">FILE</div>
+          <button id="fileManagerBtn" class="file-manager-btn" title="File Manager">
+            <span class="icon-file"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Context Controls Container -->
+      <div id="mode-context-controls" class="mode-context-controls">
+        <!-- Pattern Mode Controls -->
+        <div id="pattern-controls-container">
+          <div class="pattern-select-row">
+            <button class="pat-btn" data-pattern="0">P1</button>
+            <button class="pat-btn" data-pattern="1">P2</button>
+            <button class="pat-btn" data-pattern="2">P3</button>
+            <button class="pat-btn" data-pattern="3">P4</button>
+            <button class="pat-btn" data-pattern="4">P5</button>
+            <button class="pat-btn" data-pattern="5">P6</button>
+            <button class="pat-btn" data-pattern="6">P7</button>
+            <button class="pat-btn" data-pattern="7">P8</button>
+            <button class="pat-btn" data-pattern="8">P9</button>
+            <button class="pat-btn" data-pattern="9">P10</button>
+            <button class="pat-btn" data-pattern="10">P11</button>
+            <button class="pat-btn" data-pattern="11">P12</button>
+            <button class="pat-btn" data-pattern="12">P13</button>
+            <button class="pat-btn" data-pattern="13">P14</button>
+            <button class="pat-btn" data-pattern="14">P15</button>
+            <button class="pat-btn" data-pattern="15">P16</button>
+          </div>
+          <div class="pattern-actions">
+            <button id="copyPatternBtn" class="icon-action-btn" title="Copy Pattern"><span
+                class="icon-copy"></span></button>
+            <button id="pastePatternBtn" class="icon-action-btn" title="Paste Pattern"><span
+                class="icon-paste"></span></button>
+          </div>
+        </div>
+
+        <!-- Song Mode Controls -->
+        <div id="song-controls-container" style="display: none;">
+          <div class="pattern-select-row">
+            <button class="pat-btn song-pat-btn" data-pattern="0" title="Click to select and add to song">P1</button>
+            <button class="pat-btn song-pat-btn" data-pattern="1" title="Click to select and add to song">P2</button>
+            <button class="pat-btn song-pat-btn" data-pattern="2" title="Click to select and add to song">P3</button>
+            <button class="pat-btn song-pat-btn" data-pattern="3" title="Click to select and add to song">P4</button>
+            <button class="pat-btn song-pat-btn" data-pattern="4" title="Click to select and add to song">P5</button>
+            <button class="pat-btn song-pat-btn" data-pattern="5" title="Click to select and add to song">P6</button>
+            <button class="pat-btn song-pat-btn" data-pattern="6" title="Click to select and add to song">P7</button>
+            <button class="pat-btn song-pat-btn" data-pattern="7" title="Click to select and add to song">P8</button>
+            <button class="pat-btn song-pat-btn" data-pattern="8" title="Click to select and add to song">P9</button>
+            <button class="pat-btn song-pat-btn" data-pattern="9" title="Click to select and add to song">P10</button>
+            <button class="pat-btn song-pat-btn" data-pattern="10" title="Click to select and add to song">P11</button>
+            <button class="pat-btn song-pat-btn" data-pattern="11" title="Click to select and add to song">P12</button>
+            <button class="pat-btn song-pat-btn" data-pattern="12" title="Click to select and add to song">P13</button>
+            <button class="pat-btn song-pat-btn" data-pattern="13" title="Click to select and add to song">P14</button>
+            <button class="pat-btn song-pat-btn" data-pattern="14" title="Click to select and add to song">P15</button>
+            <button class="pat-btn song-pat-btn" data-pattern="15" title="Click to select and add to song">P16</button>
+          </div>
+          <div id="song-timeline" class="song-timeline"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- File Manager Overlay & Popover -->
+    <div id="fileManagerOverlay" class="file-manager-overlay" style="display: none;">
+      <div id="fileManagerPopover" class="file-manager-popover">
+        <div class="file-manager-header">
+          <button id="fileNewBtn" class="file-action-btn" title="New">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+            </svg>
+          </button>
+          <button id="fileImportBtn" class="file-action-btn" title="Import">
+            <svg viewBox="0 0 24 24">
+              <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+            </svg>
+          </button>
+          <button id="fileExportBtn" class="file-action-btn" title="Export">
+            <svg viewBox="0 0 24 24">
+              <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
+            </svg>
+          </button>
+          <button id="fileDeleteAllBtn" class="file-action-btn" title="Delete All">
+            <svg viewBox="0 0 24 24">
+              <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+            </svg>
+          </button>
+          <button id="fileCloseBtn" class="file-close-btn" title="Close">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+            </svg>
+          </button>
+        </div>
+        <div class="file-list-container">
+          <div id="fileList" class="file-list"></div>
+        </div>
+        <input type="file" id="fileImportInput" accept=".json" style="display: none;">
+      </div>
+    </div>
 
     <!-- TB-303 Unit 1 -->
     <div class="machine tb-303">
