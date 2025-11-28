@@ -53,7 +53,7 @@
     <!-- Transport -->
     <div class="top-bar">
       <div class="transport-controls">
-        <div class="version-display">v54</div>
+        <div class="version-display">v55</div>
         <button id="playBtn" class="transport-icon-btn play" title="Run">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z" />
@@ -104,13 +104,18 @@
         </button>
       </div>
       <div class="tempo-group">
-        <div id="tempo-knob-container"></div>
-        <div class="tempo-display-wrapper">
-          <div class="tempo-label">TEMPO</div>
-          <div class="led-display" id="tempoDisplay">
-            <div class="digit" id="digit-100"></div>
-            <div class="digit" id="digit-10"></div>
-            <div class="digit" id="digit-1"></div>
+        <div class="oscilloscope-container">
+          <canvas id="oscilloscope" width="120" height="44"></canvas>
+        </div>
+        <div class="temp-container">
+          <div id="tempo-knob-container"></div>
+          <div class="tempo-display-wrapper">
+            <div class="tempo-label">TEMPO</div>
+            <div class="led-display" id="tempoDisplay">
+              <div class="digit" id="digit-100"></div>
+              <div class="digit" id="digit-10"></div>
+              <div class="digit" id="digit-1"></div>
+            </div>
           </div>
         </div>
       </div>

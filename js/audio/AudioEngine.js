@@ -223,8 +223,11 @@ export const AudioEngine = {
     },
 
     // FFT Data for Visuals
-    getAudioData(dataArray) {
-        if (this.analyser) {
+    getAudioData(dataArray, type = 'frequency') {
+        if (!this.analyser) return;
+        if (type === 'time') {
+            this.analyser.getByteTimeDomainData(dataArray);
+        } else {
             this.analyser.getByteFrequencyData(dataArray);
         }
     }

@@ -1,6 +1,7 @@
 import { RotaryKnob } from './RotaryKnob.js';
 import { AudioEngine } from '../audio/AudioEngine.js';
 import { Data } from '../data/Data.js';
+import { Oscilloscope } from './Oscilloscope.js';
 
 export const UI = {
     init() {
@@ -18,6 +19,9 @@ export const UI = {
         this.render303Grid(1);
         this.render303Grid(2);
         this.render909();
+
+        // Initialize Oscilloscope
+        Oscilloscope.init();
 
         document.getElementById('playBtn').onclick = () => AudioEngine.play();
         document.getElementById('stopBtn').onclick = () => AudioEngine.stop();
