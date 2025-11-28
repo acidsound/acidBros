@@ -692,7 +692,7 @@ h3 {
 @media (max-width: 600px) and (orientation: portrait) {
     .tempo-group {
         width: 100%;
-        justify-content: space-between;
+        justify-content: space-around;
     }
 }
 
