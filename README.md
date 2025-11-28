@@ -18,7 +18,8 @@
 
 ## UI/UX Overview
 - **Design Language**: Dark glass‑morphism theme with neon accent colors, modern Google Fonts (Inter) and subtle micro‑animations for button presses, knob turns, and step activation.
-- **Transport Bar**: Top bar with RUN, STOP, RANDOMIZE, CLEAR, SHARE URL buttons and a large BPM knob with a 7‑segment LED display. Hover glows and tactile feedback enhance interaction.
+- **Transport Bar**: Top bar with RUN, STOP, RANDOMIZE, CLEAR, SHARE URL, and Buy Me a Coffee buttons. Includes a large BPM knob with a 7‑segment LED display.
+- **Oscilloscope**: Real-time green CRT-style waveform visualization located in the tempo section.
 - **Mode Switch**: Animated toggle between Pattern Mode and Song Mode with smooth transition effects.
 - **Pattern Mode**: Row of 16 pattern selectors (P1‑P16) with icon-based COPY and PASTE buttons for quick pattern management. Clicking a selector instantly switches the active pattern.
 - **Song Mode**: Pattern selectors integrated into the song timeline, allowing multi‑pattern arrangements by tapping a selector. Timeline wraps onto multiple rows, eliminating horizontal scrolling.
@@ -47,6 +48,10 @@
   * **Pattern Mode**: 16 independent patterns (P1-P16) with copy/paste functionality.
   * **Song Mode**: Arrange patterns into songs by clicking pattern buttons to add them to the timeline.
   * Smooth animated mode switching.
+* **Live Performance Features**:
+  * **Collapsible Sequencers**: Click machine headers to hide grids and focus on knobs for live tweaking.
+  * **Real-time Oscilloscope**: Visual feedback of the audio output.
+  * **Touch Optimized**: Multi-touch support for knobs and responsive layout.
 * **Responsive Design**: Optimized for Desktop, Tablet, Mobile (Portrait/Landscape).
 * **Global Controls**:
   * Tempo (BPM) with 7‑segment LED display (60-200 BPM).

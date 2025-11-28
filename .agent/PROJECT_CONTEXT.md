@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v46
+- **Current Version**: v55
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -26,6 +26,7 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - **Interaction**: Vertical drag (up/down) changes values
   - **Touch ID Tracking**: Each knob tracks its specific touch identifier
   - **Double-tap**: Resets to default value
+- **Oscilloscope**: `js/ui/Oscilloscope.js` handles real-time waveform visualization
 - **Data Management**: `js/data/Data.js` handles patterns and song mode
 
 ### Key Design Decisions
@@ -60,7 +61,7 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 acidBros/
 ├── index.html              # Main HTML, includes anti-zoom scripts
 ├── styles.css              # All styling, responsive design
-├── sw.js                   # Service worker (cache v46)
+├── sw.js                   # Service worker (cache v55)
 ├── manifest.json           # PWA manifest
 ├── js/
 │   ├── main.js            # Entry point
@@ -71,7 +72,8 @@ acidBros/
 │   │   └── TR909.js       # TR-909 drum machine
 │   ├── ui/
 │   │   ├── UI.js          # Main UI controller
-│   │   └── RotaryKnob.js  # Knob component with TouchManager
+│   │   ├── RotaryKnob.js  # Knob component with TouchManager
+│   │   └── Oscilloscope.js # Real-time waveform visualizer
 │   └── data/
 │       └── Data.js        # Pattern/song data management
 └── assets/
@@ -128,24 +130,21 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v44-v46)
+## Recent Changes (v50-v55)
 
-### v44: AudioWorklet Migration
-- Added `ClockProcessor.js`
-- Migrated timing from setTimeout to AudioWorklet
-- Added fallback for insecure contexts
+### v50: Buy Me a Coffee
+- Added support button to transport bar
+- Removed widget script
 
-### v45: Multi-touch & Mobile Improvements
-- Implemented global `TouchManager`
-- Fixed multi-touch knob control
-- Added version display in transport
-- Updated service worker cache
+### v52-v54: Live Performance & Mobile Layout
+- **Collapsible Sequencers**: Single click on machine headers to toggle sequencer visibility
+- **TR-909 Mobile**: Improved grid layout for drum tracks on mobile landscape/tablet
+- **Animations**: Smooth transitions for collapse/expand
 
-### v46: Pinch Zoom Prevention
-- Added gesture event blocking
-- Added double-tap zoom prevention
-- Added CSS touch-action properties
-- Added ctrl+wheel zoom blocking
+### v55: Oscilloscope
+- Added real-time waveform visualization
+- Implemented `Oscilloscope.js` with CRT style
+- Restructured tempo group for responsive layout
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`
