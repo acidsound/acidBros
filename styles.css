@@ -64,7 +64,7 @@ h3 {
 .rack {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 1px;
     width: 100%;
     max-width: 920px;
     padding: 20px;
