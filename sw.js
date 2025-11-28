@@ -10,6 +10,7 @@ const ASSETS = [
     './js/audio/TB303.js',
     './js/audio/TR909.js',
     './js/data/Data.js',
+    './js/data/FileManager.js',
     './js/ui/UI.js',
     './js/ui/Oscilloscope.js',
     './manifest.json',
