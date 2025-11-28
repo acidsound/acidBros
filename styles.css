@@ -329,7 +329,28 @@ h3 {
     border-top: 1px solid rgba(255, 255, 255, 0.3);
     padding-bottom: 10px;
     margin-bottom: 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.2s;
 }
+
+.machine-header:hover {
+    opacity: 0.8;
+}
+
+.machine-header h2::after {
+    content: ' ▼';
+    font-size: 0.5em;
+    opacity: 0.5;
+    margin-left: 8px;
+    transition: transform 0.3s ease;
+    display: inline-block;
+}
+
+.machine.collapsed .machine-header h2::after {
+    transform: rotate(-90deg);
+}
+
 
 .machine-header h2 small {
     font-size: 0.6em;
@@ -656,6 +677,17 @@ h3 {
     border-radius: 4px;
     border: 2px solid #111;
     box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.4s ease, margin 0.4s ease;
+    opacity: 1;
+}
+
+.machine.collapsed .sequencer-303 {
+    max-height: 0;
+    opacity: 0;
+    padding: 0 10px;
+    margin: 0;
 }
 
 .sequencer-303 {
@@ -968,6 +1000,16 @@ h3 {
     background: #444;
     padding: 4px;
     border-radius: 2px;
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.4s ease;
+    opacity: 1;
+}
+
+.machine.collapsed .sequencer-909 {
+    max-height: 0;
+    opacity: 0;
+    padding: 0 4px;
 }
 
 @media (max-width: 768px) {
