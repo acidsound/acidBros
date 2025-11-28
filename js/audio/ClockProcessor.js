@@ -8,6 +8,8 @@ class ClockProcessor extends AudioWorkletProcessor {
         this.samplesPerBeat = 0;
         this.sampleRate = 44100; // Will be updated in process if needed, but usually fixed
 
+        this.swing = 50; // 50% = straight, 66% = triplet, 75% = hard swing
+
         this.port.onmessage = (e) => {
             if (e.data.type === 'start') {
                 this.isPlaying = true;
@@ -17,6 +19,8 @@ class ClockProcessor extends AudioWorkletProcessor {
                 this.isPlaying = false;
             } else if (e.data.type === 'tempo') {
                 this.tempo = e.data.value;
+            } else if (e.data.type === 'swing') {
+                this.swing = e.data.value;
             }
         };
     }
@@ -31,7 +35,7 @@ class ClockProcessor extends AudioWorkletProcessor {
 
         // Calculate seconds per beat
         const secondsPerBeat = 60.0 / this.tempo;
-        const secondsPer16th = secondsPerBeat / 4;
+        const base16th = secondsPerBeat / 4;
 
         // Check if we need to schedule the next note
         // We use a loop to handle cases where the thread might wake up late (though unlikely in Worklet)
@@ -43,7 +47,17 @@ class ClockProcessor extends AudioWorkletProcessor {
                 step: this.currentStep
             });
 
-            this.nextNoteTime += secondsPer16th;
+            // Calculate duration of current step based on swing
+            let duration;
+            if (this.currentStep % 2 === 0) {
+                // Even step (0, 2, 4...) -> Duration determined by swing
+                duration = base16th * 2 * (this.swing / 100);
+            } else {
+                // Odd step (1, 3, 5...) -> Remainder
+                duration = base16th * 2 * ((100 - this.swing) / 100);
+            }
+
+            this.nextNoteTime += duration;
             this.currentStep++;
             if (this.currentStep >= 16) {
                 this.currentStep = 0;

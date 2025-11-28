@@ -50,11 +50,13 @@
   * Smooth animated mode switching.
 * **Live Performance Features**:
   * **Collapsible Sequencers**: Click machine headers to hide grids and focus on knobs for live tweaking.
+  * **Swing/Shuffle Control**: Adjustable groove timing (0-100%) with visual ribbon controller and center reference line.
   * **Real-time Oscilloscope**: Visual feedback of the audio output.
   * **Touch Optimized**: Multi-touch support for knobs and responsive layout.
 * **Responsive Design**: Optimized for Desktop, Tablet, Mobile (Portrait/Landscape).
 * **Global Controls**:
   * Tempo (BPM) with 7‑segment LED display (60-200 BPM).
+  * Swing/Shuffle (💃) with collapsible ribbon controller (double-click/tap to reset to 50%).
   * Play, Stop, Clear, Randomize.
   * Share URL to export current pattern state.
 * **PWA Support**: Installable as a Progressive Web App for offline use.

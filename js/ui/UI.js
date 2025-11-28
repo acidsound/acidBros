@@ -5,15 +5,6 @@ import { Oscilloscope } from './Oscilloscope.js';
 
 export const UI = {
     init() {
-        // Create Mode Control Section if not exists
-        if (!document.getElementById('mode-controls')) {
-            const topBar = document.querySelector('.top-bar');
-            const modeDiv = document.createElement('div');
-            modeDiv.id = 'mode-controls';
-            modeDiv.className = 'mode-controls';
-            topBar.parentNode.insertBefore(modeDiv, topBar.nextSibling);
-        }
-
         this.init303Knobs(1);
         this.init303Knobs(2);
         this.render303Grid(1);
@@ -158,6 +149,99 @@ export const UI = {
         document.getElementById('bmcBtn').onclick = () => {
             window.open('https://www.buymeacoffee.com/spectricki', '_blank');
         };
+
+        // Swing/Shuffle Control
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const swingPanel = document.getElementById('swingPanel');
+        const ribbonController = document.getElementById('ribbonController');
+        const ribbonLeft = document.getElementById('ribbonLeft');
+        const ribbonRight = document.getElementById('ribbonRight');
+        const swingDisplay = document.getElementById('swingDisplay');
+
+        let swingValue = 50; // Default 50%
+
+        // Toggle swing panel
+        shuffleBtn.onclick = () => {
+            swingPanel.classList.toggle('open');
+        };
+
+        // Ribbon controller drag logic
+        let isDragging = false;
+
+        const updateSwing = (clientX) => {
+            const rect = ribbonController.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+            swingValue = Math.round(percent);
+
+            // Update visual
+            ribbonLeft.style.width = swingValue + '%';
+            ribbonRight.style.width = (100 - swingValue) + '%';
+            swingDisplay.textContent = swingValue;
+
+            // Update AudioEngine
+            AudioEngine.setSwing(swingValue);
+        };
+
+        ribbonController.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            updateSwing(e.clientX);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                updateSwing(e.clientX);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // Touch support
+        ribbonController.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            updateSwing(e.touches[0].clientX);
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                updateSwing(e.touches[0].clientX);
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // Double-click/tap to reset to 50%
+        ribbonController.addEventListener('dblclick', () => {
+            swingValue = 50;
+            ribbonLeft.style.width = '50%';
+            ribbonRight.style.width = '50%';
+            swingDisplay.textContent = '50';
+            AudioEngine.setSwing(50);
+        });
+
+        // Double-tap support (for mobile)
+        let lastTapTime = 0;
+        ribbonController.addEventListener('touchend', (e) => {
+            const currentTime = new Date().getTime();
+            const tapGap = currentTime - lastTapTime;
+
+            if (tapGap < 300 && tapGap > 0) {
+                // Double tap detected
+                swingValue = 50;
+                ribbonLeft.style.width = '50%';
+                ribbonRight.style.width = '50%';
+                swingDisplay.textContent = '50';
+                AudioEngine.setSwing(50);
+                e.preventDefault();
+            }
+
+            lastTapTime = currentTime;
+        });
 
         // Collapse/Expand functionality for machines (click on h2 title)
         document.querySelectorAll('.machine-header h2').forEach(title => {

@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v55
+- **Current Version**: v56
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -130,11 +130,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v50-v55)
-
-### v50: Buy Me a Coffee
-- Added support button to transport bar
-- Removed widget script
+## Recent Changes (v52-v56)
 
 ### v52-v54: Live Performance & Mobile Layout
 - **Collapsible Sequencers**: Single click on machine headers to toggle sequencer visibility
@@ -145,6 +141,14 @@ acidBros/
 - Added real-time waveform visualization
 - Implemented `Oscilloscope.js` with CRT style
 - Restructured tempo group for responsive layout
+
+### v56: Swing/Shuffle
+- **Swing Control**: Adjustable groove timing (0-100%, default 50%)
+- **UI**: Collapsible ribbon controller with yellow/red visual feedback
+- **Center Line**: White reference line at 50% for easy visual reference
+- **Double-tap Reset**: Quick return to straight timing
+- **AudioWorklet Integration**: Precise timing adjustment in both Worklet and fallback scheduler
+- **Mobile Optimization**: Fixed TR-909 bottom padding in portrait mode
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

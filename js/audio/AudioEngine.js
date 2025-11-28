@@ -10,6 +10,7 @@ export const AudioEngine = {
     clockNode: null, // AudioWorkletNode
     isPlaying: false,
     tempo: 125,
+    swing: 50,
     currentStep: 0,
     currentSongIndex: 0,
 
@@ -103,6 +104,7 @@ export const AudioEngine = {
             // Send Start Message to Worklet
             this.clockNode.port.postMessage({ type: 'start' });
             this.clockNode.port.postMessage({ type: 'tempo', value: this.tempo });
+            this.clockNode.port.postMessage({ type: 'swing', value: this.swing });
         } else {
             // Start Fallback Scheduler
             this.scheduler();
@@ -139,6 +141,13 @@ export const AudioEngine = {
         }
     },
 
+    setSwing(newSwing) {
+        this.swing = newSwing;
+        if (this.useWorklet && this.clockNode) {
+            this.clockNode.port.postMessage({ type: 'swing', value: newSwing });
+        }
+    },
+
     // --- Worklet Handler ---
     handleTick(data) {
         const { time, step } = data;
@@ -171,7 +180,18 @@ export const AudioEngine = {
 
     nextNote() {
         const secondsPerBeat = 60.0 / this.tempo;
-        this.nextNoteTime += 0.25 * secondsPerBeat;
+        const base16th = secondsPerBeat / 4;
+
+        let duration;
+        if (this.currentStep % 2 === 0) {
+            // Even step (0, 2, 4...) -> Duration determined by swing
+            duration = base16th * 2 * (this.swing / 100);
+        } else {
+            // Odd step (1, 3, 5...) -> Remainder
+            duration = base16th * 2 * ((100 - this.swing) / 100);
+        }
+
+        this.nextNoteTime += duration;
         this.currentStep++;
 
         if (this.currentStep === 16) {
