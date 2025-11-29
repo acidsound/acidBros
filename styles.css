@@ -1661,28 +1661,22 @@ h3 {
 
 @media (max-width: 600px) {
     .piano-overlay {
-        align-items: flex-end;
-        /* Align to bottom on mobile */
-        background: rgba(0, 0, 0, 0.5);
-        /* Lighter overlay to see behind */
+        align-items: center;
+        /* Center on mobile too */
+        background: rgba(0, 0, 0, 0.8);
+        padding: 20px;
     }
 
     .note-editor {
         width: 100%;
-        max-width: none;
-        border-radius: 4px 4px 0 0;
-        /* Position it to cover the sequencer area roughly, or just stick to bottom */
-        /* User asked to match .sequencer-303 size so top-bar and knob-group are visible. 
-           The sequencer is at the bottom of the machine div. 
-           However, the overlay is fixed full screen. 
-           To achieve the effect of "not covering top-bar", we can just make it a bottom sheet 
-           that doesn't go too high. 
-        */
+        max-width: 380px;
+        /* Limit width for better look */
+        border-radius: 8px;
+        /* Full rounded corners */
         height: auto;
-        max-height: 60vh;
-        /* Ensure it doesn't cover the whole screen */
-        border-bottom: none;
-        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
+        max-height: 85vh;
+        border-bottom: 1px solid #555;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
     }
 
     .piano-container {

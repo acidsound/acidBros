@@ -276,11 +276,27 @@ export const UI = {
 
     showToast(message) {
         const toast = document.getElementById('toast');
-        toast.innerText = message;
-        toast.className = 'show';
-        setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+        if (toast) {
+            toast.innerText = message;
+            toast.className = 'show';
+            setTimeout(() => {
+                toast.className = toast.className.replace('show', '');
+            }, 3000);
+        }
     },
 
+    updateSwingUI() {
+        const swingValue = AudioEngine.swing;
+        const ribbonLeft = document.getElementById('ribbonLeft');
+        const ribbonRight = document.getElementById('ribbonRight');
+        const swingDisplay = document.getElementById('swingDisplay');
+
+        if (ribbonLeft && ribbonRight && swingDisplay) {
+            ribbonLeft.style.width = swingValue + '%';
+            ribbonRight.style.width = (100 - swingValue) + '%';
+            swingDisplay.textContent = Math.round(swingValue);
+        }
+    },
     initModeControls() {
         // Mode Switch Listeners
         const pInput = document.getElementById('mode_pattern');
@@ -441,6 +457,12 @@ export const UI = {
             }
         };
 
+        document.getElementById('fileSaveBtn').onclick = () => {
+            FileManager.save();
+            this.renderFileList();
+            this.showToast('File saved');
+        };
+
         document.getElementById('fileDeleteAllBtn').onclick = () => {
             if (FileManager.deleteAll()) {
                 this.renderFileList();
@@ -477,22 +499,25 @@ export const UI = {
             importInput.value = '';
         };
 
-        // Auto-save every 5 seconds
-        setInterval(() => {
-            if (FileManager.currentFileId) {
-                FileManager.autoSave();
-                // Just update time if popover is open?
-                if (overlay.style.display !== 'none') {
-                    this.renderFileList();
-                }
-            }
-        }, 5000);
+
     },
 
     renderFileList() {
         const list = document.getElementById('fileList');
         list.innerHTML = '';
         const files = FileManager.getFileList();
+
+        if (files.length === 0) {
+            const emptyMsg = document.createElement('div');
+            emptyMsg.className = 'empty-file-list';
+            emptyMsg.innerText = 'No saved files';
+            emptyMsg.style.padding = '20px';
+            emptyMsg.style.textAlign = 'center';
+            emptyMsg.style.color = '#666';
+            emptyMsg.style.fontStyle = 'italic';
+            list.appendChild(emptyMsg);
+            return;
+        }
 
         files.forEach(file => {
             const item = document.createElement('div');

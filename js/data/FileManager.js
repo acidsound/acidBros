@@ -2,17 +2,24 @@ import { Data } from '../data/Data.js';
 
 export const FileManager = {
     STORAGE_KEY: 'acidbros_files',
+    CURRENT_FILE_KEY: 'acidbros_current_file',
     currentFileId: null,
 
     init() {
         // Load file list from localStorage
         const files = this.getFileList();
-        if (files.length === 0) {
-            // Create initial autosave
-            this.autoSave();
-        } else {
-            // Set current file to the first file (most recent)
-            this.currentFileId = files[0].id;
+
+        if (files.length > 0) {
+            // Try to restore the last working file
+            const lastFileId = localStorage.getItem(this.CURRENT_FILE_KEY);
+            const lastFile = files.find(f => f.id === lastFileId) || files[0];
+
+            if (lastFile) {
+                // Restore state from last file but start as NEW session
+                Data.importState(lastFile.data);
+                this.currentFileId = null;
+                // Do NOT save automatically. User must click Save.
+            }
         }
     },
 
@@ -36,38 +43,58 @@ export const FileManager = {
         return `${year}-${month}-${day}${hours}${minutes}${seconds}`;
     },
 
-    autoSave() {
-        const state = Data.exportState();
-        const files = this.getFileList();
+    save() {
+        try {
+            const state = Data.exportState();
+            const files = this.getFileList();
 
-        if (this.currentFileId) {
-            // Update existing file
-            const index = files.findIndex(f => f.id === this.currentFileId);
-            if (index !== -1) {
-                files[index].data = state;
-                files[index].modified = Date.now();
+            if (this.currentFileId) {
+                // Update existing file
+                const index = files.findIndex(f => f.id === this.currentFileId);
+                if (index !== -1) {
+                    files[index].data = state;
+                    files[index].modified = Date.now();
+                } else {
+                    // Critical fallback: File ID exists in memory but not in storage list.
+                    // This can happen if storage was cleared or out of sync.
+                    // Re-create the file entry to prevent data loss.
+                    console.warn('FileManager: Current file not found in list, recovering...');
+                    const recoveredFile = {
+                        id: this.currentFileId,
+                        name: this.generateFileName() + ' (recovered)',
+                        data: state,
+                        created: Date.now(),
+                        modified: Date.now()
+                    };
+                    files.unshift(recoveredFile);
+                }
+            } else {
+                // Create new file
+                const newFile = {
+                    id: Date.now().toString(),
+                    name: this.generateFileName(),
+                    data: state,
+                    created: Date.now(),
+                    modified: Date.now()
+                };
+                files.unshift(newFile);
+                this.currentFileId = newFile.id;
             }
-        } else {
-            // Create new file
-            const newFile = {
-                id: Date.now().toString(),
-                name: this.generateFileName(),
-                data: state,
-                created: Date.now(),
-                modified: Date.now()
-            };
-            files.unshift(newFile);
-            this.currentFileId = newFile.id;
-        }
 
-        this.saveFileList(files);
-        return this.currentFileId;
+            this.saveFileList(files);
+            localStorage.setItem(this.CURRENT_FILE_KEY, this.currentFileId);
+            return this.currentFileId;
+        } catch (e) {
+            console.error('FileManager: Auto-save failed', e);
+            return null;
+        }
     },
 
     newFile() {
         this.currentFileId = null;
         Data.init();
-        this.autoSave();
+        this.save();
+        // save will set the CURRENT_FILE_KEY
     },
 
     loadFile(fileId) {
@@ -75,6 +102,7 @@ export const FileManager = {
         const file = files.find(f => f.id === fileId);
         if (file) {
             this.currentFileId = fileId;
+            localStorage.setItem(this.CURRENT_FILE_KEY, fileId);
             Data.importState(file.data);
             return true;
         }
@@ -131,7 +159,7 @@ export const FileManager = {
             localStorage.removeItem(this.STORAGE_KEY);
             this.currentFileId = null;
             Data.init();
-            this.autoSave();
+            // Do not save automatically on delete all
             return true;
         }
         return false;
