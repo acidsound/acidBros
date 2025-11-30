@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -78,19 +79,20 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v62</div>
-          <button id="shuffleBtn" class="transport-icon-btn" title="Swing/Shuffle">💃</button>
-          <button id="playBtn" class="transport-icon-btn play" title="Run">
+          <div class="version-display">v63</div>
+          <button id="shuffleBtn" class="transport-icon-btn" title="Swing/Shuffle"
+            aria-label="Swing and Shuffle Control">💃</button>
+          <button id="playBtn" class="transport-icon-btn play" title="Run" aria-label="Play">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z" />
             </svg>
           </button>
-          <button id="stopBtn" class="transport-icon-btn stop" title="Stop">
+          <button id="stopBtn" class="transport-icon-btn stop" title="Stop" aria-label="Stop">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <rect x="6" y="6" width="12" height="12" />
             </svg>
           </button>
-          <button id="randomBtn" class="transport-icon-btn" title="Randomize">
+          <button id="randomBtn" class="transport-icon-btn" title="Randomize" aria-label="Randomize Pattern">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -101,14 +103,14 @@
               <circle cx="15.5" cy="15.5" r="1"></circle>
             </svg>
           </button>
-          <button id="clearBtn" class="transport-icon-btn" title="Clear">
+          <button id="clearBtn" class="transport-icon-btn" title="Clear" aria-label="Clear Pattern">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
           </button>
-          <button id="shareBtn" class="transport-icon-btn share" title="Share">
+          <button id="shareBtn" class="transport-icon-btn share" title="Share" aria-label="Share URL">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
               <circle cx="18" cy="5" r="3"></circle>
@@ -118,7 +120,7 @@
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
             </svg>
           </button>
-          <button id="bmcBtn" class="transport-icon-btn bmc" title="Buy me a coffee">
+          <button id="bmcBtn" class="transport-icon-btn bmc" title="Buy me a coffee" aria-label="Buy me a coffee">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
@@ -179,7 +181,7 @@
         <!-- Item 2: File Manager -->
         <div class="switch-group-item">
           <div class="switch-label">FILE</div>
-          <button id="fileManagerBtn" class="file-manager-btn" title="File Manager">
+          <button id="fileManagerBtn" class="file-manager-btn" title="File Manager" aria-label="File Manager">
             <span class="icon-file"></span>
           </button>
         </div>
@@ -244,6 +246,7 @@
     <div id="fileManagerOverlay" class="file-manager-overlay" style="display: none;">
       <div id="fileManagerPopover" class="file-manager-popover">
         <div class="file-manager-header">
+
           <button id="fileNewBtn" class="file-action-btn" title="New">
             <svg viewBox="0 0 24 24">
               <path
