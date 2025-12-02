@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v65
+- **Current Version**: v67
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -144,7 +144,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v65)
+## Recent Changes (v57-v67)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -186,6 +186,14 @@ acidBros/
   - **Waveform Switching**: TB-303 waveform toggles are mappable
   - **Mobile UX**: Improved Learn Mode banner positioning (inside rack, not fixed)
 - **Visual Feedback**: Green/Red status indicators for MIDI devices
+
+### v66-v67: UI Parameter Initialization & Audio Engine Fixes
+- **Parameter Initialization**: Fixed issue where UI parameters were not properly initialized, causing NaN values in audio engine
+  - Modified `get303Params` and `get909Params` to use correct input element IDs with `-input` suffix
+  - Added UI initialization check in `AudioEngine.play()` to ensure UI is ready before starting audio
+  - Added `Data.randomize()` call in `Data.init()` to ensure parameters are initialized with valid values
+- **Audio Engine Validation**: Added parameter validation in TB303 and TR909 play functions to prevent NaN values from causing audio glitches
+- **TR909 Parameter Adjustments**: Updated parameter validation in TR909 `playBD` function to match UI controls
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

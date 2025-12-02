@@ -14,8 +14,8 @@ The TB-303 is a subtractive monophonic synthesizer. Its character comes from the
 ```mermaid
 graph LR
     subgraph Voice
-    OSC[Oscillator<br/>(Saw/Square)] --> FILTER[Lowpass Filter<br/>(Resonant)]
-    FILTER --> VCA[VCA<br/>(Amp Envelope)]
+    OSC["Oscillator<br/>(Saw/Square)"] --> FILTER["Lowpass Filter<br/>(Resonant)"]
+    FILTER --> VCA["VCA<br/>(Amp Envelope)"]
     end
     
     subgraph Logic

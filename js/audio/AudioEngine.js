@@ -85,6 +85,19 @@ export const AudioEngine = {
         if (this.isPlaying) return;
         if (this.ctx.state === 'suspended') await this.ctx.resume();
 
+        // Check if UI is initialized
+        if (!UI.isInitialized) {
+            console.warn("UI not initialized yet, adding play to pending callbacks");
+            if (!UI.pendingInitCallbacks) {
+                UI.pendingInitCallbacks = [];
+            }
+            UI.pendingInitCallbacks.push(() => {
+                console.log("Executing pending play callback after UI initialization");
+                this.play();
+            });
+            return;
+        }
+
         this.isPlaying = true;
         this.currentStep = 0;
         this.currentSongIndex = 0;
@@ -218,7 +231,7 @@ export const AudioEngine = {
         });
 
         // UI Update
-        // For fallback, we can draw immediately as timing is less precise anyway, 
+        // For fallback, we can draw immediately as timing is less precise anyway,
         // or use the same delay logic.
         const delay = Math.max(0, (time - this.ctx.currentTime) * 1000);
         setTimeout(() => {

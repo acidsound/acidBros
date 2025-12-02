@@ -30,10 +30,26 @@ export class TB303 {
     }
 
     playStep(time, step, P, prevStep, tempo) {
+        // Validate Parameters
+        if (!P ||
+            isNaN(P.tune) || isNaN(P.cutoff) || isNaN(P.reso) ||
+            isNaN(P.env) || isNaN(P.decay) || isNaN(P.vol) ||
+            typeof P.wave !== 'string') {
+            return;
+        }
+
+        // Validate Step
+        if (!step || typeof step.note !== 'string' || typeof step.octave !== 'number' || step.octave < 0) {
+            return;
+        }
+
         let active = this.activeState;
 
         // Calculate Frequency
         let freq = this.noteToFreq(step.note, step.octave);
+        if (!isFinite(freq)) {
+            return;
+        }
         freq *= Math.pow(2, P.tune / 1200);
 
         // Check Slide
@@ -133,29 +149,36 @@ export class TB303 {
     processStep(time, stepIndex, seqData, params, tempo) {
         // Update Delay Params
         if (this.delayNode && this.feedbackGain && this.wetGain) {
+            // Validate Time and Tempo
+            if (!Number.isFinite(time) || !Number.isFinite(tempo) || tempo <= 0) {
+                return;
+            }
+
             // Calculate Tempo-Synced Delay Time
-            // params.delayTime is 0-200 (%)
-            // 50% = Half Note. 100% = Whole Note.
-            // Whole Note = 4 Beats.
+            const pDelayTime = (typeof params.delayTime === 'number') ? params.delayTime : 50;
+            const pFeedback = (typeof params.delayFeedback === 'number') ? params.delayFeedback : 40;
+
             const secondsPerBeat = 60.0 / tempo;
             const wholeNote = secondsPerBeat * 4;
 
             // Calculate target delay time
-            let dTime = (params.delayTime / 100) * wholeNote;
+            let dTime = (pDelayTime / 100) * wholeNote;
 
             // Clamp to max buffer size (6.0s) and min safe value
             dTime = Math.min(Math.max(dTime, 0.01), 6.0);
 
             // Feedback: 0-100 -> 0.0 to 0.95
-            const dFeed = (params.delayFeedback / 100) * 0.95;
+            const dFeed = (pFeedback / 100) * 0.95;
 
-            // Wet Level Logic:
-            // Mute if delayTime % is very low (e.g. < 1%) to avoid phasing at 0
-            const wetLevel = (params.delayTime < 1) ? 0 : 0.5;
+            // Wet Level Logic
+            const wetLevel = (pDelayTime < 1) ? 0 : 0.5;
 
-            this.delayNode.delayTime.setTargetAtTime(dTime, time, 0.05);
-            this.feedbackGain.gain.setTargetAtTime(dFeed, time, 0.02);
-            this.wetGain.gain.setTargetAtTime(wetLevel, time, 0.02);
+            // Final Safety Check before applying
+            if (Number.isFinite(dTime) && Number.isFinite(dFeed) && Number.isFinite(wetLevel)) {
+                this.delayNode.delayTime.setTargetAtTime(dTime, time, 0.05);
+                this.feedbackGain.gain.setTargetAtTime(dFeed, time, 0.02);
+                this.wetGain.gain.setTargetAtTime(wetLevel, time, 0.02);
+            }
         }
 
         const step = seqData[stepIndex];

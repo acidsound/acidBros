@@ -27,6 +27,12 @@ export class TR909 {
     }
 
     playBD(time, P) {
+        // Validate Parameters
+        if (!P ||
+            isNaN(P.vol) || isNaN(P.p1) || isNaN(P.p2) || isNaN(P.p3)) {
+            return;
+        }
+
         const baseFreq = 50 + (P.pitch || 0);
         const tuneDepth = 1 + (P.tuneDepth || 3);
         const pitchEnvMs = 0.03 + (P.p1 * 0.0009);
@@ -67,6 +73,12 @@ export class TR909 {
     }
 
     playSD(time, P) {
+        // Validate Parameters
+        if (!P ||
+            isNaN(P.vol) || isNaN(P.p1) || isNaN(P.p2) || isNaN(P.p3)) {
+            return;
+        }
+
         // ---- TUNE: 톤 피치 ----
         const tone = this.ctx.createOscillator();
         const toneGain = this.ctx.createGain();
@@ -119,6 +131,12 @@ export class TR909 {
     }
 
     playHat(time, isOpen, P) {
+        // Validate Parameters
+        if (!P ||
+            isNaN(P.vol) || isNaN(P.p1)) {
+            return;
+        }
+
         const src = this.ctx.createBufferSource();
         src.buffer = this.metalBuffer; src.loop = true;
         const bp = this.ctx.createBiquadFilter();
@@ -134,6 +152,12 @@ export class TR909 {
     }
 
     playCP(time, P) {
+        // Validate Parameters
+        if (!P ||
+            isNaN(P.vol) || isNaN(P.p1)) {
+            return;
+        }
+
         const ctx = this.ctx;
 
         const voiceGain = ctx.createGain();

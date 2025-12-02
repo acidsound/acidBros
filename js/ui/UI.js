@@ -6,6 +6,8 @@ import { FileManager } from '../data/FileManager.js';
 import { MidiManager } from '../midi/MidiManager.js';
 
 export const UI = {
+    isInitialized: false,
+
     init() {
         this.init303Knobs(1);
         this.init303Knobs(2);
@@ -19,6 +21,21 @@ export const UI = {
         document.getElementById('playBtn').onclick = () => AudioEngine.play();
         document.getElementById('stopBtn').onclick = () => AudioEngine.stop();
         document.getElementById('randomBtn').onclick = () => Data.randomize();
+
+        // Mark UI as initialized
+        this.isInitialized = true;
+
+        // Execute any pending functions that were waiting for initialization
+        if (this.pendingInitCallbacks) {
+            this.pendingInitCallbacks.forEach(callback => {
+                try {
+                    callback();
+                } catch (error) {
+                    console.error("Error in pending init callback:", error);
+                }
+            });
+            this.pendingInitCallbacks = [];
+        }
         document.getElementById('clearBtn').onclick = () => {
             if (Data.mode === 'song') {
                 Data.clearSong();
@@ -261,11 +278,9 @@ export const UI = {
             this.update909ClearButtons();
         } else {
             Data.init();
-            setTimeout(() => {
-                Data.randomize();
-                this.update303ClearButtons();
-                this.update909ClearButtons();
-            }, 500);
+            Data.randomize();
+            this.update303ClearButtons();
+            this.update909ClearButtons();
         }
 
         this.initModeControls();
@@ -982,8 +997,10 @@ export const UI = {
 
     get303Params(unitId) {
         const getV = (id) => {
-            const el = document.getElementById(id);
-            return el ? parseFloat(el.value) : 0;
+            const inputId = id + '-input';
+            const el = document.getElementById(inputId);
+            const value = el ? parseFloat(el.value) : 0;
+            return isNaN(value) ? 0 : value;
         };
         const waveEl = document.querySelector(`input[name="wave303_${unitId}"]:checked`);
         const wave = waveEl ? waveEl.value : 'sawtooth';
@@ -1003,8 +1020,14 @@ export const UI = {
     },
 
     get909Params(track) {
-        const getV = (id) => parseFloat(document.getElementById(id).value);
+        const getV = (id) => {
+            const inputId = id + '-input';
+            const el = document.getElementById(inputId);
+            const value = el ? parseFloat(el.value) : 0;
+            return isNaN(value) ? 0 : value;
+        };
         const lvl = (id) => getV(id) / 100;
+
         if (track === 'bd') return { p1: getV('bd_p1'), p2: getV('bd_p2'), p3: getV('bd_p3'), vol: lvl('bd_level') };
         if (track === 'sd') return { p1: getV('sd_p1'), p2: getV('sd_p2'), p3: getV('sd_p3'), vol: lvl('sd_level') };
         if (track === 'ch') return { p1: getV('ch_p1'), vol: lvl('ch_level') };

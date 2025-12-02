@@ -17,6 +17,9 @@ export const Data = {
         }
         // Default Song
         this.song = [0];
+
+        // Randomize initial values after initialization
+        this.randomize();
     },
 
     createEmptyPattern() {
