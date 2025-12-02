@@ -260,10 +260,11 @@ export const MidiManager = {
     },
 
     disableLearnMode() {
-        if (this.learningTarget) {
-            const el = document.getElementById(this.learningTarget.id);
-            if (el) el.classList.remove('midi-learning');
-        }
+        // Remove midi-learning class from all elements
+        document.querySelectorAll('.midi-learning').forEach(el => {
+            el.classList.remove('midi-learning');
+        });
+
         this.isLearning = false;
         this.learningTarget = null;
         UI.updateLearnModeUI(false);
