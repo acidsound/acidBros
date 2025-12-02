@@ -1,4 +1,4 @@
-const CACHE_NAME = 'acidbros-v63';
+const CACHE_NAME = 'acidbros-v64';
 const ASSETS = [
     './',
     './index.html',
@@ -13,6 +13,7 @@ const ASSETS = [
     './js/data/FileManager.js',
     './js/ui/UI.js',
     './js/ui/Oscilloscope.js',
+    './js/ui/MidiManager.js',
     './manifest.json',
     './assets/favicon.png',
     './assets/DSEG7Classic-Bold.woff2'

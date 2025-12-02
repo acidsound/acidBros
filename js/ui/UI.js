@@ -3,6 +3,7 @@ import { AudioEngine } from '../audio/AudioEngine.js';
 import { Data } from '../data/Data.js';
 import { Oscilloscope } from './Oscilloscope.js';
 import { FileManager } from '../data/FileManager.js';
+import { MidiManager } from '../midi/MidiManager.js';
 
 export const UI = {
     init() {
@@ -272,6 +273,27 @@ export const UI = {
 
         FileManager.init();
         this.initFileManager();
+        MidiManager.init();
+        this.initSettingsUI();
+        this.updateMappedElementsUI(); // Initial update
+    },
+
+    updateMappedElementsUI() {
+        // Remove all existing midi-mapped classes
+        document.querySelectorAll('.midi-mapped').forEach(el => {
+            el.classList.remove('midi-mapped');
+        });
+
+        // Get all current mappings
+        const mappings = MidiManager.getMappingsList();
+
+        // Add midi-mapped class to all mapped elements
+        mappings.forEach(mapping => {
+            const element = document.getElementById(mapping.targetId);
+            if (element) {
+                element.classList.add('midi-mapped');
+            }
+        });
     },
 
     showToast(message) {
@@ -500,6 +522,231 @@ export const UI = {
         };
 
 
+    },
+
+    initSettingsUI() {
+        const overlay = document.getElementById('settingsOverlay');
+        const btn = document.getElementById('settingsBtn');
+        const closeBtn = document.getElementById('settingsCloseBtn');
+        const refreshBtn = document.getElementById('midiRefreshBtn');
+        const clearBtn = document.getElementById('midiClearAllBtn');
+        const tabBtns = document.querySelectorAll('.settings-tab-btn');
+        const tabContents = document.querySelectorAll('.settings-tab-content');
+
+        btn.onclick = () => {
+            overlay.style.display = 'flex';
+            this.renderMidiMappings();
+        };
+
+        const closeSettings = () => {
+            overlay.style.display = 'none';
+            MidiManager.disableLearnMode();
+            document.body.classList.remove('midi-learn-active');
+        };
+
+        closeBtn.onclick = closeSettings;
+
+        overlay.onclick = (e) => {
+            if (e.target === overlay) closeSettings();
+        };
+
+        // Tab Switching
+        tabBtns.forEach(tabBtn => {
+            tabBtn.onclick = () => {
+                // Deactivate all
+                tabBtns.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => {
+                    c.classList.remove('active');
+                    c.style.display = 'none';
+                });
+
+                // Activate clicked
+                tabBtn.classList.add('active');
+                const tabId = tabBtn.dataset.tab;
+                const content = document.getElementById(`tab-${tabId}`);
+                content.classList.add('active');
+                content.style.display = 'block';
+            };
+        });
+
+        refreshBtn.onclick = () => {
+            MidiManager.refreshDevices();
+        };
+
+        clearBtn.onclick = () => {
+            if (confirm('Clear all MIDI mappings?')) {
+                MidiManager.clearAllMappings();
+                this.renderMidiMappings();
+                this.showToast('All MIDI mappings cleared');
+            }
+        };
+
+        // Keyboard Listener for MIDI Mapping
+        document.addEventListener('keydown', (e) => {
+            // Only process if Learn Mode is active OR mapped
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (MidiManager.isLearning && MidiManager.learningTarget) {
+                if (['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) return;
+                MidiManager.handleKeyboardInput(e.keyCode, 'keydown');
+            } else {
+                MidiManager.handleKeyboardInput(e.keyCode, 'keydown');
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            MidiManager.handleKeyboardInput(e.keyCode, 'keyup');
+        });
+
+        // Global click handler for Learn Mode
+        document.addEventListener('click', (e) => {
+            // Check if we are in "Selection Mode" (body has class)
+            if (!document.body.classList.contains('midi-learn-active')) return;
+
+            // If overlay is open, don't intercept
+            if (overlay.style.display !== 'none') return;
+
+            // Find valid target
+            const target = e.target.closest('.rotary-knob, .pat-btn, .step-btn, .toggle-btn, .waveform-switch, .transport-icon-btn, .mute-btn');
+
+            if (target) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                let type = 'button';
+                let id = target.id;
+
+                if (target.classList.contains('rotary-knob')) {
+                    type = 'knob';
+                } else if (target.classList.contains('toggle-btn') || target.classList.contains('mute-btn')) {
+                    type = 'toggle';
+                } else if (target.classList.contains('waveform-switch')) {
+                    type = 'toggle';
+                    const input = target.querySelector('input');
+                    if (input) id = input.name; // Use group name
+                }
+
+                if (id) {
+                    MidiManager.enableLearnMode(id, type);
+                } else {
+                    this.showToast('This control cannot be mapped (No ID)');
+                }
+            }
+        }, true);
+
+        // Exit Learn Mode Banner Button
+        const exitLearnModeBtn = document.getElementById('exitLearnModeBtn');
+        if (exitLearnModeBtn) {
+            exitLearnModeBtn.onclick = () => {
+                document.body.classList.remove('midi-learn-active');
+                MidiManager.disableLearnMode();
+                this.hideLearnModeBanner();
+            };
+        }
+    },
+
+    renderMidiMappings() {
+        this.updateMappedElementsUI(); // Update visual indicators
+        const list = document.getElementById('midiMappingList');
+        list.innerHTML = '';
+        const mappings = MidiManager.getMappingsList();
+
+        // Learn Button
+        const learnBtn = document.createElement('button');
+        learnBtn.className = 'file-action-btn';
+        learnBtn.style.width = '100%';
+        learnBtn.style.marginBottom = '15px';
+        learnBtn.style.justifyContent = 'center';
+        learnBtn.style.background = MidiManager.isLearning ? '#ff3333' : 'linear-gradient(to bottom, #444, #333)';
+        learnBtn.innerText = document.body.classList.contains('midi-learn-active') ? 'Exit Learn Mode' : 'Start MIDI Learn';
+
+        learnBtn.onclick = () => {
+            const overlay = document.getElementById('settingsOverlay');
+            if (document.body.classList.contains('midi-learn-active')) {
+                document.body.classList.remove('midi-learn-active');
+                MidiManager.disableLearnMode();
+                this.hideLearnModeBanner();
+                learnBtn.innerText = 'Start MIDI Learn';
+            } else {
+                overlay.style.display = 'none';
+                document.body.classList.add('midi-learn-active');
+                this.showLearnModeBanner();
+                this.showToast('Select a control to map...');
+            }
+        };
+        list.appendChild(learnBtn);
+
+        if (mappings.length === 0) {
+            const empty = document.createElement('div');
+            empty.style.padding = '20px';
+            empty.style.textAlign = 'center';
+            empty.style.color = '#666';
+            empty.style.fontStyle = 'italic';
+            empty.innerText = 'No MIDI mappings.';
+            list.appendChild(empty);
+            return;
+        }
+
+        mappings.forEach(m => {
+            const item = document.createElement('div');
+            item.className = 'midi-mapping-item';
+
+            const info = document.createElement('div');
+            info.className = 'midi-mapping-info';
+
+            const target = document.createElement('div');
+            target.className = 'midi-mapping-target';
+            target.innerText = m.targetId;
+
+            const source = document.createElement('div');
+            source.className = 'midi-mapping-source';
+
+            // Display format depends on source type
+            if (m.source === 'midi') {
+                source.innerText = `MIDI Ch ${m.channel + 1} | ${m.messageType.toUpperCase()} ${m.data1}`;
+            } else if (m.source === 'keyboard') {
+                source.innerText = `Keyboard | Key ${m.keyCode} (${m.eventType})`;
+            } else {
+                // Future: OSC, gamepad, etc.
+                source.innerText = `${m.source.toUpperCase()} | ${m.key}`;
+            }
+
+            info.appendChild(target);
+            info.appendChild(source);
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'midi-delete-btn';
+            delBtn.innerHTML = '×';
+            delBtn.title = 'Remove Mapping';
+            delBtn.onclick = () => {
+                MidiManager.removeMapping(m.key);
+                this.renderMidiMappings();
+            };
+
+            item.appendChild(info);
+            item.appendChild(delBtn);
+            list.appendChild(item);
+        });
+    },
+
+    showLearnModeBanner() {
+        const banner = document.getElementById('learnModeExitBanner');
+        if (banner) {
+            banner.style.display = 'block';
+        }
+    },
+
+    hideLearnModeBanner() {
+        const banner = document.getElementById('learnModeExitBanner');
+        if (banner) {
+            banner.style.display = 'none';
+        }
+    },
+
+    updateLearnModeUI(active) {
+        // This is called by MidiManager when learn mode state changes
+        // We don't need to do anything here anymore since we use the banner
     },
 
     renderFileList() {

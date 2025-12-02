@@ -1,5 +1,6 @@
 import { UI } from '../ui/UI.js';
 import { AudioEngine } from '../audio/AudioEngine.js';
+import { MidiManager } from '../midi/MidiManager.js';
 
 export const Data = {
     mode: 'pattern', // 'pattern' | 'song'
@@ -232,7 +233,8 @@ export const Data = {
             wave2: document.querySelector('input[name="wave303_2"]:checked').value,
             k: knobs,
             patterns: this.patterns,
-            song: this.song
+            song: this.song,
+            midi: MidiManager.mappings
         };
         return btoa(JSON.stringify(state));
     },
@@ -242,6 +244,12 @@ export const Data = {
             const state = JSON.parse(atob(code));
             if (state.bpm) AudioEngine.tempo = state.bpm;
             if (state.swing !== undefined) AudioEngine.swing = state.swing;
+
+            if (state.midi) {
+                MidiManager.mappings = state.midi;
+            } else {
+                MidiManager.clearAllMappings();
+            }
 
             if (state.k) {
                 Object.keys(state.k).forEach(id => {
