@@ -13,7 +13,7 @@ const ASSETS = [
     './js/data/FileManager.js',
     './js/ui/UI.js',
     './js/ui/Oscilloscope.js',
-    './js/ui/MidiManager.js',
+    './js/midi/MidiManager.js',
     './manifest.json',
     './assets/favicon.png',
     './assets/DSEG7Classic-Bold.woff2'
