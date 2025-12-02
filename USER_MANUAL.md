@@ -23,6 +23,7 @@ The top bar provides the main playback and project controls.
     - **Rename** – Change the file name.
     - **Delete** – Remove the file.
   - Files are auto-saved every 5 seconds with timestamp-based names.
+- **SETTINGS (⚙️)** – Configure MIDI and keyboard mappings for hands-on control. Click to open the settings panel with MIDI mapping management interface.
 - **Buy Me a Coffee** – (☕ icon) Support the developer by opening the Buy Me a Coffee page in a new tab.
 - **Oscilloscope** – Real-time visual feedback of the audio waveform (green CRT style), located next to the tempo controls.
 - **TEMPO (BPM)** – Large knob with a 7‑segment LED display (60-200 BPM). Drag vertically to adjust, double‑tap to reset to 125 BPM.
@@ -196,13 +197,81 @@ Happy Acid Making! 🚀
 
 ---
 
-## 8. Keyboard Shortcuts
+## 8. MIDI \u0026 Keyboard Mapping
 
-Currently, all interactions are mouse/touch-based. Keyboard shortcuts may be added in future updates.
+AcidBros supports mapping MIDI controllers and PC/Bluetooth keyboards to any UI control for hands-on performance.
+
+### Settings Panel
+
+Click the **Settings (⚙️)** button in the transport bar to open the mapping configuration panel.
+
+![Settings Panel](assets/manual-settings.png)
+
+The Settings panel provides:
+- **MIDI Tab** – Configure MIDI and keyboard mappings
+- **Refresh Devices** – Scan for newly connected MIDI devices
+- **Clear All Mappings** – Remove all current mappings
+- **Mappings List** – View and manage all active mappings
+- **Close (×)** – Close the settings panel
+
+### MIDI Learn Mode
+
+Map any MIDI controller to a UI control:
+
+1. Open the **Settings** panel
+2. Click the **MIDI** tab
+3. Click **Learn** next to any control in the mappings list, OR
+4. Click **MIDI Learn** on any knob/button in the main UI
+5. Move/press the desired MIDI control (knob, fader, button, or pad)
+6. The mapping is created instantly
+
+**Supported MIDI Messages:**
+- **Note On** – For buttons, toggles, and piano keys
+- **Control Change (CC)** – For knobs and continuous controls
+- **All MIDI Channels** – Channel information is stored per mapping
+
+### Keyboard Mapping
+
+Use your PC or Bluetooth keyboard as an alternative to MIDI:
+
+1. Open the **Settings** panel
+2. Click **Learn** next to a control
+3. Press the desired keyboard key
+4. The key is mapped to that control
+
+**Note:** Keyboard mappings store the actual key code, not MIDI note numbers.
+
+### Managing Mappings
+
+The Settings panel displays all active mappings with:
+- **Target Control** – Name and ID of the mapped UI element
+- **Source** – MIDI (with channel and note/CC number) or Keyboard (with key code)
+- **Type** – Knob, Button, Toggle, or Key
+- **Delete (×)** – Remove individual mapping
+
+### Mapping Types
+
+- **Knobs** – MIDI CC values (0-127) are automatically scaled to the knob's range
+- **Buttons** – Triggered on Note On or CC \u003e 63 (MIDI) or key press (Keyboard)
+- **Toggles** – Note On toggles state; CC 0-63 = Off, 64-127 = On
+- **Piano Keys** – Note On/Off for playing notes in the piano roll editor
+
+### Tips
+
+- **One mapping per control** – Creating a new mapping for a control removes the old one
+- **MIDI channel aware** – Different channels can control different parameters
+- **Persistent mappings** – Mappings are saved with your project files
+- **Visual feedback** – Controls show a "learning" state while waiting for input
 
 ---
 
-## 9. Browser Compatibility
+## 9. Keyboard Shortcuts
+
+Currently, keyboard shortcuts are available through the keyboard mapping system (see section 8). Map any key to any control for custom shortcuts.
+
+---
+
+## 10. Browser Compatibility
 
 AcidBros works best in modern browsers:
 - ✅ Chrome/Edge (recommended)
@@ -213,7 +282,7 @@ AcidBros works best in modern browsers:
 
 ---
 
-## 10. Installation
+## 11. Installation
 
 ### Web Browser
 Simply open `index.html` in any modern browser. No installation required.
