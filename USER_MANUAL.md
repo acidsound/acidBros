@@ -208,11 +208,19 @@ Click the **Settings (⚙️)** button in the transport bar to open the mapping 
 ![Settings Panel](assets/manual-settings.png)
 
 The Settings panel provides:
-- **MIDI Tab** – Configure MIDI and keyboard mappings
+- **MIDI Tab** – Configure MIDI devices and mappings
+  - **MIDI Devices** – View connected MIDI input devices and their status
+  - **MIDI Mappings** – View and manage all active mappings
 - **Refresh Devices** – Scan for newly connected MIDI devices
 - **Clear All Mappings** – Remove all current mappings
-- **Mappings List** – View and manage all active mappings
 - **Close (×)** – Close the settings panel
+
+### MIDI Devices
+
+The **MIDI Devices** section displays a list of all connected MIDI input devices.
+- **Status Indicator**: Green dot for connected, Red for disconnected.
+- **Device Info**: Shows device name, manufacturer, and connection state.
+- **Refresh**: Click the refresh button to scan for new devices if they don't appear automatically.
 
 ### MIDI Learn Mode
 
@@ -229,6 +237,11 @@ Map any MIDI controller to a UI control:
 - **Note On** – For buttons, toggles, and piano keys
 - **Control Change (CC)** – For knobs and continuous controls
 - **All MIDI Channels** – Channel information is stored per mapping
+
+**Mappable Controls:**
+- **Knobs**: All synthesis and drum parameters, Tempo
+- **Buttons**: Pattern selectors (P1-P16), Transport (Play/Stop)
+- **Toggles**: Waveform switches (Saw/Square), Accent, Slide, Mute
 
 ### Keyboard Mapping
 

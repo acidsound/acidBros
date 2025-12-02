@@ -74,28 +74,30 @@
 </head>
 
 <body>
-  <!-- Learn Mode Exit Banner (Fixed at top) -->
-  <div id="learnModeExitBanner" class="learn-mode-exit-banner" style="display: none;">
-    <div class="learn-mode-banner-content">
-      <span class="learn-mode-banner-text">🎯 MIDI Learn Mode Active - Click any control to map</span>
-      <button id="exitLearnModeBtn" class="exit-learn-mode-btn">Exit Learn Mode</button>
-    </div>
-  </div>
-
   <div class="rack">
+    <!-- Learn Mode Exit Banner (Moved inside rack) -->
+    <div id="learnModeExitBanner" class="learn-mode-exit-banner" style="display: none;">
+      <div class="learn-mode-banner-content">
+        <span class="learn-mode-banner-text">🎯 MIDI Learn Mode Active - Click any control to map</span>
+        <button id="exitLearnModeBtn" class="exit-learn-mode-btn">Exit Learn Mode</button>
+      </div>
+    </div>
+
     <!-- Transport -->
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v64</div>
+          <div class="version-display">v65</div>
           <button id="shuffleBtn" class="transport-icon-btn" title="Swing/Shuffle"
             aria-label="Swing and Shuffle Control">💃</button>
-          <button id="playBtn" class="transport-icon-btn play" title="Run" aria-label="Play">
+          <button id="playBtn" class="transport-icon-btn play" data-midi-mappable="button" title="Run"
+            aria-label="Play">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z" />
             </svg>
           </button>
-          <button id="stopBtn" class="transport-icon-btn stop" title="Stop" aria-label="Stop">
+          <button id="stopBtn" class="transport-icon-btn stop" data-midi-mappable="button" title="Stop"
+            aria-label="Stop">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <rect x="6" y="6" width="12" height="12" />
             </svg>
@@ -206,22 +208,22 @@
         <!-- Pattern Mode Controls -->
         <div id="pattern-controls-container">
           <div class="pattern-select-row">
-            <button class="pat-btn" data-pattern="0">P1</button>
-            <button class="pat-btn" data-pattern="1">P2</button>
-            <button class="pat-btn" data-pattern="2">P3</button>
-            <button class="pat-btn" data-pattern="3">P4</button>
-            <button class="pat-btn" data-pattern="4">P5</button>
-            <button class="pat-btn" data-pattern="5">P6</button>
-            <button class="pat-btn" data-pattern="6">P7</button>
-            <button class="pat-btn" data-pattern="7">P8</button>
-            <button class="pat-btn" data-pattern="8">P9</button>
-            <button class="pat-btn" data-pattern="9">P10</button>
-            <button class="pat-btn" data-pattern="10">P11</button>
-            <button class="pat-btn" data-pattern="11">P12</button>
-            <button class="pat-btn" data-pattern="12">P13</button>
-            <button class="pat-btn" data-pattern="13">P14</button>
-            <button class="pat-btn" data-pattern="14">P15</button>
-            <button class="pat-btn" data-pattern="15">P16</button>
+            <button class="pat-btn" id="pat-btn-0" data-pattern="0" data-midi-mappable="button">P1</button>
+            <button class="pat-btn" id="pat-btn-1" data-pattern="1" data-midi-mappable="button">P2</button>
+            <button class="pat-btn" id="pat-btn-2" data-pattern="2" data-midi-mappable="button">P3</button>
+            <button class="pat-btn" id="pat-btn-3" data-pattern="3" data-midi-mappable="button">P4</button>
+            <button class="pat-btn" id="pat-btn-4" data-pattern="4" data-midi-mappable="button">P5</button>
+            <button class="pat-btn" id="pat-btn-5" data-pattern="5" data-midi-mappable="button">P6</button>
+            <button class="pat-btn" id="pat-btn-6" data-pattern="6" data-midi-mappable="button">P7</button>
+            <button class="pat-btn" id="pat-btn-7" data-pattern="7" data-midi-mappable="button">P8</button>
+            <button class="pat-btn" id="pat-btn-8" data-pattern="8" data-midi-mappable="button">P9</button>
+            <button class="pat-btn" id="pat-btn-9" data-pattern="9" data-midi-mappable="button">P10</button>
+            <button class="pat-btn" id="pat-btn-10" data-pattern="10" data-midi-mappable="button">P11</button>
+            <button class="pat-btn" id="pat-btn-11" data-pattern="11" data-midi-mappable="button">P12</button>
+            <button class="pat-btn" id="pat-btn-12" data-pattern="12" data-midi-mappable="button">P13</button>
+            <button class="pat-btn" id="pat-btn-13" data-pattern="13" data-midi-mappable="button">P14</button>
+            <button class="pat-btn" id="pat-btn-14" data-pattern="14" data-midi-mappable="button">P15</button>
+            <button class="pat-btn" id="pat-btn-15" data-pattern="15" data-midi-mappable="button">P16</button>
           </div>
           <div class="pattern-actions">
             <button id="copyPatternBtn" class="icon-action-btn" title="Copy Pattern"><span
@@ -234,22 +236,38 @@
         <!-- Song Mode Controls -->
         <div id="song-controls-container" style="display: none;">
           <div class="pattern-select-row">
-            <button class="pat-btn song-pat-btn" data-pattern="0" title="Click to select and add to song">P1</button>
-            <button class="pat-btn song-pat-btn" data-pattern="1" title="Click to select and add to song">P2</button>
-            <button class="pat-btn song-pat-btn" data-pattern="2" title="Click to select and add to song">P3</button>
-            <button class="pat-btn song-pat-btn" data-pattern="3" title="Click to select and add to song">P4</button>
-            <button class="pat-btn song-pat-btn" data-pattern="4" title="Click to select and add to song">P5</button>
-            <button class="pat-btn song-pat-btn" data-pattern="5" title="Click to select and add to song">P6</button>
-            <button class="pat-btn song-pat-btn" data-pattern="6" title="Click to select and add to song">P7</button>
-            <button class="pat-btn song-pat-btn" data-pattern="7" title="Click to select and add to song">P8</button>
-            <button class="pat-btn song-pat-btn" data-pattern="8" title="Click to select and add to song">P9</button>
-            <button class="pat-btn song-pat-btn" data-pattern="9" title="Click to select and add to song">P10</button>
-            <button class="pat-btn song-pat-btn" data-pattern="10" title="Click to select and add to song">P11</button>
-            <button class="pat-btn song-pat-btn" data-pattern="11" title="Click to select and add to song">P12</button>
-            <button class="pat-btn song-pat-btn" data-pattern="12" title="Click to select and add to song">P13</button>
-            <button class="pat-btn song-pat-btn" data-pattern="13" title="Click to select and add to song">P14</button>
-            <button class="pat-btn song-pat-btn" data-pattern="14" title="Click to select and add to song">P15</button>
-            <button class="pat-btn song-pat-btn" data-pattern="15" title="Click to select and add to song">P16</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-0" data-pattern="0" data-midi-mappable="button"
+              title="Click to select and add to song">P1</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-1" data-pattern="1" data-midi-mappable="button"
+              title="Click to select and add to song">P2</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-2" data-pattern="2" data-midi-mappable="button"
+              title="Click to select and add to song">P3</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-3" data-pattern="3" data-midi-mappable="button"
+              title="Click to select and add to song">P4</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-4" data-pattern="4" data-midi-mappable="button"
+              title="Click to select and add to song">P5</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-5" data-pattern="5" data-midi-mappable="button"
+              title="Click to select and add to song">P6</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-6" data-pattern="6" data-midi-mappable="button"
+              title="Click to select and add to song">P7</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-7" data-pattern="7" data-midi-mappable="button"
+              title="Click to select and add to song">P8</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-8" data-pattern="8" data-midi-mappable="button"
+              title="Click to select and add to song">P9</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-9" data-pattern="9" data-midi-mappable="button"
+              title="Click to select and add to song">P10</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-10" data-pattern="10" data-midi-mappable="button"
+              title="Click to select and add to song">P11</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-11" data-pattern="11" data-midi-mappable="button"
+              title="Click to select and add to song">P12</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-12" data-pattern="12" data-midi-mappable="button"
+              title="Click to select and add to song">P13</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-13" data-pattern="13" data-midi-mappable="button"
+              title="Click to select and add to song">P14</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-14" data-pattern="14" data-midi-mappable="button"
+              title="Click to select and add to song">P15</button>
+            <button class="pat-btn song-pat-btn" id="song-pat-btn-15" data-pattern="15" data-midi-mappable="button"
+              title="Click to select and add to song">P16</button>
           </div>
           <div id="song-timeline" class="song-timeline"></div>
         </div>
@@ -322,23 +340,36 @@
           <div class="settings-content">
             <!-- MIDI Tab -->
             <div id="tab-midi" class="settings-tab-content active">
-              <div class="tab-header">
-                <h4>MIDI Mappings</h4>
-                <div class="tab-actions">
-                  <button id="midiRefreshBtn" class="file-action-btn" title="Refresh Devices">
-                    <svg viewBox="0 0 24 24" width="16" height="16">
-                      <path
-                        d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
-                    </svg>
-                  </button>
-                  <button id="midiClearAllBtn" class="file-action-btn" title="Clear All Mappings">
-                    <svg viewBox="0 0 24 24" width="16" height="16">
-                      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                    </svg>
-                  </button>
+              <!-- MIDI Devices Section -->
+              <div class="tab-section">
+                <div class="tab-header">
+                  <h4>MIDI Devices</h4>
+                  <div class="tab-actions">
+                    <button id="midiRefreshBtn" class="file-action-btn" title="Refresh Devices">
+                      <svg viewBox="0 0 24 24" width="16" height="16">
+                        <path
+                          d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
+                <div id="midiDeviceList" class="midi-device-list"></div>
               </div>
-              <div id="midiMappingList" class="file-list"></div>
+
+              <!-- MIDI Mappings Section -->
+              <div class="tab-section">
+                <div class="tab-header">
+                  <h4>MIDI Mappings</h4>
+                  <div class="tab-actions">
+                    <button id="midiClearAllBtn" class="file-action-btn" title="Clear All Mappings">
+                      <svg viewBox="0 0 24 24" width="16" height="16">
+                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div id="midiMappingList" class="file-list"></div>
+              </div>
             </div>
 
 
@@ -355,9 +386,9 @@
           <div class="waveform-switch-group">
             <div class="switch-label">WAVEFORM</div>
             <div class="waveform-switch">
-              <input type="radio" name="wave303_1" id="wave-saw-1" value="sawtooth" checked>
+              <input type="radio" name="wave303_1" id="wave-saw-1" value="sawtooth" data-midi-mappable="toggle" checked>
               <label for="wave-saw-1" title="Sawtooth"><span class="icon-saw"></span></label>
-              <input type="radio" name="wave303_1" id="wave-sq-1" value="square">
+              <input type="radio" name="wave303_1" id="wave-sq-1" value="square" data-midi-mappable="toggle">
               <label for="wave-sq-1" title="Square"><span class="icon-sq"></span></label>
               <div class="switch-handle"></div>
             </div>
@@ -383,9 +414,9 @@
           <div class="waveform-switch-group">
             <div class="switch-label">WAVEFORM</div>
             <div class="waveform-switch">
-              <input type="radio" name="wave303_2" id="wave-saw-2" value="sawtooth" checked>
+              <input type="radio" name="wave303_2" id="wave-saw-2" value="sawtooth" data-midi-mappable="toggle" checked>
               <label for="wave-saw-2" title="Sawtooth"><span class="icon-saw"></span></label>
-              <input type="radio" name="wave303_2" id="wave-sq-2" value="square">
+              <input type="radio" name="wave303_2" id="wave-sq-2" value="square" data-midi-mappable="toggle">
               <label for="wave-sq-2" title="Square"><span class="icon-sq"></span></label>
               <div class="switch-handle"></div>
             </div>

@@ -98,13 +98,15 @@ export class RotaryKnob {
 
         this.knobEl = document.createElement('div');
         this.knobEl.className = 'rotary-knob';
+        this.knobEl.id = id; // Set ID on the knob element for MIDI mapping
+        this.knobEl.setAttribute('data-midi-mappable', 'knob'); // Mark as MIDI mappable
         if (size === 'large') this.knobEl.classList.add('large');
         if (size === 'small') this.knobEl.classList.add('small');
 
         this.inputEl = document.createElement('input');
         this.inputEl.type = 'range';
         this.inputEl.className = 'knob-input';
-        this.inputEl.id = id;
+        this.inputEl.id = id + '-input'; // Use different ID for hidden input
         this.inputEl.min = min;
         this.inputEl.max = max;
         this.inputEl.step = step;

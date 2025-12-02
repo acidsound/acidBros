@@ -54,9 +54,9 @@
   * **File Manager**: Save, load, duplicate, rename, and delete patterns with persistent browser storage.
   * **Real-time Oscilloscope**: Visual feedback of the audio output.
   * **Touch Optimized**: Multi-touch support for knobs and responsive layout.
-  * **MIDI Learn**: Map MIDI controllers to any knob, button, or toggle for hands-on control.
+  * **MIDI Learn**: Map MIDI controllers to any knob, button, or toggle (including Transport & Waveform) for hands-on control.
   * **Keyboard Mapping**: Use PC or Bluetooth keyboards as an alternative to MIDI controllers.
-  * **Settings Panel**: Dedicated interface for managing MIDI/keyboard mappings with easy learn mode.
+  * **Settings Panel**: Dedicated interface for managing MIDI devices and mappings with easy learn mode.
 * **Responsive Design**: Optimized for Desktop, Tablet, Mobile (Portrait/Landscape).
 * **Global Controls**:
   * Tempo (BPM) with 7‑segment LED display (60-200 BPM).

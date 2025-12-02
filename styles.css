@@ -2280,15 +2280,13 @@ h3 {
 
 /* --- MIDI Learn Styles --- */
 
-/* Learn Mode Exit Banner - Fixed at top */
+/* Learn Mode Exit Banner - Inside rack container */
 .learn-mode-exit-banner {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: relative;
+    width: 100%;
     background: linear-gradient(to bottom, #ff3333, #cc0000);
     color: #fff;
-    z-index: 10000;
+    z-index: 100;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
     animation: slideDown 0.3s ease-out;
 }
@@ -2310,6 +2308,8 @@ h3 {
     padding: 12px 20px;
     max-width: 920px;
     margin: 0 auto;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .learn-mode-banner-text {
@@ -2317,6 +2317,8 @@ h3 {
     font-weight: bold;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     letter-spacing: 0.5px;
+    flex: 1;
+    min-width: 200px;
 }
 
 .exit-learn-mode-btn {
@@ -2346,13 +2348,7 @@ h3 {
 }
 
 /* Highlight selectable elements during Learn Mode */
-body.midi-learn-active .rotary-knob,
-body.midi-learn-active .pat-btn,
-body.midi-learn-active .step-btn,
-body.midi-learn-active .toggle-btn,
-body.midi-learn-active .waveform-switch,
-body.midi-learn-active .transport-icon-btn,
-body.midi-learn-active .mute-btn {
+body.midi-learn-active [data-midi-mappable] {
     outline: 2px dashed #00ff00;
     cursor: crosshair !important;
     position: relative;
@@ -2443,6 +2439,53 @@ body.midi-learn-active .midi-mapped::after {
 
 .midi-delete-btn:hover {
     color: #ff0000;
+}
+
+/* MIDI Device List Item */
+.midi-device-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #222;
+    border: 1px solid #444;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    color: #ddd;
+}
+
+.midi-device-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.midi-device-name {
+    font-weight: bold;
+    color: #fff;
+    font-size: 13px;
+}
+
+.midi-device-meta {
+    color: #888;
+    font-size: 11px;
+}
+
+.midi-device-status {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #444;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.midi-device-status.connected {
+    background: #00ff00;
+    box-shadow: 0 0 8px #00ff00;
+}
+
+.midi-device-status.disconnected {
+    background: #ff3333;
 }
 
 /* --- Settings Popover Styles --- */

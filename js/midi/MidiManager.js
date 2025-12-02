@@ -283,9 +283,26 @@ export const MidiManager = {
         await this.init();
         if (this.midiAccess) {
             UI.showToast(`MIDI Devices Refreshed. Found ${this.midiAccess.inputs.size} inputs.`);
+            UI.renderMidiDevices(); // Update device list in settings
         } else {
             UI.showToast('Failed to refresh MIDI devices.');
         }
+    },
+
+    getDevicesList() {
+        const devices = [];
+        if (this.midiAccess) {
+            for (const input of this.midiAccess.inputs.values()) {
+                devices.push({
+                    id: input.id,
+                    name: input.name,
+                    manufacturer: input.manufacturer,
+                    state: input.state,
+                    connection: input.connection
+                });
+            }
+        }
+        return devices;
     },
 
     handleKeyboardInput(keyCode, type) {

@@ -536,6 +536,7 @@ export const UI = {
         btn.onclick = () => {
             overlay.style.display = 'flex';
             this.renderMidiMappings();
+            this.renderMidiDevices();
         };
 
         const closeSettings = () => {
@@ -607,25 +608,15 @@ export const UI = {
             // If overlay is open, don't intercept
             if (overlay.style.display !== 'none') return;
 
-            // Find valid target
-            const target = e.target.closest('.rotary-knob, .pat-btn, .step-btn, .toggle-btn, .waveform-switch, .transport-icon-btn, .mute-btn');
+            // Find valid target by data-midi-mappable attribute
+            const target = e.target.closest('[data-midi-mappable]');
 
             if (target) {
                 e.preventDefault();
                 e.stopPropagation();
 
-                let type = 'button';
-                let id = target.id;
-
-                if (target.classList.contains('rotary-knob')) {
-                    type = 'knob';
-                } else if (target.classList.contains('toggle-btn') || target.classList.contains('mute-btn')) {
-                    type = 'toggle';
-                } else if (target.classList.contains('waveform-switch')) {
-                    type = 'toggle';
-                    const input = target.querySelector('input');
-                    if (input) id = input.name; // Use group name
-                }
+                const type = target.getAttribute('data-midi-mappable');
+                const id = target.id;
 
                 if (id) {
                     MidiManager.enableLearnMode(id, type);
@@ -644,6 +635,52 @@ export const UI = {
                 this.hideLearnModeBanner();
             };
         }
+    },
+
+    renderMidiDevices() {
+        const list = document.getElementById('midiDeviceList');
+        if (!list) return;
+
+        list.innerHTML = '';
+        const devices = MidiManager.getDevicesList();
+
+        if (devices.length === 0) {
+            const empty = document.createElement('div');
+            empty.style.padding = '15px';
+            empty.style.textAlign = 'center';
+            empty.style.color = '#666';
+            empty.style.fontStyle = 'italic';
+            empty.innerText = 'No MIDI devices found.';
+            list.appendChild(empty);
+            return;
+        }
+
+        devices.forEach(device => {
+            const item = document.createElement('div');
+            item.className = 'midi-device-item';
+
+            const info = document.createElement('div');
+            info.className = 'midi-device-info';
+
+            const name = document.createElement('div');
+            name.className = 'midi-device-name';
+            name.innerText = device.name || 'Unknown Device';
+
+            const meta = document.createElement('div');
+            meta.className = 'midi-device-meta';
+            meta.innerText = `${device.manufacturer || 'Generic'} | ${device.state}`;
+
+            info.appendChild(name);
+            info.appendChild(meta);
+
+            const status = document.createElement('div');
+            status.className = `midi-device-status ${device.state}`;
+            status.title = device.state;
+
+            item.appendChild(info);
+            item.appendChild(status);
+            list.appendChild(item);
+        });
     },
 
     renderMidiMappings() {

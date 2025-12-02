@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v57
+- **Current Version**: v65
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -31,6 +31,15 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - `js/data/Data.js`: Handles patterns and song mode
   - `js/data/FileManager.js`: Persistent file storage using localStorage
 
+### MIDI System (New)
+- **Location**: `js/midi/MidiManager.js`
+- **Functionality**:
+  - Web MIDI API integration
+  - MIDI Learn mode for dynamic mapping
+  - Keyboard mapping support (PC/Bluetooth)
+  - Device management and connection monitoring
+  - Persistent mapping storage
+
 ### Key Design Decisions
 
 #### 1. AudioWorklet Migration (v44-45)
@@ -54,7 +63,7 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - Ctrl+wheel zoom blocked on desktop
 
 #### 4. Service Worker & PWA
-- **Cache Version**: Currently v46 (increment on each deployment)
+- **Cache Version**: Currently v65 (increment on each deployment)
 - **Strategy**: Cache-first for offline support
 - **Assets**: All JS, CSS, HTML, fonts cached
 
@@ -63,7 +72,7 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 acidBros/
 ├── index.html              # Main HTML, includes anti-zoom scripts
 ├── styles.css              # All styling, responsive design
-├── sw.js                   # Service worker (cache v55)
+├── sw.js                   # Service worker (cache v65)
 ├── manifest.json           # PWA manifest
 ├── js/
 │   ├── main.js            # Entry point
@@ -76,8 +85,11 @@ acidBros/
 │   │   ├── UI.js          # Main UI controller
 │   │   ├── RotaryKnob.js  # Knob component with TouchManager
 │   │   └── Oscilloscope.js # Real-time waveform visualizer
-│   └── data/
-│       └── Data.js        # Pattern/song data management
+│   ├── data/
+│   │   ├── Data.js        # Pattern/song data management
+│   │   └── FileManager.js # Persistent file storage
+│   └── midi/
+│       └── MidiManager.js # MIDI & Keyboard mapping logic
 └── assets/
     ├── favicon.png
     └── DSEG7Classic-Bold.woff2 # 7-segment display font
@@ -132,25 +144,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v52-v57)
-
-### v52-v54: Live Performance & Mobile Layout
-- **Collapsible Sequencers**: Single click on machine headers to toggle sequencer visibility
-- **TR-909 Mobile**: Improved grid layout for drum tracks on mobile landscape/tablet
-- **Animations**: Smooth transitions for collapse/expand
-
-### v55: Oscilloscope
-- Added real-time waveform visualization
-- Implemented `Oscilloscope.js` with CRT style
-- Restructured tempo group for responsive layout
-
-### v56: Swing/Shuffle
-- **Swing Control**: Adjustable groove timing (0-100%, default 50%)
-- **UI**: Collapsible ribbon controller with yellow/red visual feedback
-- **Center Line**: White reference line at 50% for easy visual reference
-- **Audio Engine**: Integrated swing timing into both AudioWorklet and fallback scheduler
-- **Reset**: Double-click/tap ribbon to reset to 50%
-- **Layout**: Moved swing panel inside top-bar for consistent positioning
+## Recent Changes (v57-v65)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -173,6 +167,25 @@ acidBros/
   - Delete/Duplicate moved from header to individual file items
   - Active file properly highlighted on first open
   - Close button positioned absolutely in top-right corner
+
+### v61-v63: SEO & Accessibility
+- **Meta Tags**: Added OpenGraph, Twitter Cards, and comprehensive SEO metadata
+- **Accessibility**: Improved ARIA labels and semantic HTML structure
+- **Performance**: Optimized asset loading and caching strategies
+
+### v64: MIDI & Keyboard Mapping
+- **Settings Panel**: New interface for managing mappings
+- **MIDI Learn**: Dynamic mapping of MIDI controllers to UI elements
+- **Keyboard Support**: Map PC/Bluetooth keyboard keys to controls
+- **Persistence**: Mappings saved to localStorage
+
+### v65: MIDI Device Management & UX Improvements
+- **Device Management**: View connected MIDI devices and their status in Settings
+- **Enhanced Learn Mode**:
+  - **Transport Control**: Play/Stop buttons are now mappable
+  - **Waveform Switching**: TB-303 waveform toggles are mappable
+  - **Mobile UX**: Improved Learn Mode banner positioning (inside rack, not fixed)
+- **Visual Feedback**: Green/Red status indicators for MIDI devices
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`
