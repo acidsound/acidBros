@@ -94,6 +94,11 @@ python3 -m http.server 8080
 ```
 Then open `http://localhost:8080` in your browser.
 
+## Architecture & How it Works
+
+Curious about how the TB-303 and TR-909 synthesis engines are implemented in the Web Audio API?
+Check out our detailed **[Synthesis Architecture Guide](SYNTH_ARCHITECTURE.md)** to see the signal flow diagrams and learn about the inner workings of the acid machine.
+
 ## License
 
 MIT License
