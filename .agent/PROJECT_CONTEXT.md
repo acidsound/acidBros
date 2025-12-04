@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v67
+- **Current Version**: v68
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -63,7 +63,7 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - Ctrl+wheel zoom blocked on desktop
 
 #### 4. Service Worker & PWA
-- **Cache Version**: Currently v65 (increment on each deployment)
+- **Cache Version**: Currently v68 (increment on each deployment)
 - **Strategy**: Cache-first for offline support
 - **Assets**: All JS, CSS, HTML, fonts cached
 
@@ -72,7 +72,7 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 acidBros/
 ├── index.html              # Main HTML, includes anti-zoom scripts
 ├── styles.css              # All styling, responsive design
-├── sw.js                   # Service worker (cache v65)
+├── sw.js                   # Service worker (cache v68)
 ├── manifest.json           # PWA manifest
 ├── js/
 │   ├── main.js            # Entry point
@@ -195,6 +195,24 @@ acidBros/
 - **Audio Engine Validation**: Added parameter validation in TB303 and TR909 play functions to prevent NaN values from causing audio glitches
 - **TR909 Parameter Adjustments**: Updated parameter validation in TR909 `playBD` function to match UI controls
 
+### v68: UI Reorganization & Swing Visualization
+- **External Links Removed**: Removed buymeacoffee button per publisher requirements
+- **Transport Bar Reorganization**:
+  - File Manager button moved to transport bar (first position)
+  - Settings button moved to transport bar (after Share)
+- **Mode Controls Reorganization**:
+  - Shuffle button moved to mode controls section (right side)
+  - New SVG icon for Shuffle (visualizing beat pattern: ⚫️ ⚪️⚫️)
+- **Swing Controller Enhancement**:
+  - Replaced ribbon fill bars with dot-based visualization
+  - Fixed dots represent strong beats, moving dots represent weak beats
+  - Guide lines indicate straight beat position (50% swing)
+  - Visual feedback shows how much swing is applied
+  - Fixed overflow issue for swing values > 75%
+- **CSS Improvements**:
+  - Added `-webkit-tap-highlight-color: transparent` to prevent flash on touch
+  - Updated `.file-manager-btn` with light gradient background
+
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`
 2. Review recent commits: `git log --oneline -5`
@@ -209,3 +227,11 @@ acidBros/
 - **Lookahead**: 100ms (0.1s)
 - **Sensitivity**: 200px for full knob range
 - **Double-tap Threshold**: 400ms
+
+## Operational Guidelines
+1. **Deployment & Testing Confirmation**:
+   - **ALWAYS** ask for explicit user confirmation before:
+     - Deploying the application (pushing to main/gh-pages).
+     - Running browser automation tests (browser_subagent).
+   - Do **NOT** auto-run these actions even if they seem safe or part of a standard workflow.
+   - Present the intended action and wait for the user's "Go ahead" or similar approval.

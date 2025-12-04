@@ -4,8 +4,6 @@
 
 🎹 **[Try it live!](https://acidsound.github.io/acidBros/)**
 
-☕ **[Buy me a coffee](https://www.buymeacoffee.com/spectricki)** if you enjoy this project!
-
 ## Screenshots
 
 ### Desktop View
@@ -18,7 +16,7 @@
 
 ## UI/UX Overview
 - **Design Language**: Dark glass‑morphism theme with neon accent colors, modern Google Fonts (Inter) and subtle micro‑animations for button presses, knob turns, and step activation.
-- **Transport Bar**: Top bar with RUN, STOP, RANDOMIZE, CLEAR, SHARE URL, and Buy Me a Coffee buttons. Includes a large BPM knob with a 7‑segment LED display.
+- **Transport Bar**: Top bar with FILE MANAGER, RUN, STOP, RANDOMIZE, CLEAR, SHARE URL, and SETTINGS buttons. Includes a large BPM knob with a 7‑segment LED display.
 - **Oscilloscope**: Real-time green CRT-style waveform visualization located in the tempo section.
 - **Mode Switch**: Animated toggle between Pattern Mode and Song Mode with smooth transition effects.
 - **Pattern Mode**: Row of 16 pattern selectors (P1‑P16) with icon-based COPY and PASTE buttons for quick pattern management. Clicking a selector instantly switches the active pattern.

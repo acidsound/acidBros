@@ -87,9 +87,13 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v67</div>
-          <button id="shuffleBtn" class="transport-icon-btn" title="Swing/Shuffle"
-            aria-label="Swing and Shuffle Control">💃</button>
+          <div class="version-display">v68</div>
+          <button id="fileManagerBtn" class="transport-icon-btn" title="File Manager" aria-label="File Manager">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <path
+                d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
+            </svg>
+          </button>
           <button id="playBtn" class="transport-icon-btn play" data-midi-mappable="button" title="Run"
             aria-label="Play">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -130,14 +134,13 @@
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
             </svg>
           </button>
-          <button id="bmcBtn" class="transport-icon-btn bmc" title="Buy me a coffee" aria-label="Buy me a coffee">
+          <button id="settingsBtn" class="transport-icon-btn" title="Settings" aria-label="Settings">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
-              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
-              <line x1="6" y1="1" x2="6" y2="4"></line>
-              <line x1="10" y1="1" x2="10" y2="4"></line>
-              <line x1="14" y1="1" x2="14" y2="4"></line>
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
             </svg>
           </button>
         </div>
@@ -163,9 +166,13 @@
       <div class="swing-control-panel" id="swingPanel">
         <div class="swing-label">SWING</div>
         <div class="ribbon-controller" id="ribbonController">
-          <div class="ribbon-fill-left" id="ribbonLeft"></div>
-          <div class="ribbon-fill-right" id="ribbonRight"></div>
-          <div class="ribbon-center-line"></div>
+          <div class="swing-track"></div>
+          <div class="swing-guide" style="left: 37.5%"></div>
+          <div class="swing-guide" style="left: 87.5%"></div>
+          <div class="swing-dot fixed" style="left: 12.5%"></div>
+          <div class="swing-dot moving" id="swingDot1"></div>
+          <div class="swing-dot fixed" style="left: 62.5%"></div>
+          <div class="swing-dot moving" id="swingDot2"></div>
         </div>
         <div class="swing-display" id="swingDisplay">50</div>
       </div>
@@ -174,13 +181,8 @@
     <!-- Mode Controls (Pattern/Song Mode) -->
     <div id="mode-controls" class="mode-controls">
       <div class="mode-switch-group">
-        <!-- Item 0: Settings -->
-        <div class="switch-group-item">
-          <div class="switch-label">SETTINGS</div>
-          <button id="settingsBtn" class="file-manager-btn" title="Settings" aria-label="Settings">
-            <span class="icon-settings"></span>
-          </button>
-        </div>
+        <!-- Item 0: Spacer for layout balance -->
+        <div class="switch-group-item spacer" style="visibility: hidden; width: 40px;"></div>
         <!-- Item 1: Mode Switch -->
         <div class="switch-group-item">
           <div class="switch-label">MODE</div>
@@ -194,11 +196,16 @@
             <div class="switch-handle"></div>
           </div>
         </div>
-        <!-- Item 2: File Manager -->
+        <!-- Item 2: Shuffle -->
         <div class="switch-group-item">
-          <div class="switch-label">FILE</div>
-          <button id="fileManagerBtn" class="file-manager-btn" title="File Manager" aria-label="File Manager">
-            <span class="icon-file"></span>
+          <div class="switch-label">SHUFFLE</div>
+          <button id="shuffleBtn" class="file-manager-btn" title="Swing/Shuffle" aria-label="Swing and Shuffle Control">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="5" cy="12" r="3" fill="currentColor" stroke="none" />
+              <circle cx="14" cy="12" r="3" />
+              <circle cx="21" cy="12" r="3" fill="currentColor" stroke="none" />
+            </svg>
           </button>
         </div>
       </div>

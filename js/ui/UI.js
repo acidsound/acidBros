@@ -165,16 +165,12 @@ export const UI = {
             });
         };
 
-        document.getElementById('bmcBtn').onclick = () => {
-            window.open('https://www.buymeacoffee.com/spectricki', '_blank');
-        };
-
         // Swing/Shuffle Control
         const shuffleBtn = document.getElementById('shuffleBtn');
         const swingPanel = document.getElementById('swingPanel');
         const ribbonController = document.getElementById('ribbonController');
-        const ribbonLeft = document.getElementById('ribbonLeft');
-        const ribbonRight = document.getElementById('ribbonRight');
+        const swingDot1 = document.getElementById('swingDot1');
+        const swingDot2 = document.getElementById('swingDot2');
         const swingDisplay = document.getElementById('swingDisplay');
 
         let swingValue = 50; // Default 50%
@@ -194,8 +190,11 @@ export const UI = {
             swingValue = Math.round(percent);
 
             // Update visual
-            ribbonLeft.style.width = swingValue + '%';
-            ribbonRight.style.width = (100 - swingValue) + '%';
+            const pos1 = 12.5 + 50 * (swingValue / 100);
+            const pos2 = 62.5 + 50 * (swingValue / 100);
+
+            if (swingDot1) swingDot1.style.left = `${pos1}%`;
+            if (swingDot2) swingDot2.style.left = `${pos2}%`;
             swingDisplay.textContent = swingValue;
 
             // Update AudioEngine
@@ -237,8 +236,8 @@ export const UI = {
         // Double-click/tap to reset to 50%
         ribbonController.addEventListener('dblclick', () => {
             swingValue = 50;
-            ribbonLeft.style.width = '50%';
-            ribbonRight.style.width = '50%';
+            if (swingDot1) swingDot1.style.left = '37.5%'; // 12.5 + 25
+            if (swingDot2) swingDot2.style.left = '87.5%'; // 62.5 + 25
             swingDisplay.textContent = '50';
             AudioEngine.setSwing(50);
         });
@@ -252,8 +251,8 @@ export const UI = {
             if (tapGap < 300 && tapGap > 0) {
                 // Double tap detected
                 swingValue = 50;
-                ribbonLeft.style.width = '50%';
-                ribbonRight.style.width = '50%';
+                if (swingDot1) swingDot1.style.left = '37.5%';
+                if (swingDot2) swingDot2.style.left = '87.5%';
                 swingDisplay.textContent = '50';
                 AudioEngine.setSwing(50);
                 e.preventDefault();
@@ -324,13 +323,16 @@ export const UI = {
 
     updateSwingUI() {
         const swingValue = AudioEngine.swing;
-        const ribbonLeft = document.getElementById('ribbonLeft');
-        const ribbonRight = document.getElementById('ribbonRight');
+        const swingDot1 = document.getElementById('swingDot1');
+        const swingDot2 = document.getElementById('swingDot2');
         const swingDisplay = document.getElementById('swingDisplay');
 
-        if (ribbonLeft && ribbonRight && swingDisplay) {
-            ribbonLeft.style.width = swingValue + '%';
-            ribbonRight.style.width = (100 - swingValue) + '%';
+        if (swingDot1 && swingDot2 && swingDisplay) {
+            const pos1 = 12.5 + 50 * (swingValue / 100);
+            const pos2 = 62.5 + 50 * (swingValue / 100);
+
+            swingDot1.style.left = `${pos1}%`;
+            swingDot2.style.left = `${pos2}%`;
             swingDisplay.textContent = Math.round(swingValue);
         }
     },
