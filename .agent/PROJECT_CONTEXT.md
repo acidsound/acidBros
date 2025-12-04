@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v69
+- **Current Version**: v70
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -63,7 +63,7 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - Ctrl+wheel zoom blocked on desktop
 
 #### 4. Service Worker & PWA
-- **Cache Version**: Currently v69 (increment on each deployment)
+- **Cache Version**: Currently v70 (increment on each deployment)
 - **Strategy**: Cache-first for offline support
 - **Assets**: All JS, CSS, HTML, fonts cached
 
@@ -72,7 +72,7 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 acidBros/
 ├── index.html              # Main HTML, includes anti-zoom scripts
 ├── styles.css              # All styling, responsive design
-├── sw.js                   # Service worker (cache v69)
+├── sw.js                   # Service worker (cache v70)
 ├── manifest.json           # PWA manifest
 ├── js/
 │   ├── main.js            # Entry point
@@ -220,6 +220,11 @@ acidBros/
   - Drag starting in right half (50-100%) controls swingDot2
   - Moving dot directly follows touch/mouse position for intuitive control
   - Both dots always reflect the same swing value (synchronized)
+
+### v70: Tempo Knob Bug Fix
+- **Bug Fix**: Fixed tempo knob not updating AudioEngine tempo
+  - Changed event listener to use correct element ID (`tempo-input` instead of `tempo`)
+  - RotaryKnob uses `-input` suffix for hidden input elements since v67
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

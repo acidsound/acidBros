@@ -148,7 +148,7 @@ export const UI = {
         this.updateSevenSegment(125);
 
         // Listen for Tempo Knob changes via the hidden input
-        document.getElementById('tempo').addEventListener('input', (e) => {
+        document.getElementById('tempo-input').addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
             if (AudioEngine.setTempo) {
                 AudioEngine.setTempo(val);
