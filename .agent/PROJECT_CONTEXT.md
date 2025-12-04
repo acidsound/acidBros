@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v70
+- **Current Version**: v71
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -225,6 +225,21 @@ acidBros/
 - **Bug Fix**: Fixed tempo knob not updating AudioEngine tempo
   - Changed event listener to use correct element ID (`tempo-input` instead of `tempo`)
   - RotaryKnob uses `-input` suffix for hidden input elements since v67
+
+### v71: Binary Format for Sharing
+- **New Feature**: Compact binary format for URL sharing
+  - `BINARY_FORMAT.md`: Complete specification document
+  - `BinaryFormatEncoder.js`: Encode synth state to compact binary
+  - `BinaryFormatDecoder.js`: Decode binary back to synth state
+  - Base64URL encoding (URL-safe, no percent-encoding needed)
+- **Share Modes**:
+  - Pattern Mode (0x00): Single pattern (~250 chars URL)
+  - Song Only Mode (0x01): Just song sequence (~90 chars URL)
+  - Full Mode (0x02): All 16 patterns + song (for file save)
+- **File Format Migration**:
+  - Auto-detects old JSON format files in localStorage
+  - Converts to new binary format on load
+  - User confirmation before clearing corrupted storage
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

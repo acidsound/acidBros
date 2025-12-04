@@ -6,21 +6,113 @@ export const FileManager = {
     currentFileId: null,
 
     init() {
-        // Load file list from localStorage
-        const files = this.getFileList();
+        // Try to migrate and load files from localStorage
+        try {
+            const migrated = this.migrateOldFormat();
+            if (!migrated) {
+                // Migration failed, user chose to clear or there were no files
+                return;
+            }
 
-        if (files.length > 0) {
-            // Try to restore the last working file
-            const lastFileId = localStorage.getItem(this.CURRENT_FILE_KEY);
-            const lastFile = files.find(f => f.id === lastFileId) || files[0];
+            const files = this.getFileList();
+            if (files.length > 0) {
+                // Try to restore the last working file
+                const lastFileId = localStorage.getItem(this.CURRENT_FILE_KEY);
+                const lastFile = files.find(f => f.id === lastFileId) || files[0];
 
-            if (lastFile) {
-                // Restore state from last file but start as NEW session
-                Data.importState(lastFile.data);
-                this.currentFileId = null;
-                // Do NOT save automatically. User must click Save.
+                if (lastFile) {
+                    // Restore state from last file but start as NEW session
+                    Data.importState(lastFile.data);
+                    this.currentFileId = null;
+                    // Do NOT save automatically. User must click Save.
+                }
+            }
+        } catch (e) {
+            console.error('FileManager: Init failed', e);
+            this.handleStorageError();
+        }
+    },
+
+    // Check if data is in old JSON format (base64 encoded JSON)
+    isOldFormat(data) {
+        if (!data || typeof data !== 'string') return false;
+        try {
+            // Try to decode as Base64 JSON
+            const decoded = atob(data);
+            const parsed = JSON.parse(decoded);
+            // Old format has 'ver' property and patterns as objects
+            return parsed && parsed.ver !== undefined && typeof parsed.patterns === 'object';
+        } catch {
+            return false;
+        }
+    },
+
+    // Migrate old format files to new binary format
+    migrateOldFormat() {
+        const stored = localStorage.getItem(this.STORAGE_KEY);
+        if (!stored) return true; // No files, nothing to migrate
+
+        let files;
+        try {
+            files = JSON.parse(stored);
+        } catch (e) {
+            console.error('FileManager: Failed to parse file list', e);
+            return this.handleStorageError();
+        }
+
+        if (!Array.isArray(files) || files.length === 0) return true;
+
+        let migrationNeeded = false;
+        let migrationFailed = false;
+
+        for (const file of files) {
+            if (this.isOldFormat(file.data)) {
+                migrationNeeded = true;
+                try {
+                    // Import the old format data
+                    Data.importState(file.data);
+                    // Re-export in new format
+                    file.data = Data.exportFullState();
+                    file.modified = Date.now();
+                    console.log(`FileManager: Migrated file "${file.name}" to new format`);
+                } catch (e) {
+                    console.error(`FileManager: Failed to migrate file "${file.name}"`, e);
+                    migrationFailed = true;
+                }
             }
         }
+
+        if (migrationFailed) {
+            return this.handleStorageError();
+        }
+
+        if (migrationNeeded) {
+            // Save migrated files
+            this.saveFileList(files);
+            console.log('FileManager: Migration complete');
+        }
+
+        return true;
+    },
+
+    // Handle storage errors with user confirmation
+    handleStorageError() {
+        const confirmed = confirm(
+            'Failed to load saved data. The file format may be corrupted.\n\n' +
+            'Would you like to clear all saved files and start fresh?\n\n' +
+            '(Click Cancel to try again on next reload)'
+        );
+
+        if (confirmed) {
+            localStorage.removeItem(this.STORAGE_KEY);
+            localStorage.removeItem(this.CURRENT_FILE_KEY);
+            this.currentFileId = null;
+            Data.init();
+            Data.randomize();
+            console.log('FileManager: Storage cleared');
+        }
+
+        return confirmed;
     },
 
     getFileList() {
@@ -45,7 +137,8 @@ export const FileManager = {
 
     save() {
         try {
-            const state = Data.exportState();
+            // Use exportFullState for file save (includes all 16 patterns)
+            const state = Data.exportFullState();
             const files = this.getFileList();
 
             if (this.currentFileId) {

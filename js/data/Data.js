@@ -1,6 +1,8 @@
 import { UI } from '../ui/UI.js';
 import { AudioEngine } from '../audio/AudioEngine.js';
 import { MidiManager } from '../midi/MidiManager.js';
+import { BinaryFormatEncoder } from './BinaryFormatEncoder.js';
+import { BinaryFormatDecoder } from './BinaryFormatDecoder.js';
 
 export const Data = {
     mode: 'pattern', // 'pattern' | 'song'
@@ -232,21 +234,80 @@ export const Data = {
             ver: 3,
             bpm: AudioEngine.tempo,
             swing: AudioEngine.swing,
-            wave1: document.querySelector('input[name="wave303_1"]:checked').value,
-            wave2: document.querySelector('input[name="wave303_2"]:checked').value,
+            mode: this.mode,
+            currentPatternId: this.currentPatternId,
+            wave1: document.querySelector('input[name="wave303_1"]:checked')?.value || 'sawtooth',
+            wave2: document.querySelector('input[name="wave303_2"]:checked')?.value || 'sawtooth',
             k: knobs,
             patterns: this.patterns,
             song: this.song,
             midi: MidiManager.mappings
         };
-        return btoa(JSON.stringify(state));
+
+        const encoder = new BinaryFormatEncoder();
+        // Use encodeForShare: Pattern mode → single pattern, Song mode → song only
+        const binaryData = encoder.encodeForShare(state);
+        return encoder.toBase64URL(binaryData);
+    },
+
+    // Export full state for file save
+    exportFullState() {
+        const knobs = {};
+        document.querySelectorAll('.knob-input').forEach(el => {
+            knobs[el.id] = parseFloat(el.value);
+        });
+
+        const state = {
+            ver: 3,
+            bpm: AudioEngine.tempo,
+            swing: AudioEngine.swing,
+            mode: this.mode,
+            currentPatternId: this.currentPatternId,
+            wave1: document.querySelector('input[name="wave303_1"]:checked')?.value || 'sawtooth',
+            wave2: document.querySelector('input[name="wave303_2"]:checked')?.value || 'sawtooth',
+            k: knobs,
+            patterns: this.patterns,
+            song: this.song,
+            midi: MidiManager.mappings
+        };
+
+        const encoder = new BinaryFormatEncoder();
+        // Use encodeFull for file save (all 16 patterns + song)
+        const binaryData = encoder.encodeFull(state);
+        return encoder.toBase64URL(binaryData);
     },
 
     importState(code) {
+        // If no code provided, initialize with defaults
+        if (!code || code.length === 0) {
+            this.init();
+            this.randomize();
+            return;
+        }
+
         try {
-            const state = JSON.parse(atob(code));
+            // Check if this is binary format (base64 of binary) or legacy JSON format
+            let state;
+
+            // Try to decode as binary first
+            try {
+                const decoder = new BinaryFormatDecoder();
+                state = decoder.decode(code);
+            } catch (binaryError) {
+                // If binary decoding fails, try legacy JSON format
+                try {
+                    state = JSON.parse(atob(code));
+                } catch (jsonError) {
+                    console.error("Invalid state data - neither binary nor JSON format", binaryError, jsonError);
+                    this.init();
+                    this.randomize();
+                    return;
+                }
+            }
+
             if (state.bpm) AudioEngine.tempo = state.bpm;
             if (state.swing !== undefined) AudioEngine.swing = state.swing;
+            if (state.mode) this.mode = state.mode;
 
             if (state.midi) {
                 MidiManager.mappings = state.midi;
@@ -260,8 +321,16 @@ export const Data = {
                 });
             }
 
+            // Set waveforms
+            if (state.wave1) {
+                document.querySelector(`input[value="${state.wave1}"][name="wave303_1"]`).checked = true;
+            }
+            if (state.wave2) {
+                document.querySelector(`input[value="${state.wave2}"][name="wave303_2"]`).checked = true;
+            }
+
             if (state.ver === 3) {
-                this.patterns = state.patterns;
+                this.patterns = state.patterns || this.patterns; // Use existing if not provided
                 this.song = state.song || [0];
             } else {
                 // Initialize patterns array if it's empty or not properly set up
