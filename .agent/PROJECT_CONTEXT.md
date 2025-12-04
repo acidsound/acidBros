@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v68
+- **Current Version**: v69
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -63,7 +63,7 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - Ctrl+wheel zoom blocked on desktop
 
 #### 4. Service Worker & PWA
-- **Cache Version**: Currently v68 (increment on each deployment)
+- **Cache Version**: Currently v69 (increment on each deployment)
 - **Strategy**: Cache-first for offline support
 - **Assets**: All JS, CSS, HTML, fonts cached
 
@@ -72,7 +72,7 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 acidBros/
 ├── index.html              # Main HTML, includes anti-zoom scripts
 ├── styles.css              # All styling, responsive design
-├── sw.js                   # Service worker (cache v68)
+├── sw.js                   # Service worker (cache v69)
 ├── manifest.json           # PWA manifest
 ├── js/
 │   ├── main.js            # Entry point
@@ -212,6 +212,14 @@ acidBros/
 - **CSS Improvements**:
   - Added `-webkit-tap-highlight-color: transparent` to prevent flash on touch
   - Updated `.file-manager-btn` with light gradient background
+
+### v69: Swing Controller Interaction Improvement
+- **Position-aware Swing Control**:
+  - Restored 4-dot visualization (2 fixed + 2 moving) for better beat perception
+  - Drag starting in left half (0-50%) controls swingDot1
+  - Drag starting in right half (50-100%) controls swingDot2
+  - Moving dot directly follows touch/mouse position for intuitive control
+  - Both dots always reflect the same swing value (synchronized)
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

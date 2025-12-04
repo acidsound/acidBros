@@ -174,6 +174,7 @@ export const UI = {
         const swingDisplay = document.getElementById('swingDisplay');
 
         let swingValue = 50; // Default 50%
+        let activeHalf = null; // 'left' or 'right'
 
         // Toggle swing panel
         shuffleBtn.onclick = () => {
@@ -183,27 +184,53 @@ export const UI = {
         // Ribbon controller drag logic
         let isDragging = false;
 
-        const updateSwing = (clientX) => {
-            const rect = ribbonController.getBoundingClientRect();
-            const x = clientX - rect.left;
-            const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
-            swingValue = Math.round(percent);
-
-            // Update visual
-            const pos1 = 12.5 + 50 * (swingValue / 100);
-            const pos2 = 62.5 + 50 * (swingValue / 100);
+        const updateSwingVisual = () => {
+            // Position formula: moving dots are positioned relative to fixed dots
+            // Fixed dot 1 at 0%, Fixed dot 2 at 50%
+            // Moving dot 1: 0% + (swing/100) * 50% = swing/2 %
+            // Moving dot 2: 50% + (swing/100) * 50% = 50 + swing/2 %
+            const pos1 = swingValue / 2;
+            const pos2 = 50 + swingValue / 2;
 
             if (swingDot1) swingDot1.style.left = `${pos1}%`;
             if (swingDot2) swingDot2.style.left = `${pos2}%`;
             swingDisplay.textContent = swingValue;
+        };
 
-            // Update AudioEngine
+        const updateSwing = (clientX) => {
+            const rect = ribbonController.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+
+            if (activeHalf === 'left') {
+                // Touch in left half (0-50%): swingDot1 should follow touch
+                // swingDot1 position = swing/2, so swing = position * 2
+                // Clamp position to 0-50 range, then calculate swing
+                const clampedPercent = Math.max(0, Math.min(50, percent));
+                swingValue = Math.round(clampedPercent * 2);
+            } else {
+                // Touch in right half (50-100%): swingDot2 should follow touch
+                // swingDot2 position = 50 + swing/2, so swing = (position - 50) * 2
+                // Clamp position to 50-100 range, then calculate swing
+                const clampedPercent = Math.max(50, Math.min(100, percent));
+                swingValue = Math.round((clampedPercent - 50) * 2);
+            }
+
+            updateSwingVisual();
             AudioEngine.setSwing(swingValue);
         };
 
-        ribbonController.addEventListener('mousedown', (e) => {
+        const startDrag = (clientX) => {
+            const rect = ribbonController.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const percent = (x / rect.width) * 100;
+            activeHalf = percent < 50 ? 'left' : 'right';
             isDragging = true;
-            updateSwing(e.clientX);
+            updateSwing(clientX);
+        };
+
+        ribbonController.addEventListener('mousedown', (e) => {
+            startDrag(e.clientX);
         });
 
         document.addEventListener('mousemove', (e) => {
@@ -214,12 +241,12 @@ export const UI = {
 
         document.addEventListener('mouseup', () => {
             isDragging = false;
+            activeHalf = null;
         });
 
         // Touch support
         ribbonController.addEventListener('touchstart', (e) => {
-            isDragging = true;
-            updateSwing(e.touches[0].clientX);
+            startDrag(e.touches[0].clientX);
             e.preventDefault();
         });
 
@@ -231,14 +258,13 @@ export const UI = {
 
         document.addEventListener('touchend', () => {
             isDragging = false;
+            activeHalf = null;
         });
 
         // Double-click/tap to reset to 50%
         ribbonController.addEventListener('dblclick', () => {
             swingValue = 50;
-            if (swingDot1) swingDot1.style.left = '37.5%'; // 12.5 + 25
-            if (swingDot2) swingDot2.style.left = '87.5%'; // 62.5 + 25
-            swingDisplay.textContent = '50';
+            updateSwingVisual();
             AudioEngine.setSwing(50);
         });
 
@@ -251,9 +277,7 @@ export const UI = {
             if (tapGap < 300 && tapGap > 0) {
                 // Double tap detected
                 swingValue = 50;
-                if (swingDot1) swingDot1.style.left = '37.5%';
-                if (swingDot2) swingDot2.style.left = '87.5%';
-                swingDisplay.textContent = '50';
+                updateSwingVisual();
                 AudioEngine.setSwing(50);
                 e.preventDefault();
             }
@@ -328,8 +352,8 @@ export const UI = {
         const swingDisplay = document.getElementById('swingDisplay');
 
         if (swingDot1 && swingDot2 && swingDisplay) {
-            const pos1 = 12.5 + 50 * (swingValue / 100);
-            const pos2 = 62.5 + 50 * (swingValue / 100);
+            const pos1 = swingValue / 2;
+            const pos2 = 50 + swingValue / 2;
 
             swingDot1.style.left = `${pos1}%`;
             swingDot2.style.left = `${pos2}%`;
