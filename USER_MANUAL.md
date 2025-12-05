@@ -24,7 +24,6 @@ The top bar provides the main playback and project controls.
     - **Delete** – Remove the file.
   - Files are auto-saved every 5 seconds with timestamp-based names.
 - **SETTINGS (⚙️)** – Configure MIDI and keyboard mappings for hands-on control. Click to open the settings panel with MIDI mapping management interface.
-- **Buy Me a Coffee** – (☕ icon) Support the developer by opening the Buy Me a Coffee page in a new tab.
 - **Oscilloscope** – Real-time visual feedback of the audio waveform (green CRT style), located next to the tempo controls.
 - **TEMPO (BPM)** – Large knob with a 7‑segment LED display (60-200 BPM). Drag vertically to adjust, double‑tap to reset to 125 BPM.
 
@@ -246,7 +245,7 @@ When you want to share a complete song that uses multiple patterns (e.g., a song
 
 ---
 
-## 8. MIDI \u0026 Keyboard Mapping
+## 8. MIDI & Keyboard Mapping
 
 AcidBros supports mapping MIDI controllers and PC/Bluetooth keyboards to any UI control for hands-on performance.
 
@@ -345,9 +344,6 @@ AcidBros works best in modern browsers:
 ---
 
 ## 11. Installation
-
-### Web Browser
-Simply open `index.html` in any modern browser. No installation required.
 
 ### Local Development
 ```bash
