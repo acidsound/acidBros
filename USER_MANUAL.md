@@ -9,11 +9,6 @@ The top bar provides the main playback and project controls.
 
 ![Transport Controls](assets/manual-transport.png)
 
-- **RUN / STOP** – Start or pause the sequencer.
-- **RANDOMIZE** – Generate a fresh random pattern and sound patch for all units.
-- **CLEAR** – Reset all patterns (303 notes and 909 drums) to a blank state.
-- **SHARE URL** – Export the current pattern and settings as a shareable link. A toast notification confirms the link is copied.
-- **SWING/SHUFFLE (💃)** – Toggle the swing control panel. Adjust groove timing from 0% (straight) to 100% (maximum shuffle). 50% is the default straight timing. Double-click/tap the ribbon controller to reset to 50%.
 - **FILE MANAGER (📁)** – Save, load, and manage multiple patterns/songs with persistent browser storage. Click to open the file manager popover.
   - **New** – Create a new file (clears current pattern).
   - **Import/Export** – Import or export all files as JSON for backup.
@@ -23,6 +18,10 @@ The top bar provides the main playback and project controls.
     - **Rename** – Change the file name.
     - **Delete** – Remove the file.
   - Files are auto-saved every 5 seconds with timestamp-based names.
+- **RUN / STOP** – Start or pause the sequencer.
+- **RANDOMIZE** – Generate a fresh random pattern and sound patch for all units.
+- **CLEAR** – Reset all patterns (303 notes and 909 drums) to a blank state.
+- **SHARE URL** – Export the current pattern and settings as a shareable link. A toast notification confirms the link is copied.
 - **SETTINGS (⚙️)** – Configure MIDI and keyboard mappings for hands-on control. Click to open the settings panel with MIDI mapping management interface.
 - **Oscilloscope** – Real-time visual feedback of the audio waveform (green CRT style), located next to the tempo controls.
 - **TEMPO (BPM)** – Large knob with a 7‑segment LED display (60-200 BPM). Drag vertically to adjust, double‑tap to reset to 125 BPM.
@@ -47,6 +46,11 @@ Toggle between **Pattern Mode** and **Song Mode** using the animated switch. The
 - **Pattern Timeline** – Click pattern buttons (P1-P16) to add them to your song arrangement.
 - **Timeline Blocks** – Click any block in the timeline to remove it from the song.
 - **Multi-Row Layout** – Timeline wraps automatically, eliminating horizontal scrolling.
+
+### SWING/SHUFFLE
+- **Toggle** – Click the shuffle button to open the swing control panel.
+- **Adjust Timing** – Control groove timing from 0% (straight) to 100% (maximum shuffle). 50% is the default straight timing.
+- **Reset Timing** – Double-click/tap the ribbon controller to reset to 50% timing.
 
 ---
 
@@ -346,10 +350,19 @@ AcidBros works best in modern browsers:
 ## 11. Installation
 
 ### Local Development
+You can run AcidBros locally using either Python or Node.js:
+
+**Using Python:**
 ```bash
 python3 -m http.server 8080
 ```
 Then open `http://localhost:8080` in your browser.
+
+**Using Node.js:**
+```bash
+npx serve .
+```
+Then open `http://localhost:5000` in your browser.
 
 ### Progressive Web App (PWA)
 On supported browsers, you can install AcidBros as a standalone app:
