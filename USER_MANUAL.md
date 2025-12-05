@@ -190,6 +190,55 @@ Happy Acid Making! 🚀
 - Use different patterns for verse, chorus, and breakdown sections.
 - In Song Mode, repeat patterns to create longer arrangements.
 
+### 💡 Quick Tip: Import Patterns from Shared URLs
+
+You can import patterns directly from shared URLs without manually navigating to them:
+
+1. **Copy a shared URL** – When someone shares an AcidBros URL with you (e.g., `https://acidbros.app/#XXXX...`), simply copy the entire URL.
+2. **Select target pattern** – In AcidBros, select the pattern slot (P1-P16) where you want to import the pattern.
+3. **Paste** – Click the **PASTE** button (📄 icon).
+4. **Done!** – The pattern from the shared URL will be imported into your selected pattern slot.
+
+The paste function automatically detects if your clipboard contains an AcidBros share URL and extracts the pattern data from it. If the clipboard doesn't contain a valid URL, it will paste from the internal clipboard as usual.
+
+*Note: This feature requires clipboard access permission in your browser.*
+
+### 🎼 Advanced: Sharing Complete Songs with Multiple Patterns
+
+When you want to share a complete song that uses multiple patterns (e.g., a song arrangement using P1, P3, P5, and P8), follow this workflow:
+
+#### For the Creator (Sharing)
+
+1. **Switch to Song Mode** – Make sure your song arrangement is set up in the timeline.
+2. **Share the Song URL** – Click **SHARE URL** to copy the song structure and knob settings.
+3. **Share each pattern separately**:
+   - Switch to **Pattern Mode**
+   - Select **P1**, click **SHARE URL**, save/send this URL labeled as "Pattern 1"
+   - Select **P3**, click **SHARE URL**, save/send this URL labeled as "Pattern 3"
+   - Repeat for all patterns used in your song (P5, P8, etc.)
+
+**Example sharing format:**
+```
+🎵 My Acid Track
+- Song: https://acidbros.app/#ABC123...
+- P1 (Intro): https://acidbros.app/#DEF456...
+- P3 (Verse): https://acidbros.app/#GHI789...
+- P5 (Chorus): https://acidbros.app/#JKL012...
+- P8 (Breakdown): https://acidbros.app/#MNO345...
+```
+
+#### For the Receiver (Importing)
+
+1. **Click the Song URL first** – This loads the song arrangement timeline and all synth/drum settings.
+2. **Import patterns one by one**:
+   - Copy the "Pattern 1" URL
+   - Select **P1** in Pattern Mode
+   - Click **PASTE** (📄) – The pattern is imported!
+   - Repeat for P3, P5, P8, etc.
+3. **Play your complete song** – Switch back to Song Mode and hit **RUN**!
+
+*💡 Tip: The receiver only needs to import patterns that are actually used in the song. Check the song timeline to see which pattern slots are needed.*
+
 ### Performance Tips
 - Adjust knobs in real-time while playing for live tweaking.
 - Use the **RANDOMIZE** button for instant inspiration.

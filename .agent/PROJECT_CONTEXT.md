@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v71
+- **Current Version**: v72
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -144,7 +144,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v67)
+## Recent Changes (v57-v72)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -240,6 +240,15 @@ acidBros/
   - Auto-detects old JSON format files in localStorage
   - Converts to new binary format on load
   - User confirmation before clearing corrupted storage
+
+### v72: Pattern Import from URL
+- **Pattern Paste Enhancement**:
+  - **One-click Import**: Pasting a shared URL into a pattern slot automatically decodes and imports it
+  - **Clipboard Integration**: Automatically detects if system clipboard contains a valid AcidBros URL
+  - **Hash Decoding**: Extracts and decodes the pattern data from URL hash
+- **Song Sharing Workflow**:
+  - Defined comprehensive workflow for sharing complete songs (Song URL + individual Pattern URLs)
+  - Added detailed guides in User Manual for both simple import and advanced song sharing
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

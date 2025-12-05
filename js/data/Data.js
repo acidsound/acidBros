@@ -100,10 +100,76 @@ export const Data = {
             }, 3000);
         }
     },
-    pastePattern() {
-        if (!this.clipboard) return;
+    async pastePattern() {
+        // First, try to read from system clipboard for URL-based import
+        try {
+            const clipboardText = await navigator.clipboard.readText();
+
+            // Check if clipboard contains a URL with hash
+            if (clipboardText && clipboardText.includes('#') &&
+                (clipboardText.startsWith('http://') || clipboardText.startsWith('https://'))) {
+
+                // Extract hash from URL
+                const hashIndex = clipboardText.indexOf('#');
+                const hashData = clipboardText.substring(hashIndex + 1);
+
+                if (hashData && hashData.length > 0) {
+                    try {
+                        // Decode the hash using BinaryFormatDecoder
+                        const decoder = new BinaryFormatDecoder();
+                        const importedState = decoder.decode(hashData);
+
+                        // Import the first pattern from the decoded state
+                        if (importedState && importedState.patterns && importedState.patterns[0]) {
+                            this.patterns[this.currentPatternId] = JSON.parse(JSON.stringify(importedState.patterns[0]));
+                            UI.renderAll();
+
+                            // Show success toast
+                            const toast = document.getElementById('toast');
+                            if (toast) {
+                                toast.innerText = 'Pattern imported from URL!';
+                                toast.className = 'show';
+                                setTimeout(() => {
+                                    toast.className = toast.className.replace('show', '');
+                                }, 3000);
+                            }
+                            return;
+                        }
+                    } catch (decodeError) {
+                        console.warn('Failed to decode URL hash, falling back to internal clipboard:', decodeError);
+                    }
+                }
+            }
+        } catch (clipboardError) {
+            // Clipboard API may not be available or permission denied
+            console.warn('Clipboard read failed, using internal clipboard:', clipboardError);
+        }
+
+        // Fall back to internal clipboard
+        if (!this.clipboard) {
+            const toast = document.getElementById('toast');
+            if (toast) {
+                toast.innerText = 'No pattern to paste';
+                toast.className = 'show';
+                setTimeout(() => {
+                    toast.className = toast.className.replace('show', '');
+                }, 3000);
+            }
+            return;
+        }
+
         this.patterns[this.currentPatternId] = JSON.parse(JSON.stringify(this.clipboard));
         UI.renderAll();
+
+        // Show success toast
+        const toast = document.getElementById('toast');
+        if (toast) {
+            toast.innerText = 'Pattern pasted!';
+            toast.className = 'show';
+            setTimeout(() => {
+                toast.className = toast.className.replace('show', '');
+            }, 3000);
+        }
     },
 
     randomize() {

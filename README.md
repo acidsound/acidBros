@@ -63,6 +63,8 @@
   * Settings (⚙️) for MIDI and keyboard mapping configuration.
   * Play, Stop, Clear, Randomize.
   * Share URL to export current pattern state.
+  * **Import Patterns**: Paste shared URLs directly into pattern slots.
+  * **Song Sharing**: Share complete songs with multiple patterns (see Manual).
 * **PWA Support**: Installable as a Progressive Web App for offline use.
 * **[User Manual](USER_MANUAL.md)**: Comprehensive guide.
 
