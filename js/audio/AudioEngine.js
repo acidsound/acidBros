@@ -110,6 +110,11 @@ export const AudioEngine = {
         });
 
         if (Data.mode === 'song') {
+            // Apply Sound Settings for the first pattern in Song Mode
+            if (!Data.keepSoundSettings && Data.song.length > 0) {
+                const firstPatternId = Data.song[0];
+                Data.applyPatternSettings(firstPatternId);
+            }
             UI.updateSongTimeline();
         }
 
@@ -173,6 +178,13 @@ export const AudioEngine = {
                 if (this.currentSongIndex >= Data.song.length) {
                     this.currentSongIndex = 0;
                 }
+
+                // Apply Sound Settings for the new pattern in Song Mode
+                if (!Data.keepSoundSettings) {
+                    const nextPatternId = Data.song[this.currentSongIndex];
+                    Data.applyPatternSettings(nextPatternId);
+                }
+
                 UI.updateSongTimeline();
                 UI.renderAll();
             }
@@ -215,6 +227,13 @@ export const AudioEngine = {
                 if (this.currentSongIndex >= Data.song.length) {
                     this.currentSongIndex = 0; // Loop Song
                 }
+
+                // Apply Sound Settings for the new pattern in Song Mode
+                if (!Data.keepSoundSettings) {
+                    const nextPatternId = Data.song[this.currentSongIndex];
+                    Data.applyPatternSettings(nextPatternId);
+                }
+
                 UI.updateSongTimeline();
                 UI.renderAll();
             }

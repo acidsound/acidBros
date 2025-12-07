@@ -1,6 +1,6 @@
 // BinaryFormatDecoder.js
-// Decoder for the AcidBros binary format v2
-// Implements BINARY_FORMAT.md specification
+// Decoder for the AcidBros binary format v4
+// UPDATED: MODE_FULL (0x02) now expects per-pattern settings.
 
 export class BinaryFormatDecoder {
     constructor() {
@@ -16,7 +16,7 @@ export class BinaryFormatDecoder {
         // Share Modes
         this.MODE_PATTERN = 0x00;
         this.MODE_SONG_ONLY = 0x01;
-        this.MODE_FULL = 0x02;
+        this.MODE_FULL = 0x02;     // Full Project w/ Per-Pattern Settings
 
         // MIDI note to name mapping
         this.midiToNote = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -66,7 +66,7 @@ export class BinaryFormatDecoder {
             buffer = input;
         }
 
-        // Initialize default state
+        // Initialize default state with new format
         const state = this.createDefaultState();
 
         let offset = 0;
@@ -100,33 +100,71 @@ export class BinaryFormatDecoder {
         return state;
     }
 
-    // Create default state
+    // Create default state with new format
     createDefaultState() {
+        const createEmpty303Sequence = () => {
+            const seq = [];
+            for (let i = 0; i < 16; i++) {
+                seq.push({ active: false, note: 'C', octave: 2, accent: false, slide: false });
+            }
+            return seq;
+        };
+
+        const createEmptyPattern = () => ({
+            units: {
+                tb303_1: {
+                    type: 'tb303',
+                    sequence: createEmpty303Sequence(),
+                    settings: {
+                        waveform: 'sawtooth',
+                        tune: 0,
+                        cutoff: 50,
+                        reso: 8,
+                        env: 50,
+                        decay: 50,
+                        accent: 80,
+                        volume: 70,
+                        delayTime: 50,
+                        delayFb: 30
+                    }
+                },
+                tb303_2: {
+                    type: 'tb303',
+                    sequence: createEmpty303Sequence(),
+                    settings: {
+                        waveform: 'sawtooth',
+                        tune: 0,
+                        cutoff: 50,
+                        reso: 8,
+                        env: 50,
+                        decay: 50,
+                        accent: 80,
+                        volume: 70,
+                        delayTime: 50,
+                        delayFb: 30
+                    }
+                },
+                tr909: {
+                    type: 'tr909',
+                    tracks: {
+                        bd: { steps: Array(16).fill(0), tune: 50, attack: 50, decay: 50, level: 100 },
+                        sd: { steps: Array(16).fill(0), tune: 50, snappy: 50, decay: 50, level: 100 },
+                        ch: { steps: Array(16).fill(0), decay: 50, level: 100 },
+                        oh: { steps: Array(16).fill(0), decay: 50, level: 100 },
+                        cp: { steps: Array(16).fill(0), decay: 50, level: 100 }
+                    }
+                }
+            }
+        });
+
         return {
-            ver: 3,
+            ver: 4,
             bpm: 125,
             swing: 50,
             mode: 'pattern',
             shareMode: this.MODE_PATTERN,
             currentPatternId: 0,
-            wave1: 'sawtooth',
-            wave2: 'sawtooth',
-            k: {},
-            patterns: Array(16).fill(null).map(() => ({
-                seq303_1: Array(16).fill(null).map(() => ({
-                    active: false, note: 'C', octave: 2, accent: false, slide: false
-                })),
-                seq303_2: Array(16).fill(null).map(() => ({
-                    active: false, note: 'C', octave: 2, accent: false, slide: false
-                })),
-                seq909: {
-                    bd: Array(16).fill(0),
-                    sd: Array(16).fill(0),
-                    ch: Array(16).fill(0),
-                    oh: Array(16).fill(0),
-                    cp: Array(16).fill(0)
-                }
-            })),
+            patterns: Array(16).fill(null).map(() => createEmptyPattern()),
             song: [0]
         };
     }
@@ -174,62 +212,104 @@ export class BinaryFormatDecoder {
         }
     }
 
-    // Parse TB-303 Unit Block
-    parseTB303UnitBlock(buffer, pos, endOffset, unitOrder, state) {
-        const suffix = unitOrder === 0 ? '1' : '2';
-        const waveKey = unitOrder === 0 ? 'wave1' : 'wave2';
-        const seqKey = unitOrder === 0 ? 'seq303_1' : 'seq303_2';
+    // Helper to read TB-303 Settings
+    readTB303Settings(buffer, pos, endOffset) {
+        const settings = {
+            waveform: 'sawtooth',
+            tune: 0,
+            cutoff: 50,
+            reso: 8,
+            env: 50,
+            decay: 50,
+            accent: 80,
+            volume: 70,
+            delayTime: 50,
+            delayFb: 30,
+            bytesRead: 0
+        };
 
-        // Settings Section
-        if (pos >= endOffset) return pos;
+        if (pos >= endOffset) return settings;
 
+        const initialPos = pos;
         const waveform = buffer[pos++];
-        state[waveKey] = waveform === 0x01 ? 'square' : 'sawtooth';
+        settings.waveform = waveform === 0x01 ? 'square' : 'sawtooth';
 
-        if (pos >= endOffset) return pos;
+        if (pos >= endOffset) {
+            settings.bytesRead = pos - initialPos;
+            return settings;
+        }
+
         const paramCount = buffer[pos++];
-
-        // TB-303 Parameter Order
-        const paramKeys = [
-            `tune303_${suffix}-input`,
-            `cutoff303_${suffix}-input`,
-            `reso303_${suffix}-input`,
-            `env303_${suffix}-input`,
-            `decay303_${suffix}-input`,
-            `accent303_${suffix}-input`,
-            `vol303_${suffix}-input`,
-            `delayTime303_${suffix}-input`,
-            `delayFb303_${suffix}-input`
-        ];
+        const paramKeys = ['tune', 'cutoff', 'reso', 'env', 'decay', 'accent', 'volume', 'delayTime', 'delayFb'];
 
         for (let i = 0; i < paramCount && pos < endOffset; i++) {
             const val = buffer[pos++];
             if (i < paramKeys.length) {
-                // TUNE needs special handling: 0-240 -> -1200 to +1200
-                if (paramKeys[i].includes('tune')) {
-                    state.k[paramKeys[i]] = (val / 240) * 2400 - 1200;
+                if (paramKeys[i] === 'tune') {
+                    settings[paramKeys[i]] = (val / 240) * 2400 - 1200;
                 } else {
-                    state.k[paramKeys[i]] = val;
+                    settings[paramKeys[i]] = val;
                 }
             }
         }
 
+        settings.bytesRead = pos - initialPos;
+        return settings;
+    }
+
+    // Parse TB-303 Unit Block
+    parseTB303UnitBlock(buffer, pos, endOffset, unitOrder, state) {
+        const unitKey = unitOrder === 0 ? 'tb303_1' : 'tb303_2';
+
+        // Per-Pattern Settings logic applies to MODE_FULL and MODE_PATTERN
+        const isPerPatternSettings = (state.shareMode === this.MODE_FULL || state.shareMode === this.MODE_PATTERN);
+
+        let globalSettings = null;
+
+        // Parse Header Settings (only if NOT per-pattern settings mode)
+        if (!isPerPatternSettings) {
+            globalSettings = this.readTB303Settings(buffer, pos, endOffset);
+            pos += globalSettings.bytesRead;
+        }
+
         // Pattern Section
-        // Determine how many patterns based on shareMode
-        const patternCount = state.shareMode === this.MODE_FULL ? 16 :
+        const patternCount = (state.shareMode === this.MODE_FULL) ? 16 :
             state.shareMode === this.MODE_PATTERN ? 1 : 0;
 
-        for (let p = 0; p < patternCount && pos + 32 <= endOffset; p++) {
+        for (let p = 0; p < patternCount && pos < endOffset; p++) {
+            // For MODE_PATTERN, use currentPatternId. For FULL, use index 0-15.
             const patternIdx = state.shareMode === this.MODE_PATTERN ? state.currentPatternId : p;
 
-            for (let step = 0; step < 16; step++) {
+            // Ensure pattern exists and has units structure
+            if (!state.patterns[patternIdx]) {
+                state.patterns[patternIdx] = this.createDefaultState().patterns[0];
+            }
+            if (!state.patterns[patternIdx].units) {
+                state.patterns[patternIdx].units = this.createDefaultState().patterns[0].units;
+            }
+
+            // Determine settings for this pattern
+            if (isPerPatternSettings) {
+                // Read per-pattern settings
+                const patternSettings = this.readTB303Settings(buffer, pos, endOffset);
+                pos += patternSettings.bytesRead;
+                state.patterns[patternIdx].units[unitKey].settings = { ...patternSettings };
+                delete state.patterns[patternIdx].units[unitKey].settings.bytesRead;
+            } else if (globalSettings) {
+                // Use global header settings
+                state.patterns[patternIdx].units[unitKey].settings = { ...globalSettings };
+                delete state.patterns[patternIdx].units[unitKey].settings.bytesRead;
+            }
+
+            // Parse sequence
+            for (let step = 0; step < 16 && pos + 2 <= endOffset; step++) {
                 const midiPitch = buffer[pos++];
                 const attr = buffer[pos++];
 
                 const noteIndex = midiPitch % 12;
                 const octave = Math.floor(midiPitch / 12) - 1;
 
-                state.patterns[patternIdx][seqKey][step] = {
+                state.patterns[patternIdx].units[unitKey].sequence[step] = {
                     note: this.midiToNote[noteIndex] || 'C',
                     octave: Math.max(0, Math.min(4, octave)),
                     active: !!(attr & 0x01),
@@ -242,11 +322,14 @@ export class BinaryFormatDecoder {
         return pos;
     }
 
-    // Parse TR-909 Unit Block
-    parseTR909UnitBlock(buffer, pos, endOffset, unitOrder, state) {
-        // Settings Section
-        if (pos >= endOffset) return pos;
+    // Helper to read TR-909 Settings
+    readTR909Settings(buffer, pos, endOffset) {
+        const trackSettings = {};
+        let bytesRead = 0;
 
+        if (pos >= endOffset) return { trackSettings, bytesRead };
+
+        const initialPos = pos;
         const instrumentCount = buffer[pos++];
         const trackKeys = ['bd', 'sd', 'ch', 'oh', 'cp'];
 
@@ -256,35 +339,77 @@ export class BinaryFormatDecoder {
 
             const paramCount = buffer[pos++];
 
-            // TR-909 Parameter mapping
-            const paramPrefixes = {
-                0x00: 'bd', 0x01: 'sd', 0x02: 'ch', 0x03: 'oh', 0x04: 'cp'
-            };
-            const prefix = paramPrefixes[instrId] || 'bd';
-
-            // Parameter suffixes based on instrument
-            let paramSuffixes;
+            const trackKey = trackKeys[instrId] || 'bd';
+            let paramOrder;
             if (instrId <= 0x01) { // BD, SD have 4 params
-                paramSuffixes = ['_p1-input', '_p2-input', '_p3-input', '_level-input'];
+                paramOrder = instrId === 0x00
+                    ? ['tune', 'attack', 'decay', 'level']
+                    : ['tune', 'snappy', 'decay', 'level'];
             } else { // CH, OH, CP have 2 params
-                paramSuffixes = ['_p1-input', '_level-input'];
+                paramOrder = ['decay', 'level'];
             }
 
+            const settings = {};
             for (let j = 0; j < paramCount && pos < endOffset; j++) {
                 const val = buffer[pos++];
-                if (j < paramSuffixes.length) {
-                    state.k[prefix + paramSuffixes[j]] = val;
+                if (j < paramOrder.length) {
+                    settings[paramOrder[j]] = val;
                 }
             }
+            trackSettings[trackKey] = settings;
+        }
+
+        bytesRead = pos - initialPos;
+        return { trackSettings, bytesRead };
+    }
+
+    // Parse TR-909 Unit Block
+    parseTR909UnitBlock(buffer, pos, endOffset, unitOrder, state) {
+        const isPerPatternSettings = (state.shareMode === this.MODE_FULL || state.shareMode === this.MODE_PATTERN);
+        const trackKeys = ['bd', 'sd', 'ch', 'oh', 'cp'];
+        let globalTrackSettings = null;
+
+        // Header Settings Section (Only if NOT per-pattern)
+        if (!isPerPatternSettings) {
+            const result = this.readTR909Settings(buffer, pos, endOffset);
+            globalTrackSettings = result.trackSettings;
+            pos += result.bytesRead;
         }
 
         // Pattern Section
-        const patternCount = state.shareMode === this.MODE_FULL ? 16 :
+        const patternCount = (state.shareMode === this.MODE_FULL) ? 16 :
             state.shareMode === this.MODE_PATTERN ? 1 : 0;
 
         for (let p = 0; p < patternCount && pos < endOffset; p++) {
             const patternIdx = state.shareMode === this.MODE_PATTERN ? state.currentPatternId : p;
 
+            // Ensure pattern exists
+            if (!state.patterns[patternIdx]) {
+                state.patterns[patternIdx] = this.createDefaultState().patterns[0];
+            }
+            if (!state.patterns[patternIdx].units) {
+                state.patterns[patternIdx].units = this.createDefaultState().patterns[0].units;
+            }
+
+            let currentTrackSettings = globalTrackSettings;
+
+            // Read per-pattern settings
+            if (isPerPatternSettings) {
+                const result = this.readTR909Settings(buffer, pos, endOffset);
+                currentTrackSettings = result.trackSettings;
+                pos += result.bytesRead;
+            }
+
+            // Apply settings to pattern
+            if (currentTrackSettings) {
+                for (const [key, settings] of Object.entries(currentTrackSettings)) {
+                    if (state.patterns[patternIdx].units.tr909.tracks[key]) {
+                        Object.assign(state.patterns[patternIdx].units.tr909.tracks[key], settings);
+                    }
+                }
+            }
+
+            // Read Pattern Sequence Data
             if (pos >= endOffset) break;
             const patternInstrCount = buffer[pos++];
 
@@ -295,20 +420,23 @@ export class BinaryFormatDecoder {
                 const attrCount = buffer[pos++];
                 const trackKey = trackKeys[instrId] || 'bd';
 
-                // Read TRIGGER bitmask (first attr, required)
                 if (attrCount > 0 && pos + 2 <= endOffset) {
                     const triggerBits = this.readUint16LE(buffer, pos);
                     pos += 2;
 
                     // Convert bitmask to array
+                    const steps = [];
                     for (let step = 0; step < 16; step++) {
-                        state.patterns[patternIdx].seq909[trackKey][step] =
-                            (triggerBits & (1 << step)) ? 1 : 0;
+                        steps[step] = (triggerBits & (1 << step)) ? 1 : 0;
                     }
 
-                    // Skip any additional attrs (ACCENT, FLAM)
+                    if (state.patterns[patternIdx].units.tr909.tracks[trackKey]) {
+                        state.patterns[patternIdx].units.tr909.tracks[trackKey].steps = steps;
+                    }
+
+                    // Skip any additional attrs
                     for (let a = 1; a < attrCount && pos + 2 <= endOffset; a++) {
-                        pos += 2; // Skip for now
+                        pos += 2;
                     }
                 }
             }

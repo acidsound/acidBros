@@ -201,13 +201,97 @@ Each pattern contains data for all instruments.
 **Step Bitmask (2 bytes, little-endian):**
 - Bit 0 = Step 0, Bit 1 = Step 1, ..., Bit 15 = Step 15
 
-**Example:** BD with triggers on steps 0,4,8,12 and accent on step 0:
-```
-00          ; Instrument ID: BD
-02          ; Attr Count: 2 (TRIGGER + ACCENT)
-11 11       ; TRIGGER: 0x1111 (steps 0,4,8,12)
-01 00       ; ACCENT: 0x0001 (step 0 only)
-```
+### 1.3 Share Mode (1 Byte)
+- `0x00`: **Pattern Mode** (Single Pattern)
+- `0x01`: **Song Mode** (Song Sequence + All Patterns, but using current unit settings)
+- `0x02`: **Full Project** (Song + Patterns + **Per-Pattern Settings**)
+  - *Note: In v4, this mode was updated to store settings for each pattern individually. This is a breaking change from v3.*
+
+---
+
+## 2. Unit Blocks (ID: 0x02)
+
+### 2.3 Unit Data Structure
+The structure of the data depends on the **Share Mode** defined in the Global Block.
+
+#### A. Share Mode = 0x00 (Pattern Mode)
+Contains data for a **single pattern** (the current one).
+- **[Settings]**: Unit-specific settings (11 bytes for TB-303, Varies for TR-909)
+- **[Pattern Data]**: Sequence data for 1 pattern (32 bytes for TB-303, Varies for TR-909)
+
+#### B. Share Mode = 0x01 (Song Mode - Legacy Style)
+Contains data for **all 16 patterns**, but assumes global unit settings.
+- **[Global Settings]**: Unit-specific settings applied to ALL patterns (Header).
+- **[Pattern 0 Data]**: Sequence Only
+- **[Pattern 1 Data]**: Sequence Only
+- ...
+- **[Pattern 15 Data]**: Sequence Only
+
+#### C. Share Mode = 0x02 (Full Project - v4 Style)
+Contains **settings AND data** for **all 16 patterns**.
+- **(No Global Settings in Header)**
+- **[Pattern 0 Settings]**: Unit settings for Pattern 0
+- **[Pattern 0 Data]**: Sequence for Pattern 0
+- **[Pattern 1 Settings]**: Unit settings for Pattern 1
+- **[Pattern 1 Data]**: Sequence for Pattern 1
+- ...
+- **[Pattern 15 Settings]**: Unit settings for Pattern 15
+- **[Pattern 15 Data]**: Sequence for Pattern 15
+
+---
+
+### 2.4 TB-303 Data Format
+
+#### Settings Block (11 Bytes)
+Used in Pattern Mode (once), Full Mode (per pattern), or Song Mode (Global Header).
+1.  **Waveform** (1 Byte): `0x00` (Sawtooth), `0x01` (Square)
+2.  **Param Count** (1 Byte): `0x09` (Fixed for now)
+3.  **Tuning** (1 Byte): 0-255 (Center 127)
+4.  **Cutoff** (1 Byte): 0-127
+5.  **Resonance** (1 Byte): 0-127
+6.  **Env Mod** (1 Byte): 0-127
+7.  **Decay** (1 Byte): 0-127
+8.  **Accent** (1 Byte): 0-127
+9.  **Volume** (1 Byte): 0-127
+10. **Delay Time** (1 Byte): 0-127
+11. **Delay Feedback** (1 Byte): 0-127
+
+#### Pattern Data Block (32 Bytes)
+- 16 Steps × 2 Bytes per step
+- **Byte 1**: MIDI Note (0-127). Example: 36 (C2) to 60 (C4).
+- **Byte 2**: Attributes Bitmask
+  - `Bit 0` (LSB): Gate (1=Active, 0=Rest)
+  - `Bit 1`: Accent (1=On)
+  - `Bit 2`: Slide (1=On)
+  - `Bit 3-7`: Reserved (0)
+
+---
+
+### 2.5 TR-909 Data Format
+
+#### Settings Block (Varies)
+1. **Instrument Count** (1 Byte): `0x05` (BD, SD, CH, OH, CP)
+2. **Instrument 0 (BD)**:
+   - ID: `0x00`
+   - Param Count: `0x04`
+   - Params: Tune, Attack, Decay, Level
+3. **Instrument 1 (SD)**:
+   - ID: `0x01`
+   - Param Count: `0x04`
+   - Params: Tune, Snappy, Decay, Level
+4. **Instrument 2 (CH)**:
+   - ID: `0x02`
+   - Param Count: `0x02`
+   - Params: Decay, Level
+... (Same for OH, CP)
+
+#### Pattern Data Block (Varies)
+1. **Pattern Instrument Count** (1 Byte): `0x05`
+2. **Instrument 0 (BD)**:
+   - ID: `0x00`
+   - Attr Count: `0x01` (Just Triggers)
+   - **Trigger Bits** (2 Bytes): 16 bits for 16 steps (1=Trig, 0=Rest)
+... (Repeat for all instruments)
 
 ## Note Encoding
 
@@ -221,87 +305,77 @@ Notes are encoded using MIDI pitch values directly (0-127), where:
 ---
 
 ## Complete Byte Sequence Example
-
-Here's a complete example of encoded data for a minimal pattern:
-
-### Example: Simple Pattern with TB-303 and TR-909
-
-**Global Settings Block (0x01):**
-```
-01          ; Block ID: Global Settings
-05 00       ; Length: 5 bytes
-7D          ; Tempo: 125 BPM
-32          ; Swing: 50%
-00          ; Mode: Pattern
-00          ; Song length: 0 (pattern mode)
-```
-
-**Instrument Settings Block (0x02) - TB-303 Unit 1:**
-```
-02          ; Block ID: Instrument Settings
-0D 00       ; Length: 13 bytes
-01          ; Unit Type: TB-303
-00          ; Unit Order: 0 (first)
-; --- Settings Section ---
-00          ; Waveform: Sawtooth
-09          ; Param Count: 9
-78          ; TUNE: 120 (maps to 0 cents)
-64          ; CUTOFF: 100
-0F          ; RESO: 15
-32          ; ENV: 50
-32          ; DECAY: 50
-50          ; ACCENT: 80
-64          ; VOL: 100
-64          ; DELAY TIME: 100
-32          ; DELAY FB: 50
-; --- Pattern Section (16 patterns × 32 bytes each) ---
-; Pattern 0:
-24 01       ; Step 0: C2 (36), Gate ON
-26 01       ; Step 1: D2 (38), Gate ON
-00 00       ; Step 2: rest
-28 03       ; Step 3: E2 (40), Gate ON + Accent
-... (remaining 12 steps of pattern 0)
-... (patterns 1-15, each 32 bytes)
-```
-
-**Unit Block (0x02) - TR-909:**
-```
-02          ; Block ID: Unit Block
-XX XX       ; Length: (variable)
-02          ; Unit Type: TR-909
-00          ; Unit Order: 0
-; --- Settings Section ---
-05          ; Instrument Count: 5
-; BD Settings:
-00          ; Instrument ID: BD
-04          ; Param Count: 4
-32 32 32 64 ; Tune, Attack, Decay, Level
-; SD Settings:
-01          ; Instrument ID: SD
-04          ; Param Count: 4
-32 32 32 64 ; Tune, Snappy, Decay, Level
-; CH Settings:
-02          ; Instrument ID: CH
-02          ; Param Count: 2
-32 64       ; Tune, Level
-; OH Settings:
-03          ; Instrument ID: OH
-02          ; Param Count: 2
-32 64       ; Decay, Level
-; CP Settings:
-04          ; Instrument ID: CP
-02          ; Param Count: 2
-32 64       ; Decay, Level
-; --- Pattern Section (16 patterns) ---
-; Pattern 0:
-05          ; Instrument Count: 5
-00 01 11 11 ; BD: ID, AttrCount=1, TRIGGER steps 0,4,8,12
-01 01 44 44 ; SD: ID, AttrCount=1, TRIGGER steps 2,6,10,14
-02 01 AA AA ; CH: ID, AttrCount=1, TRIGGER steps 1,3,5,7,9,11,13,15
-03 01 00 00 ; OH: ID, AttrCount=1, no triggers
-04 01 00 00 ; CP: ID, AttrCount=1, no triggers
-... (patterns 1-15)
-```
+ 
+ Here's a complete example of encoded data for a project in **Full Mode (v4)**:
+ 
+ ### Example: Full Project with TB-303 and TR-909
+ 
+ **Global Settings Block (0x01):**
+ ```
+ 01          ; Block ID: Global Settings
+ 05 00       ; Length: 5 bytes
+ 7D          ; Tempo: 125 BPM
+ 32          ; Swing: 50%
+ 02          ; Mode: Full Project (v4)
+ 00          ; Pattern Index: 0 (current)
+ 01          ; Song length: 1
+ 00          ; Song Sequence: Pattern 0
+ ```
+ 
+ **Instrument Settings Block (0x02) - TB-303 Unit 1:**
+ ```
+ 02          ; Block ID: Instrument Settings
+ XX XX       ; Length: (Settings+Seq) * 16
+ 01          ; Unit Type: TB-303
+ 00          ; Unit Order: 0 (first)
+ 
+ ; --- Pattern 0 ---
+ ; [Settings]
+ 00          ; Waveform: Sawtooth
+ 09          ; Param Count: 9
+ 78 64 0F 32 32 50 64 64 32 ; Params...
+ ; [Sequence]
+ 24 01       ; Step 0: C2 (36), Gate ON
+ 26 01       ; Step 1: D2 (38), Gate ON
+ ... (14 more steps)
+ 
+ ; --- Pattern 1 ---
+ ; [Settings]
+ 01          ; Waveform: Square
+ 09          ; Param Count: 9
+ ... (Params)
+ ; [Sequence]
+ ... (Steps)
+ 
+ ; ... (Repeat for Patterns 2-15)
+ ```
+ 
+ **Unit Block (0x02) - TR-909:**
+ ```
+ 02          ; Block ID: Unit Block
+ XX XX       ; Length: (Settings+Seq) * 16
+ 02          ; Unit Type: TR-909
+ 00          ; Unit Order: 0
+ 
+ ; --- Pattern 0 ---
+ ; [Settings]
+ 05          ; Instrument Count
+ 00 04 32 32 32 64 ; BD Settings
+ 01 04 32 32 32 64 ; SD Settings
+ ... (CH, OH, CP)
+ ; [Sequence]
+ 05          ; Pattern Instr Count
+ 00 01 11 11 ; BD Triggers
+ ... (SD, CH, OH, CP)
+ 
+ ; --- Pattern 1 ---
+ ; [Settings]
+ ...
+ ; [Sequence]
+ ...
+ 
+ ; ... (Repeat for Patterns 2-15)
+ ```
 
 **End of Data Block (0x00):**
 ```

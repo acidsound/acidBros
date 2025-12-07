@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v77
+- **Current Version**: v78
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -144,7 +144,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v77)
+## Recent Changes (v57-v78)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -274,6 +274,18 @@ acidBros/
 - **Pattern Paste Fix**: Fixed bug where pasting a shared URL pattern resulted in empty pattern data. The issue was using wrong source pattern index (`patterns[0]` instead of `patterns[currentPatternId]`).
 - **Song Mode Share Fix**: Fixed bug where shared Song Mode URL would show only one pattern in timeline. The issue was FileManager.init() loading last saved file and overwriting the URL import. Now skips file loading when URL hash is present.
 - **Deployment Workflow Update**: Added Korean documentation sync step (`*_ko.md` files) to deployment workflow.
+
+### v78: Per-Pattern Sound Settings & Refactoring
+- **v78**: Refactored pattern storage structure.
+  - Introduced `units` hierarchy in pattern data for per-pattern settings.
+  - Updated `MODE_FULL` (0x02) in binary format to include per-pattern settings (Breaking Change: v3 files may not load correctly).
+  - Song Mode now respects pattern-specific sound settings unless "Keep Sound Settings" is enabled.
+  - Simplified format spec by removing `MODE_EXTENDED` proposal.
+  - Fixed URL share/import for new structure. This ensures that pasting a shared URL pattern now applies both the sequence AND the sound settings (Knobs, Waveforms) saved with that pattern, allowing each pattern to have distinct sound characteristics.
+- **Keep Sound Settings Option**: Added a toggle in Settings > General to "Keep sound settings when changing patterns".
+  - **Enabled**: Behaves like traditional hardware (Global knobs), useful for live performance continuity.
+  - **Disabled (Default)**: Loads each pattern's unique sound settings.
+- **Migration System**: Implemented backward compatibility layer to migrate old pattern data (`seq303_1`, etc.) to the new `units` structure on-the-fly.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

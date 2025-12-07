@@ -9,11 +9,44 @@ export const Data = {
     currentPatternId: 0, // 0-15
     song: [], // Array of pattern IDs: [0, 0, 1, 2, ...]
 
+    // Settings
+    keepSoundSettings: false, // If true, don't change knobs when switching patterns
+
     // Pattern Bank (16 Patterns)
     patterns: [],
 
+    // Default settings for each unit type
+    getDefaultTB303Settings() {
+        return {
+            waveform: 'sawtooth',
+            tune: 0,
+            cutoff: 50,
+            reso: 8,
+            env: 50,
+            decay: 50,
+            accent: 80,
+            volume: 70,
+            delayTime: 50,
+            delayFb: 30
+        };
+    },
+
+    getDefaultTR909Settings() {
+        return {
+            bd: { tune: 50, attack: 50, decay: 50, level: 100 },
+            sd: { tune: 50, snappy: 50, decay: 50, level: 100 },
+            ch: { decay: 50, level: 100 },
+            oh: { decay: 50, level: 100 },
+            cp: { decay: 50, level: 100 }
+        };
+    },
+
     init() {
+        // Load settings from localStorage
+        this.loadSettings();
+
         // Initialize 16 Patterns
+        this.patterns = [];
         for (let i = 0; i < 16; i++) {
             this.patterns.push(this.createEmptyPattern());
         }
@@ -24,30 +57,70 @@ export const Data = {
         this.randomize();
     },
 
-    createEmptyPattern() {
-        const p = {
-            seq303_1: [],
-            seq303_2: [],
-            seq909: { bd: [], sd: [], ch: [], oh: [], cp: [] }
-        };
-        // Init 303s
-        for (let i = 0; i < 16; i++) {
-            p.seq303_1.push({ active: false, note: 'C', octave: 2, accent: false, slide: false });
-            p.seq303_2.push({ active: false, note: 'C', octave: 2, accent: false, slide: false });
+    loadSettings() {
+        try {
+            const settings = localStorage.getItem('acidbros-settings');
+            if (settings) {
+                const parsed = JSON.parse(settings);
+                this.keepSoundSettings = parsed.keepSoundSettings || false;
+            }
+        } catch (e) {
+            console.warn('Failed to load settings:', e);
         }
-        // Init 909
-        ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(k => p.seq909[k] = Array(16).fill(0));
-        return p;
     },
+
+    saveSettings() {
+        try {
+            localStorage.setItem('acidbros-settings', JSON.stringify({
+                keepSoundSettings: this.keepSoundSettings
+            }));
+        } catch (e) {
+            console.warn('Failed to save settings:', e);
+        }
+    },
+
+    createEmptyPattern() {
+        return {
+            units: {
+                tb303_1: {
+                    type: 'tb303',
+                    sequence: this.createEmpty303Sequence(),
+                    settings: this.getDefaultTB303Settings()
+                },
+                tb303_2: {
+                    type: 'tb303',
+                    sequence: this.createEmpty303Sequence(),
+                    settings: this.getDefaultTB303Settings()
+                },
+                tr909: {
+                    type: 'tr909',
+                    tracks: {
+                        bd: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().bd },
+                        sd: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().sd },
+                        ch: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().ch },
+                        oh: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().oh },
+                        cp: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().cp }
+                    }
+                }
+            }
+        };
+    },
+
+    createEmpty303Sequence() {
+        const seq = [];
+        for (let i = 0; i < 16; i++) {
+            seq.push({ active: false, note: 'C', octave: 2, accent: false, slide: false });
+        }
+        return seq;
+    },
+
+    // --- Compatibility Layer ---
+    // These methods provide backward compatibility with old code expecting seq303_1, seq303_2, seq909
 
     getSequence(id) {
         let patternId = this.currentPatternId;
 
         if (this.mode === 'song' && AudioEngine.isPlaying) {
-            // In Song Mode, AudioEngine tells us which pattern to play via currentSongIndex
-            // But AudioEngine logic needs to handle the song index.
-            // Actually, AudioEngine should ask Data "what is the sequence for the current moment?"
-            // Let's rely on AudioEngine to track song position, but it needs to ask Data for the pattern ID at that position.
             const songIdx = AudioEngine.currentSongIndex;
             if (this.song.length > 0) {
                 patternId = this.song[songIdx % this.song.length];
@@ -57,17 +130,197 @@ export const Data = {
         const p = this.patterns[patternId];
         if (!p) return null;
 
-        if (id === 'tb303_1') return p.seq303_1;
-        if (id === 'tb303_2') return p.seq303_2;
-        if (id === 'tr909') return p.seq909;
+        // Support both old and new structure during migration
+        if (p.units) {
+            if (id === 'tb303_1') return p.units.tb303_1.sequence;
+            if (id === 'tb303_2') return p.units.tb303_2.sequence;
+            if (id === 'tr909') {
+                // Return in old format for backward compatibility
+                return {
+                    bd: p.units.tr909.tracks.bd.steps,
+                    sd: p.units.tr909.tracks.sd.steps,
+                    ch: p.units.tr909.tracks.ch.steps,
+                    oh: p.units.tr909.tracks.oh.steps,
+                    cp: p.units.tr909.tracks.cp.steps
+                };
+            }
+        } else {
+            // Old structure fallback
+            if (id === 'tb303_1') return p.seq303_1;
+            if (id === 'tb303_2') return p.seq303_2;
+            if (id === 'tr909') return p.seq909;
+        }
+        return null;
+    },
+
+    getUnitSettings(unitId) {
+        const p = this.patterns[this.currentPatternId];
+        if (!p || !p.units) return null;
+
+        if (unitId === 'tb303_1' || unitId === 'tb303_2') {
+            return p.units[unitId]?.settings;
+        }
+        if (unitId === 'tr909') {
+            return p.units.tr909?.tracks;
+        }
         return null;
     },
 
     // --- Pattern Management ---
     selectPattern(id) {
         if (id < 0 || id > 15) return;
+
+        // Save current UI settings to the current pattern before switching
+        this.saveCurrentSettingsToPattern();
+
+        const previousPatternId = this.currentPatternId;
         this.currentPatternId = id;
+
+        // Apply settings from new pattern unless keepSoundSettings is true
+        if (!this.keepSoundSettings && previousPatternId !== id) {
+            this.applyPatternSettings(id);
+        }
+
         UI.renderAll();
+    },
+
+    applyPatternSettings(patternId) {
+        const pattern = this.patterns[patternId];
+        if (!pattern || !pattern.units) return;
+
+        // Apply TB-303 Unit 1 settings
+        const tb303_1 = pattern.units.tb303_1;
+        if (tb303_1 && tb303_1.settings) {
+            this.applyTB303Settings(1, tb303_1.settings);
+        }
+
+        // Apply TB-303 Unit 2 settings
+        const tb303_2 = pattern.units.tb303_2;
+        if (tb303_2 && tb303_2.settings) {
+            this.applyTB303Settings(2, tb303_2.settings);
+        }
+
+        // Apply TR-909 settings
+        const tr909 = pattern.units.tr909;
+        if (tr909 && tr909.tracks) {
+            this.applyTR909Settings(tr909.tracks);
+        }
+    },
+
+    applyTB303Settings(unitNum, settings) {
+        const suffix = unitNum;
+
+        // Waveform
+        if (settings.waveform) {
+            const radioId = settings.waveform === 'sawtooth' ? `wave-saw-${suffix}` : `wave-sq-${suffix}`;
+            const radio = document.getElementById(radioId);
+            if (radio) radio.checked = true;
+        }
+
+        // Knobs
+        const knobMap = {
+            tune: `tune303_${suffix}`,
+            cutoff: `cutoff303_${suffix}`,
+            reso: `reso303_${suffix}`,
+            env: `env303_${suffix}`,
+            decay: `decay303_${suffix}`,
+            accent: `accent303_${suffix}`,
+            volume: `vol303_${suffix}`,
+            delayTime: `delayTime303_${suffix}`,
+            delayFb: `delayFb303_${suffix}`
+        };
+
+        for (const [key, knobId] of Object.entries(knobMap)) {
+            if (settings[key] !== undefined && window.knobInstances[knobId]) {
+                window.knobInstances[knobId].setValue(settings[key]);
+            }
+        }
+    },
+
+    applyTR909Settings(tracks) {
+        const knobMap = {
+            bd: { tune: 'bd_p1', attack: 'bd_p2', decay: 'bd_p3', level: 'bd_level' },
+            sd: { tune: 'sd_p1', snappy: 'sd_p2', decay: 'sd_p3', level: 'sd_level' },
+            ch: { decay: 'ch_p1', level: 'ch_level' },
+            oh: { decay: 'oh_p1', level: 'oh_level' },
+            cp: { decay: 'cp_p1', level: 'cp_level' }
+        };
+
+        for (const [trackId, params] of Object.entries(knobMap)) {
+            const track = tracks[trackId];
+            if (!track) continue;
+
+            for (const [paramKey, knobId] of Object.entries(params)) {
+                if (track[paramKey] !== undefined && window.knobInstances[knobId]) {
+                    window.knobInstances[knobId].setValue(track[paramKey]);
+                }
+            }
+        }
+    },
+
+    // Save current knob values to the current pattern
+    saveCurrentSettingsToPattern() {
+        const pattern = this.patterns[this.currentPatternId];
+        if (!pattern || !pattern.units) return;
+
+        // Save TB-303 Unit 1
+        this.saveTB303Settings(1, pattern.units.tb303_1.settings);
+
+        // Save TB-303 Unit 2
+        this.saveTB303Settings(2, pattern.units.tb303_2.settings);
+
+        // Save TR-909
+        this.saveTR909Settings(pattern.units.tr909.tracks);
+    },
+
+    saveTB303Settings(unitNum, settings) {
+        const suffix = unitNum;
+
+        // Waveform
+        const waveEl = document.querySelector(`input[name="wave303_${suffix}"]:checked`);
+        settings.waveform = waveEl?.value || 'sawtooth';
+
+        // Knobs
+        const knobMap = {
+            tune: `tune303_${suffix}-input`,
+            cutoff: `cutoff303_${suffix}-input`,
+            reso: `reso303_${suffix}-input`,
+            env: `env303_${suffix}-input`,
+            decay: `decay303_${suffix}-input`,
+            accent: `accent303_${suffix}-input`,
+            volume: `vol303_${suffix}-input`,
+            delayTime: `delayTime303_${suffix}-input`,
+            delayFb: `delayFb303_${suffix}-input`
+        };
+
+        for (const [key, inputId] of Object.entries(knobMap)) {
+            const input = document.getElementById(inputId);
+            if (input) {
+                settings[key] = parseFloat(input.value);
+            }
+        }
+    },
+
+    saveTR909Settings(tracks) {
+        const knobMap = {
+            bd: { tune: 'bd_p1-input', attack: 'bd_p2-input', decay: 'bd_p3-input', level: 'bd_level-input' },
+            sd: { tune: 'sd_p1-input', snappy: 'sd_p2-input', decay: 'sd_p3-input', level: 'sd_level-input' },
+            ch: { decay: 'ch_p1-input', level: 'ch_level-input' },
+            oh: { decay: 'oh_p1-input', level: 'oh_level-input' },
+            cp: { decay: 'cp_p1-input', level: 'cp_level-input' }
+        };
+
+        for (const [trackId, params] of Object.entries(knobMap)) {
+            const track = tracks[trackId];
+            if (!track) continue;
+
+            for (const [paramKey, inputId] of Object.entries(params)) {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    track[paramKey] = parseFloat(input.value);
+                }
+            }
+        }
     },
 
     // --- Song Management ---
@@ -89,8 +342,10 @@ export const Data = {
     // --- Clipboard ---
     clipboard: null,
     copyPattern() {
+        // Save current settings before copying
+        this.saveCurrentSettingsToPattern();
         this.clipboard = JSON.parse(JSON.stringify(this.patterns[this.currentPatternId]));
-        // Show toast instead of alert
+
         const toast = document.getElementById('toast');
         if (toast) {
             toast.innerText = 'Pattern copied!';
@@ -100,6 +355,7 @@ export const Data = {
             }, 3000);
         }
     },
+
     async pastePattern() {
         // First, try to read from system clipboard for URL-based import
         try {
@@ -120,16 +376,19 @@ export const Data = {
                         const importedState = decoder.decode(hashData);
 
                         // Import the pattern from the decoded state
-                        // Use the source pattern's currentPatternId since encoder stores pattern at that index
                         if (importedState && importedState.patterns) {
                             const sourcePatternId = importedState.currentPatternId || 0;
                             const sourcePattern = importedState.patterns[sourcePatternId];
 
                             if (sourcePattern) {
-                                this.patterns[this.currentPatternId] = JSON.parse(JSON.stringify(sourcePattern));
+                                // Migrate if old format
+                                const migratedPattern = this.migratePatternIfNeeded(sourcePattern, importedState);
+                                this.patterns[this.currentPatternId] = JSON.parse(JSON.stringify(migratedPattern));
+
+                                // Apply the settings from imported pattern
+                                this.applyPatternSettings(this.currentPatternId);
                                 UI.renderAll();
 
-                                // Show success toast
                                 const toast = document.getElementById('toast');
                                 if (toast) {
                                     toast.innerText = 'Pattern imported from URL!';
@@ -147,7 +406,6 @@ export const Data = {
                 }
             }
         } catch (clipboardError) {
-            // Clipboard API may not be available or permission denied
             console.warn('Clipboard read failed, using internal clipboard:', clipboardError);
         }
 
@@ -165,9 +423,11 @@ export const Data = {
         }
 
         this.patterns[this.currentPatternId] = JSON.parse(JSON.stringify(this.clipboard));
+
+        // Apply settings from pasted pattern
+        this.applyPatternSettings(this.currentPatternId);
         UI.renderAll();
 
-        // Show success toast
         const toast = document.getElementById('toast');
         if (toast) {
             toast.innerText = 'Pattern pasted!';
@@ -175,6 +435,109 @@ export const Data = {
             setTimeout(() => {
                 toast.className = toast.className.replace('show', '');
             }, 3000);
+        }
+    },
+
+    // Migrate old pattern format to new format
+    migratePatternIfNeeded(pattern, state) {
+        // If already new format, return as-is
+        if (pattern.units) {
+            return pattern;
+        }
+
+        // Convert old format to new format
+        const newPattern = this.createEmptyPattern();
+
+        // Migrate TB-303 sequences
+        if (pattern.seq303_1) {
+            newPattern.units.tb303_1.sequence = JSON.parse(JSON.stringify(pattern.seq303_1));
+        }
+        if (pattern.seq303_2) {
+            newPattern.units.tb303_2.sequence = JSON.parse(JSON.stringify(pattern.seq303_2));
+        }
+
+        // Migrate TR-909 sequence
+        if (pattern.seq909) {
+            for (const track of ['bd', 'sd', 'ch', 'oh', 'cp']) {
+                if (pattern.seq909[track]) {
+                    newPattern.units.tr909.tracks[track].steps = JSON.parse(JSON.stringify(pattern.seq909[track]));
+                }
+            }
+        }
+
+        // Migrate settings from state (old format stored settings globally)
+        if (state) {
+            // Waveforms
+            if (state.wave1) {
+                newPattern.units.tb303_1.settings.waveform = state.wave1;
+            }
+            if (state.wave2) {
+                newPattern.units.tb303_2.settings.waveform = state.wave2;
+            }
+
+            // Knobs from state.k
+            if (state.k) {
+                this.migrateKnobsToPattern(state.k, newPattern);
+            }
+        }
+
+        return newPattern;
+    },
+
+    migrateKnobsToPattern(knobs, pattern) {
+        // TB-303 Unit 1
+        const tb303_1_map = {
+            'tune303_1-input': 'tune',
+            'cutoff303_1-input': 'cutoff',
+            'reso303_1-input': 'reso',
+            'env303_1-input': 'env',
+            'decay303_1-input': 'decay',
+            'accent303_1-input': 'accent',
+            'vol303_1-input': 'volume',
+            'delayTime303_1-input': 'delayTime',
+            'delayFb303_1-input': 'delayFb'
+        };
+
+        for (const [knobId, settingKey] of Object.entries(tb303_1_map)) {
+            if (knobs[knobId] !== undefined) {
+                pattern.units.tb303_1.settings[settingKey] = knobs[knobId];
+            }
+        }
+
+        // TB-303 Unit 2
+        const tb303_2_map = {
+            'tune303_2-input': 'tune',
+            'cutoff303_2-input': 'cutoff',
+            'reso303_2-input': 'reso',
+            'env303_2-input': 'env',
+            'decay303_2-input': 'decay',
+            'accent303_2-input': 'accent',
+            'vol303_2-input': 'volume',
+            'delayTime303_2-input': 'delayTime',
+            'delayFb303_2-input': 'delayFb'
+        };
+
+        for (const [knobId, settingKey] of Object.entries(tb303_2_map)) {
+            if (knobs[knobId] !== undefined) {
+                pattern.units.tb303_2.settings[settingKey] = knobs[knobId];
+            }
+        }
+
+        // TR-909
+        const tr909_map = {
+            bd: { 'bd_p1-input': 'tune', 'bd_p2-input': 'attack', 'bd_p3-input': 'decay', 'bd_level-input': 'level' },
+            sd: { 'sd_p1-input': 'tune', 'sd_p2-input': 'snappy', 'sd_p3-input': 'decay', 'sd_level-input': 'level' },
+            ch: { 'ch_p1-input': 'decay', 'ch_level-input': 'level' },
+            oh: { 'oh_p1-input': 'decay', 'oh_level-input': 'level' },
+            cp: { 'cp_p1-input': 'decay', 'cp_level-input': 'level' }
+        };
+
+        for (const [trackId, params] of Object.entries(tr909_map)) {
+            for (const [knobId, settingKey] of Object.entries(params)) {
+                if (knobs[knobId] !== undefined) {
+                    pattern.units.tr909.tracks[trackId][settingKey] = knobs[knobId];
+                }
+            }
         }
     },
 
@@ -186,7 +549,6 @@ export const Data = {
             }
         };
 
-        // Knobs are Global - Randomize them
         // Randomize 303 Unit 1
         const wave1 = Math.random() > 0.5 ? 'sawtooth' : 'square';
         document.getElementById(wave1 === 'sawtooth' ? 'wave-saw-1' : 'wave-sq-1').checked = true;
@@ -205,27 +567,22 @@ export const Data = {
         setK('oh_p1', 40, 80); setK('oh_level', 90, 100);
         setK('cp_p1', 40, 70); setK('cp_level', 90, 100);
 
+        // Save randomized settings to current pattern
+        this.saveCurrentSettingsToPattern();
+
         // Randomize Sequence Data for CURRENT Pattern
         const p = this.patterns[this.currentPatternId];
+        const seq1 = p.units ? p.units.tb303_1.sequence : p.seq303_1;
+        const seq2 = p.units ? p.units.tb303_2.sequence : p.seq303_2;
 
-        // 12반음 기준 전체 노트 정의
-        const ALL_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F',
-            'F#', 'G', 'G#', 'A', 'A#', 'B'];
-
-        // 기존 스케일 (C blues 계열)
+        const ALL_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
         const SCALE = ['C', 'D#', 'F', 'F#', 'G', 'A#'];
-
-        // 베이스가 강박에서 주로 잡을 음 (루트/서브돔/도미넌트 느낌)
-        const BASS_STRONG_NOTES = ['C', 'F', 'G']; // SCALE의 부분집합
-
-        // 협화 간격(반음 수): 유니즌, m3, M3, P5, m6, M6
-        const CONSONANT_INTERVALS = [0, 3, 4, 7, 8, 9];
-        const STRONG_MELODY_INTERVALS = [3, 4, 8, 9]; // m3, M3, m6, M6
+        const BASS_STRONG_NOTES = ['C', 'F', 'G'];
+        const STRONG_MELODY_INTERVALS = [3, 4, 8, 9];
         const WEAK_MELODY_INTERVALS = [0, 3, 4, 7, 8, 9];
 
         const noteToIndex = (note) => ALL_NOTES.indexOf(note);
 
-        // ---------- 베이스 라인 생성 ----------
         const randBassSeq = (seq) => {
             seq.forEach((step, i) => {
                 const isStrongBeat = (i % 4 === 0);
@@ -245,7 +602,6 @@ export const Data = {
             });
         };
 
-        // ---------- 멜로디(상성부) 생성 ----------
         const pickMelodyNoteFromBass = (bassNote, isStrongBeat) => {
             const bassIndex = noteToIndex(bassNote);
             if (bassIndex === -1) return SCALE[Math.floor(Math.random() * SCALE.length)];
@@ -274,12 +630,18 @@ export const Data = {
             });
         };
 
-        randBassSeq(p.seq303_2);
-        randMelodySeq(p.seq303_1, p.seq303_2);
+        randBassSeq(seq2);
+        randMelodySeq(seq1, seq2);
 
         // Randomize 909
-        const t = p.seq909;
-        // Reset
+        const t = p.units ? {
+            bd: p.units.tr909.tracks.bd.steps,
+            sd: p.units.tr909.tracks.sd.steps,
+            ch: p.units.tr909.tracks.ch.steps,
+            oh: p.units.tr909.tracks.oh.steps,
+            cp: p.units.tr909.tracks.cp.steps
+        } : p.seq909;
+
         ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(k => t[k].fill(0));
 
         [0, 4, 8, 12].forEach(i => t.bd[i] = 1);
@@ -297,60 +659,46 @@ export const Data = {
     },
 
     exportState() {
-        const knobs = {};
-        document.querySelectorAll('.knob-input').forEach(el => {
-            knobs[el.id] = parseFloat(el.value);
-        });
+        // Save current settings to pattern before export
+        this.saveCurrentSettingsToPattern();
 
         const state = {
-            ver: 3,
+            ver: 4,  // New version for new format
             bpm: AudioEngine.tempo,
             swing: AudioEngine.swing,
             mode: this.mode,
             currentPatternId: this.currentPatternId,
-            wave1: document.querySelector('input[name="wave303_1"]:checked')?.value || 'sawtooth',
-            wave2: document.querySelector('input[name="wave303_2"]:checked')?.value || 'sawtooth',
-            k: knobs,
             patterns: this.patterns,
             song: this.song,
             midi: MidiManager.mappings
         };
 
         const encoder = new BinaryFormatEncoder();
-        // Use encodeForShare: Pattern mode → single pattern, Song mode → song only
         const binaryData = encoder.encodeForShare(state);
         return encoder.toBase64URL(binaryData);
     },
 
-    // Export full state for file save
     exportFullState() {
-        const knobs = {};
-        document.querySelectorAll('.knob-input').forEach(el => {
-            knobs[el.id] = parseFloat(el.value);
-        });
+        // Save current settings to pattern before export
+        this.saveCurrentSettingsToPattern();
 
         const state = {
-            ver: 3,
+            ver: 4,
             bpm: AudioEngine.tempo,
             swing: AudioEngine.swing,
             mode: this.mode,
             currentPatternId: this.currentPatternId,
-            wave1: document.querySelector('input[name="wave303_1"]:checked')?.value || 'sawtooth',
-            wave2: document.querySelector('input[name="wave303_2"]:checked')?.value || 'sawtooth',
-            k: knobs,
             patterns: this.patterns,
             song: this.song,
             midi: MidiManager.mappings
         };
 
         const encoder = new BinaryFormatEncoder();
-        // Use encodeFull for file save (all 16 patterns + song)
         const binaryData = encoder.encodeFull(state);
         return encoder.toBase64URL(binaryData);
     },
 
     importState(code) {
-        // If no code provided, initialize with defaults
         if (!code || code.length === 0) {
             this.init();
             this.randomize();
@@ -358,7 +706,6 @@ export const Data = {
         }
 
         try {
-            // Check if this is binary format (base64 of binary) or legacy JSON format
             let state;
 
             // Try to decode as binary first
@@ -387,120 +734,24 @@ export const Data = {
                 MidiManager.clearAllMappings();
             }
 
-            if (state.k) {
-                Object.keys(state.k).forEach(id => {
-                    // knobInstances keys don't have '-input' suffix, but state.k keys do
-                    const knobId = id.replace(/-input$/, '');
-                    if (window.knobInstances[knobId]) {
-                        window.knobInstances[knobId].setValue(state.k[id]);
-                    }
-                });
-            }
-
-            // Set waveforms
-            if (state.wave1) {
-                document.querySelector(`input[value="${state.wave1}"][name="wave303_1"]`).checked = true;
-            }
-            if (state.wave2) {
-                document.querySelector(`input[value="${state.wave2}"][name="wave303_2"]`).checked = true;
-            }
-
-            if (state.ver === 3) {
-                this.patterns = state.patterns || this.patterns; // Use existing if not provided
-                this.song = state.song || [0];
-            } else {
-                // Initialize patterns array if it's empty or not properly set up
-                if (!this.patterns || this.patterns.length === 0) {
-                    this.patterns = [];
-                    for (let i = 0; i < 16; i++) {
+            // Handle patterns
+            if (state.patterns) {
+                this.patterns = [];
+                for (let i = 0; i < 16; i++) {
+                    if (state.patterns[i]) {
+                        const migratedPattern = this.migratePatternIfNeeded(state.patterns[i], state);
+                        this.patterns.push(migratedPattern);
+                    } else {
                         this.patterns.push(this.createEmptyPattern());
                     }
                 }
-
-                // Migrate v2 to v3 (Single pattern to Pattern 0)
-                // Ensure proper structure for v2 data
-                const defaultStep = { active: false, note: 'C', octave: 2, accent: false, slide: false };
-
-                // Migrate 303_1 sequence
-                if (state.s3_1) {
-                    // Make sure pattern 0 exists and has the seq303_1 property
-                    if (!this.patterns[0].seq303_1) {
-                        this.patterns[0].seq303_1 = [];
-                        for (let i = 0; i < 16; i++) {
-                            this.patterns[0].seq303_1.push({ ...defaultStep });
-                        }
-                    }
-
-                    for (let i = 0; i < 16; i++) {
-                        if (state.s3_1[i]) {
-                            // Copy the existing step data if it exists
-                            let stepData = { ...defaultStep, ...state.s3_1[i] };
-
-                            // If the note is null or undefined, set to default C2
-                            if (stepData.note === null || stepData.note === undefined) {
-                                stepData.note = 'C';
-                                stepData.octave = 2;
-                            }
-
-                            this.patterns[0].seq303_1[i] = stepData;
-                        } else {
-                            // Use default step if no data exists for this position
-                            this.patterns[0].seq303_1[i] = { ...defaultStep };
-                        }
-                    }
-                }
-
-                // Migrate 303_2 sequence
-                if (state.s3_2) {
-                    // Make sure pattern 0 exists and has the seq303_2 property
-                    if (!this.patterns[0].seq303_2) {
-                        this.patterns[0].seq303_2 = [];
-                        for (let i = 0; i < 16; i++) {
-                            this.patterns[0].seq303_2.push({ ...defaultStep });
-                        }
-                    }
-
-                    for (let i = 0; i < 16; i++) {
-                        if (state.s3_2[i]) {
-                            // Copy the existing step data if it exists
-                            let stepData = { ...defaultStep, ...state.s3_2[i] };
-
-                            // If the note is null or undefined, set to default C2
-                            if (stepData.note === null || stepData.note === undefined) {
-                                stepData.note = 'C';
-                                stepData.octave = 2;
-                            }
-
-                            this.patterns[0].seq303_2[i] = stepData;
-                        } else {
-                            // Use default step if no data exists for this position
-                            this.patterns[0].seq303_2[i] = { ...defaultStep };
-                        }
-                    }
-                }
-
-                // Migrate 909 sequence (if exists)
-                if (state.s9) {
-                    // Make sure pattern 0 exists and has the seq909 property
-                    if (!this.patterns[0].seq909) {
-                        this.patterns[0].seq909 = { bd: [], sd: [], ch: [], oh: [], cp: [] };
-                        // Initialize with 16 steps of 0s for each track
-                        ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(track => {
-                            this.patterns[0].seq909[track] = Array(16).fill(0);
-                        });
-                    }
-
-                    // Copy each track's data, ensuring it has 16 steps
-                    ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(track => {
-                        if (state.s9[track]) {
-                            const trackData = state.s9[track];
-                            for (let i = 0; i < 16; i++) {
-                                this.patterns[0].seq909[track][i] = trackData[i] || 0;
-                            }
-                        }
-                    });
-                }
             }
+
+            // Handle song
+            this.song = state.song || [0];
+
+            // Apply settings from current pattern
+            this.applyPatternSettings(this.currentPatternId);
 
             UI.renderAll();
             UI.updateSwingUI();

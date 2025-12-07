@@ -200,7 +200,7 @@ You can import patterns directly from shared URLs without manually navigating to
 1. **Copy a shared URL** – When someone shares an AcidBros URL with you (e.g., `https://acidbros.app/#XXXX...`), simply copy the entire URL.
 2. **Select target pattern** – In AcidBros, select the pattern slot (P1-P16) where you want to import the pattern.
 3. **Paste** – Click the **PASTE** button (📄 icon).
-4. **Done!** – The pattern from the shared URL will be imported into your selected pattern slot.
+4. **Done!** – The pattern and **its sound settings** (Knobs, Waveforms) from the shared URL will be imported into your selected pattern slot.
 
 The paste function automatically detects if your clipboard contains an AcidBros share URL and extracts the pattern data from it. If the clipboard doesn't contain a valid URL, it will paste from the internal clipboard as usual.
 
@@ -255,11 +255,15 @@ AcidBros supports mapping MIDI controllers and PC/Bluetooth keyboards to any UI 
 
 ### Settings Panel
 
-Click the **Settings (⚙️)** button in the transport bar to open the mapping configuration panel.
+Click the **Settings (⚙️)** button in the transport bar to open the configuration panel.
 
 ![Settings Panel](assets/manual-settings.png)
 
 The Settings panel provides:
+- **General Tab** – Configure global application behaviors
+  - **Keep sound settings when changing patterns**:
+    - **Unchecked (Default)**: Each pattern loads its own unique sound settings (Knobs, Waveforms). This allows for drastic sound changes between patterns.
+    - **Checked**: Sound settings are preserved when switching patterns. This behaves like a traditional hardware synth where knobs are global, which is useful for live performance consistency.
 - **MIDI Tab** – Configure MIDI devices and mappings
   - **MIDI Devices** – View connected MIDI input devices and their status
   - **MIDI Mappings** – View and manage all active mappings

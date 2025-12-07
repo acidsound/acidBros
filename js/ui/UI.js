@@ -578,7 +578,24 @@ export const UI = {
             overlay.style.display = 'flex';
             this.renderMidiMappings();
             this.renderMidiDevices();
+            // Sync checkbox with current setting
+            const keepSoundCheckbox = document.getElementById('keepSoundSettingsCheckbox');
+            if (keepSoundCheckbox) {
+                keepSoundCheckbox.checked = Data.keepSoundSettings;
+            }
         };
+
+        // Keep Sound Settings checkbox
+        const keepSoundCheckbox = document.getElementById('keepSoundSettingsCheckbox');
+        if (keepSoundCheckbox) {
+            keepSoundCheckbox.onchange = () => {
+                Data.keepSoundSettings = keepSoundCheckbox.checked;
+                Data.saveSettings();
+                this.showToast(keepSoundCheckbox.checked ?
+                    'Sound settings will stay when changing patterns' :
+                    'Each pattern will have its own sound settings');
+            };
+        }
 
         const closeSettings = () => {
             overlay.style.display = 'none';

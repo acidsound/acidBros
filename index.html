@@ -87,7 +87,7 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v77</div>
+          <div class="version-display">v78</div>
           <button id="fileManagerBtn" class="transport-icon-btn" title="File Manager" aria-label="File Manager">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
               <path
@@ -342,11 +342,30 @@
 
         <div class="settings-container">
           <div class="settings-sidebar">
-            <button class="settings-tab-btn active" data-tab="midi">MIDI</button>
+            <button class="settings-tab-btn active" data-tab="general">General</button>
+            <button class="settings-tab-btn" data-tab="midi">MIDI</button>
           </div>
           <div class="settings-content">
+            <!-- General Tab -->
+            <div id="tab-general" class="settings-tab-content active">
+              <div class="tab-section">
+                <div class="tab-header">
+                  <h4>Pattern Behavior</h4>
+                </div>
+                <div class="settings-option">
+                  <label class="settings-checkbox">
+                    <input type="checkbox" id="keepSoundSettingsCheckbox">
+                    <span class="checkmark"></span>
+                    <span class="label-text">Keep sound settings when changing patterns</span>
+                  </label>
+                  <p class="settings-help">When enabled, knobs and waveforms stay the same when switching patterns
+                    (useful for live performance). When disabled, each pattern has its own sound settings.</p>
+                </div>
+              </div>
+            </div>
+
             <!-- MIDI Tab -->
-            <div id="tab-midi" class="settings-tab-content active">
+            <div id="tab-midi" class="settings-tab-content" style="display: none;">
               <!-- MIDI Devices Section -->
               <div class="tab-section">
                 <div class="tab-header">
