@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v78
+- **Current Version**: v80
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -144,7 +144,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v78)
+## Recent Changes (v57-v80)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -286,6 +286,16 @@ acidBros/
   - **Enabled**: Behaves like traditional hardware (Global knobs), useful for live performance continuity.
   - **Disabled (Default)**: Loads each pattern's unique sound settings.
 - **Migration System**: Implemented backward compatibility layer to migrate old pattern data (`seq303_1`, etc.) to the new `units` structure on-the-fly.
+
+### v79: Bug Fix for Pattern Mode Parameter Saving
+- **Song Mode to Pattern Mode Parameter Issue**: Fixed issue where switching from Song Mode back to Pattern Mode would incorrectly save the current UI parameters (from the pattern currently playing in the song) to the pattern that was active when entering song mode.
+- **Root Cause**: When switching back to Pattern Mode, `selectPattern` was called which would save the current UI settings to the existing `currentPatternId` before updating it to the new ID, causing parameters from the song pattern to be saved to the wrong pattern in the pattern bank.
+- **Solution**: Modified `Data.selectPattern` to accept an optional `skipSave` parameter, and updated the UI mode switching logic to call `selectPattern` with `skipSave=true` when switching from song mode back to pattern mode.
+- **Result**: Song Mode patterns no longer incorrectly modify Pattern Mode data when switching between modes.
+
+### v80: Improved Mode Transition Handling
+- **Enhanced Mode Switching Logic**: Refined the mode transition behavior to ensure proper state management when switching between Pattern and Song modes.
+- **User Experience**: Ensured that the correct parameters are displayed when switching between modes, regardless of which pattern was active in each mode.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

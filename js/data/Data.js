@@ -7,6 +7,7 @@ import { BinaryFormatDecoder } from './BinaryFormatDecoder.js';
 export const Data = {
     mode: 'pattern', // 'pattern' | 'song'
     currentPatternId: 0, // 0-15
+    lastActivePatternId: 0, // Track last pattern selected in Pattern Mode
     song: [], // Array of pattern IDs: [0, 0, 1, 2, ...]
 
     // Settings
@@ -167,14 +168,21 @@ export const Data = {
     },
 
     // --- Pattern Management ---
-    selectPattern(id) {
+    selectPattern(id, skipSave = false) {
         if (id < 0 || id > 15) return;
 
-        // Save current UI settings to the current pattern before switching
-        this.saveCurrentSettingsToPattern();
+        // Save current UI settings to the current pattern before switching (unless explicitly skipped)
+        if (!skipSave) {
+            this.saveCurrentSettingsToPattern();
+        }
 
         const previousPatternId = this.currentPatternId;
         this.currentPatternId = id;
+
+        // Track last active pattern in Pattern Mode
+        if (this.mode !== 'song') {
+            this.lastActivePatternId = id;
+        }
 
         // Apply settings from new pattern unless keepSoundSettings is true
         if (!this.keepSoundSettings && previousPatternId !== id) {
@@ -260,6 +268,9 @@ export const Data = {
 
     // Save current knob values to the current pattern
     saveCurrentSettingsToPattern() {
+        // Prevent saving settings to pattern while in Song Mode
+        if (this.mode === 'song') return;
+
         const pattern = this.patterns[this.currentPatternId];
         if (!pattern || !pattern.units) return;
 

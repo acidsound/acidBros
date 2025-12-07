@@ -367,7 +367,23 @@ export const UI = {
 
         if (pInput) {
             pInput.onchange = () => {
+                const wasSongMode = Data.mode === 'song';
+
+                if (wasSongMode) {
+                    if (AudioEngine.isPlaying && Data.song.length > 0) {
+                        // If playing, select the currently playing pattern from the song
+                        // Skip saving because current UI values reflect the song pattern, not the pattern mode selection
+                        const currentSongPatId = Data.song[AudioEngine.currentSongIndex] || 0;
+                        Data.selectPattern(currentSongPatId, true); // skipSave=true
+                    } else {
+                        // If stopped, restore the last pattern selected in Pattern Mode
+                        // Skip saving because we're restoring the previous state
+                        Data.selectPattern(Data.lastActivePatternId, true); // skipSave=true
+                    }
+                }
+
                 Data.mode = 'pattern';
+
                 this.updateModeSwitch();
                 this.renderAll();
             };
@@ -477,12 +493,9 @@ export const UI = {
         if (!songContainer) return;
 
         songContainer.querySelectorAll('.song-pat-btn').forEach(btn => {
-            const id = parseInt(btn.dataset.pattern);
-            if (id === Data.currentPatternId) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
+            // In Song Mode, we don't show active state on buttons to avoid confusion
+            // as the song plays through different patterns.
+            btn.classList.remove('active');
         });
     },
 
