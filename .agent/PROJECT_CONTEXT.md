@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v72
+- **Current Version**: v74
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -249,6 +249,11 @@ acidBros/
 - **Song Sharing Workflow**:
   - Defined comprehensive workflow for sharing complete songs (Song URL + individual Pattern URLs)
   - Added detailed guides in User Manual for both simple import and advanced song sharing
+
+### v74: TR-909 Knob Persistence Fix & File Load Fix
+- **Global Parameter Persistence**: Fixed issue where TR-909 knobs (Tune, Level, Decay) would reset to default when switching patterns. Now they correctly maintain their values across pattern changes, matching TB-303 behavior.
+- **Double-click Reset**: Fixed side effect where double-clicking a knob would sometimes reset to the previous value instead of the default value. Now consistently resets to factory default.
+- **Knob Value Restoration**: Fixed bug where knob values (both TB-303 and TR-909) were not being restored when loading saved files. The issue was caused by a key mismatch between encoder/decoder (`-input` suffix) and knob instances.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

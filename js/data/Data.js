@@ -383,7 +383,11 @@ export const Data = {
 
             if (state.k) {
                 Object.keys(state.k).forEach(id => {
-                    if (window.knobInstances[id]) window.knobInstances[id].setValue(state.k[id]);
+                    // knobInstances keys don't have '-input' suffix, but state.k keys do
+                    const knobId = id.replace(/-input$/, '');
+                    if (window.knobInstances[knobId]) {
+                        window.knobInstances[knobId].setValue(state.k[id]);
+                    }
                 });
             }
 
