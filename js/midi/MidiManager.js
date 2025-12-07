@@ -223,6 +223,31 @@ export const MidiManager = {
                     }
                 }
             }
+        } else if (mapping.type === 'waveform-toggle') {
+            // Waveform toggle: single key/note toggles between saw and square
+            // element is the .waveform-switch container
+            if (element) {
+                const shouldToggle = (mapping.source === 'midi' &&
+                    (mapping.messageType === 'noteon' || (mapping.messageType === 'cc' && value > 63))) ||
+                    (mapping.source === 'keyboard' && mapping.eventType === 'keydown');
+
+                if (shouldToggle) {
+                    const unit = element.dataset.unit;
+                    const sawRadio = document.getElementById(`wave-saw-${unit}`);
+                    const sqRadio = document.getElementById(`wave-sq-${unit}`);
+
+                    if (sawRadio && sqRadio) {
+                        // Toggle: if saw is checked, switch to square; otherwise switch to saw
+                        if (sawRadio.checked) {
+                            sqRadio.checked = true;
+                            sqRadio.dispatchEvent(new Event('change'));
+                        } else {
+                            sawRadio.checked = true;
+                            sawRadio.dispatchEvent(new Event('change'));
+                        }
+                    }
+                }
+            }
         } else if (mapping.type === 'key') {
             // Piano keys in note editor
             if (element) {

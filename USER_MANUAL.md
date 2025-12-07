@@ -291,34 +291,35 @@ Map any MIDI controller to a UI control:
 - **All MIDI Channels** – Channel information is stored per mapping
 
 **Mappable Controls:**
-- **Knobs**: All synthesis and drum parameters, Tempo
+- **Knobs**: All synthesis and drum parameters, Tempo (MIDI CC only, not keyboard)
 - **Buttons**: Pattern selectors (P1-P16), Transport (Play/Stop)
-- **Toggles**: Waveform switches (Saw/Square), Accent, Slide, Mute
+- **Waveform Toggle**: Single key/note toggles between Saw↔Square for each unit
 
 ### Keyboard Mapping
 
-Use your PC or Bluetooth keyboard as an alternative to MIDI:
+Use your PC or Bluetooth keyboard for transport controls and pattern selection:
 
 1. Open the **Settings** panel
 2. Click **Learn** next to a control
 3. Press the desired keyboard key
 4. The key is mapped to that control
 
-**Note:** Keyboard mappings store the actual key code, not MIDI note numbers.
+**Note:** Keyboard mappings work best for buttons and toggles. Knobs require MIDI CC for continuous control.
 
 ### Managing Mappings
 
 The Settings panel displays all active mappings with:
 - **Target Control** – Name and ID of the mapped UI element
 - **Source** – MIDI (with channel and note/CC number) or Keyboard (with key code)
-- **Type** – Knob, Button, Toggle, or Key
+- **Type** – Knob, Button, Toggle, Waveform-Toggle, or Key
 - **Delete (×)** – Remove individual mapping
 
 ### Mapping Types
 
 - **Knobs** – MIDI CC values (0-127) are automatically scaled to the knob's range
-- **Buttons** – Triggered on Note On or CC \u003e 63 (MIDI) or key press (Keyboard)
+- **Buttons** – Triggered on Note On or CC > 63 (MIDI) or key press (Keyboard)
 - **Toggles** – Note On toggles state; CC 0-63 = Off, 64-127 = On
+- **Waveform Toggle** – Note On or key press toggles between Sawtooth and Square
 - **Piano Keys** – Note On/Off for playing notes in the piano roll editor
 
 ### Tips

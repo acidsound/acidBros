@@ -87,7 +87,7 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v74</div>
+          <div class="version-display">v75</div>
           <button id="fileManagerBtn" class="transport-icon-btn" title="File Manager" aria-label="File Manager">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
               <path
@@ -392,10 +392,10 @@
         <div class="waveform-control">
           <div class="waveform-switch-group">
             <div class="switch-label">WAVEFORM</div>
-            <div class="waveform-switch">
-              <input type="radio" name="wave303_1" id="wave-saw-1" value="sawtooth" data-midi-mappable="toggle" checked>
+            <div class="waveform-switch" id="waveform-switch-1" data-midi-mappable="waveform-toggle" data-unit="1">
+              <input type="radio" name="wave303_1" id="wave-saw-1" value="sawtooth" checked>
               <label for="wave-saw-1" title="Sawtooth"><span class="icon-saw"></span></label>
-              <input type="radio" name="wave303_1" id="wave-sq-1" value="square" data-midi-mappable="toggle">
+              <input type="radio" name="wave303_1" id="wave-sq-1" value="square">
               <label for="wave-sq-1" title="Square"><span class="icon-sq"></span></label>
               <div class="switch-handle"></div>
             </div>
@@ -420,10 +420,10 @@
         <div class="waveform-control">
           <div class="waveform-switch-group">
             <div class="switch-label">WAVEFORM</div>
-            <div class="waveform-switch">
-              <input type="radio" name="wave303_2" id="wave-saw-2" value="sawtooth" data-midi-mappable="toggle" checked>
+            <div class="waveform-switch" id="waveform-switch-2" data-midi-mappable="waveform-toggle" data-unit="2">
+              <input type="radio" name="wave303_2" id="wave-saw-2" value="sawtooth" checked>
               <label for="wave-saw-2" title="Sawtooth"><span class="icon-saw"></span></label>
-              <input type="radio" name="wave303_2" id="wave-sq-2" value="square" data-midi-mappable="toggle">
+              <input type="radio" name="wave303_2" id="wave-sq-2" value="square">
               <label for="wave-sq-2" title="Square"><span class="icon-sq"></span></label>
               <div class="switch-handle"></div>
             </div>

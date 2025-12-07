@@ -1,4 +1,4 @@
-const CACHE_NAME = 'acidbros-v74';
+const CACHE_NAME = 'acidbros-v75';
 const ASSETS = [
     './',
     './index.html',
@@ -11,6 +11,8 @@ const ASSETS = [
     './js/audio/TR909.js',
     './js/data/Data.js',
     './js/data/FileManager.js',
+    './js/data/BinaryFormatEncoder.js',
+    './js/data/BinaryFormatDecoder.js',
     './js/ui/UI.js',
     './js/ui/Oscilloscope.js',
     './js/midi/MidiManager.js',

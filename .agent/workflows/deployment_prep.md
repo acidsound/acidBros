@@ -18,8 +18,9 @@ description: Prepare for deployment by updating version and documentation
 
 3. **Update Project Context**
    - Edit `.agent/PROJECT_CONTEXT.md`:
-     - Update `Current Version`.
-     - Update `Recent Changes` section with a summary of the new features/fixes.
+     - Update `Current Version` field.
+     - Update the **section header** `## Recent Changes (vXX-vYY)` to include the new version (e.g., `v57-v75` → `v57-v76`).
+     - Add a new changelog entry under `### vXX: [Feature Name]` with summary of changes.
      - Update `Architecture` or `File Structure` if new files were added.
 
 4. **Update User Manual**
@@ -32,10 +33,18 @@ description: Prepare for deployment by updating version and documentation
      - Update feature lists or installation instructions if changed.
      - Ensure links to other documentation (like `SYNTH_ARCHITECTURE.md`) are correct.
 
-6. **Final Verification**
-   - Ensure all `*.md` files are consistent with the code state.
+6. **Sync Korean Documentation**
+   - When updating any `*.md` file, check if a corresponding `*_ko.md` file exists.
+   - If it exists, apply the same changes translated to Korean.
+   - Currently localized files:
+     - `USER_MANUAL.md` → `USER_MANUAL_ko.md`
+   - Keep section structure and formatting consistent between versions.
 
-7. **Commit and Push**
+7. **Final Verification**
+   - Ensure all `*.md` files are consistent with the code state.
+   - Verify Korean documentation is in sync with English version.
+
+8. **Commit and Push**
    - `git add .`
    - `git commit -m "[Descriptive Message Summary]"`
    - *Example: `v65: Add MIDI Device Management and improve Learn Mode`*

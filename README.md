@@ -58,7 +58,7 @@
 * **Responsive Design**: Optimized for Desktop, Tablet, Mobile (Portrait/Landscape).
 * **Global Controls**:
   * Tempo (BPM) with 7‑segment LED display (60-200 BPM).
-  * Swing/Shuffle (💃) with collapsible ribbon controller (double-click/tap to reset to 50%).
+  * Swing/Shuffle with collapsible ribbon controller (double-click/tap to reset to 50%).
   * File Manager (📁) for saving and managing multiple patterns/songs.
   * Settings (⚙️) for MIDI and keyboard mapping configuration.
   * Play, Stop, Clear, Randomize.
