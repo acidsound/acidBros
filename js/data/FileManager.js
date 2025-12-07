@@ -28,10 +28,10 @@ export const FileManager = {
                 const lastFile = files.find(f => f.id === lastFileId) || files[0];
 
                 if (lastFile) {
-                    // Restore state from last file but start as NEW session
+                    // Restore state from last file and maintain file association
                     Data.importState(lastFile.data);
-                    this.currentFileId = null;
-                    // Do NOT save automatically. User must click Save.
+                    this.currentFileId = lastFile.id;
+                    // Do NOT save automatically. User must click Save to persist changes.
                 }
             }
         } catch (e) {
