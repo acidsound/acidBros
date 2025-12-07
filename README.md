@@ -66,7 +66,9 @@
   * **Import Patterns**: Paste shared URLs directly into pattern slots.
   * **Song Sharing**: Share complete songs with multiple patterns (see Manual).
 * **PWA Support**: Installable as a Progressive Web App for offline use.
-* **[User Manual](USER_MANUAL.md)**: Comprehensive guide.
+* **Documentation**:
+  * **[User Manual](USER_MANUAL.md)**: Comprehensive reference guide.
+  * **[Learning Guide](LEARNING_GUIDE.md)**: Step-by-step tutorial for beginners (6 chapters).
 
 ## Usage
 

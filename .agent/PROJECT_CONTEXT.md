@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v75
+- **Current Version**: v76
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -144,7 +144,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v75)
+## Recent Changes (v57-v76)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -266,6 +266,9 @@ acidBros/
   - Chapter 4: Multi-Track Production (dual 303, patterns, song mode)
   - Chapter 5: Saving and Sharing (file manager, URL sharing, clipboard permission)
   - Chapter 6: Advanced Techniques (MIDI, keyboard mapping, delay, live performance, PWA)
+
+### v76: Swing Dot Performance Improvement
+- **CSS Optimization**: Removed unnecessary `transition` property from `.swing-dot` for smoother real-time performance during swing control manipulation.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`
