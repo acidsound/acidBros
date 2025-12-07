@@ -119,21 +119,27 @@ export const Data = {
                         const decoder = new BinaryFormatDecoder();
                         const importedState = decoder.decode(hashData);
 
-                        // Import the first pattern from the decoded state
-                        if (importedState && importedState.patterns && importedState.patterns[0]) {
-                            this.patterns[this.currentPatternId] = JSON.parse(JSON.stringify(importedState.patterns[0]));
-                            UI.renderAll();
+                        // Import the pattern from the decoded state
+                        // Use the source pattern's currentPatternId since encoder stores pattern at that index
+                        if (importedState && importedState.patterns) {
+                            const sourcePatternId = importedState.currentPatternId || 0;
+                            const sourcePattern = importedState.patterns[sourcePatternId];
 
-                            // Show success toast
-                            const toast = document.getElementById('toast');
-                            if (toast) {
-                                toast.innerText = 'Pattern imported from URL!';
-                                toast.className = 'show';
-                                setTimeout(() => {
-                                    toast.className = toast.className.replace('show', '');
-                                }, 3000);
+                            if (sourcePattern) {
+                                this.patterns[this.currentPatternId] = JSON.parse(JSON.stringify(sourcePattern));
+                                UI.renderAll();
+
+                                // Show success toast
+                                const toast = document.getElementById('toast');
+                                if (toast) {
+                                    toast.innerText = 'Pattern imported from URL!';
+                                    toast.className = 'show';
+                                    setTimeout(() => {
+                                        toast.className = toast.className.replace('show', '');
+                                    }, 3000);
+                                }
+                                return;
                             }
-                            return;
                         }
                     } catch (decodeError) {
                         console.warn('Failed to decode URL hash, falling back to internal clipboard:', decodeError);

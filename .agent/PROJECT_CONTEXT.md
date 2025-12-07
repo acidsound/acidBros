@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v76
+- **Current Version**: v77
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -144,7 +144,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v76)
+## Recent Changes (v57-v77)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -269,6 +269,11 @@ acidBros/
 
 ### v76: Swing Dot Performance Improvement
 - **CSS Optimization**: Removed unnecessary `transition` property from `.swing-dot` for smoother real-time performance during swing control manipulation.
+
+### v77: URL Share & Import Bug Fixes
+- **Pattern Paste Fix**: Fixed bug where pasting a shared URL pattern resulted in empty pattern data. The issue was using wrong source pattern index (`patterns[0]` instead of `patterns[currentPatternId]`).
+- **Song Mode Share Fix**: Fixed bug where shared Song Mode URL would show only one pattern in timeline. The issue was FileManager.init() loading last saved file and overwriting the URL import. Now skips file loading when URL hash is present.
+- **Deployment Workflow Update**: Added Korean documentation sync step (`*_ko.md` files) to deployment workflow.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

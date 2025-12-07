@@ -14,6 +14,13 @@ export const FileManager = {
                 return;
             }
 
+            // Skip loading last file if URL hash is present (shared link takes priority)
+            if (window.location.hash && window.location.hash.length > 10) {
+                console.log('FileManager: Skipping file load - URL hash detected');
+                this.currentFileId = null;
+                return;
+            }
+
             const files = this.getFileList();
             if (files.length > 0) {
                 // Try to restore the last working file
