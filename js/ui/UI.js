@@ -1506,7 +1506,14 @@ export const UI = {
             const row = document.createElement('div'); row.className = 'drum-track-row';
             const hdr = document.createElement('div'); hdr.className = 'track-header';
             const knobDiv = document.createElement('div'); knobDiv.className = 'track-knobs';
-            t.params.forEach(p => { new RotaryKnob(knobDiv, p.l, p.id, 0, 100, p.v, 1, 'small'); });
+            t.params.forEach(p => {
+                let val = p.v;
+                if (window.knobInstances && window.knobInstances[p.id]) {
+                    val = window.knobInstances[p.id].value;
+                }
+                const k = new RotaryKnob(knobDiv, p.l, p.id, 0, 100, val, 1, 'small');
+                k.defaultVal = p.v;
+            });
             const name = document.createElement('div');
             name.className = 'track-name';
             name.innerText = t.id.toUpperCase();
