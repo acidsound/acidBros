@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v82
+- **Current Version**: v83
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -144,7 +144,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v82)
+## Recent Changes (v57-v83)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -304,6 +304,9 @@ acidBros/
 
 ### v82: Sawtooth Icon Fix
 - **Sawtooth Waveform**: Further refined the sawtooth waveform icon to accurately depict a sawtooth shape (vertical drop) rather than a triangle.
+
+### v83: Styles Cleanup
+- **CSS Cleanup**: Removed deprecated `#shuffleBtn` styles and specific iPad/Safari hacks that are no longer needed, streamlining the stylesheet.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

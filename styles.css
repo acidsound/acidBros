@@ -147,26 +147,6 @@ h3 {
     transform: translateY(1px);
 }
 
-#shuffleBtn {
-    font-size: 20px;
-}
-
-/* iPad Safari specific fix for shuffle button visibility */
-@media screen and (min-width: 768px) and (max-width: 1024px) {
-    #shuffleBtn {
-        -webkit-appearance: none;
-        appearance: none;
-        min-width: 40px;
-        z-index: 10;
-        position: relative;
-    }
-
-    .switch-group-item {
-        -webkit-flex-shrink: 0;
-        flex-shrink: 0;
-    }
-}
-
 /* Swing Control Panel */
 .swing-control-panel {
     width: 100%;
