@@ -140,12 +140,20 @@ export const UI = {
             this.update303ClearButtons();
         };
 
-        // Tempo Knob
+        // Tempo Knob - Initialize with default value, will update after data import
         new RotaryKnob(document.getElementById('tempo-knob-container'), null, 'tempo', 60, 200, 125, 1, 'large');
 
-        // Initialize 7-Segment Display
+        // Initialize 7-Segment Display - 초기화
         this.initSevenSegment();
         this.updateSevenSegment(125);
+
+        // Tempo 관련 UI 업데이트 함수 정의
+        this.updateTempoUI = function() {
+            if (window.knobInstances && window.knobInstances.tempo) {
+                window.knobInstances.tempo.setValue(AudioEngine.tempo);
+            }
+            this.updateSevenSegment(AudioEngine.tempo);
+        };
 
         // Listen for Tempo Knob changes via the hidden input
         document.getElementById('tempo-input').addEventListener('input', (e) => {
@@ -299,6 +307,8 @@ export const UI = {
             Data.importState(window.location.hash.substring(1));
             this.update303ClearButtons();
             this.update909ClearButtons();
+            // Import 후 tempo UI 업데이트
+            this.updateTempoUI();
         } else {
             Data.init();
             Data.randomize();
@@ -310,6 +320,8 @@ export const UI = {
         this.renderModeControls();
 
         FileManager.init();
+        // FileManager.init()에서 파일을 불러왔을 수 있으므로 tempo UI 업데이트
+        this.updateTempoUI();
         this.initFileManager();
         MidiManager.init();
         this.initSettingsUI();
@@ -957,6 +969,8 @@ export const UI = {
                         this.update303ClearButtons();
                         this.update909ClearButtons();
                         this.renderAll();
+                        // Import 후 tempo UI 업데이트
+                        this.updateTempoUI();
                         this.showToast('File loaded');
                     }
                 }
