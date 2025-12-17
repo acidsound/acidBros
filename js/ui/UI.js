@@ -148,7 +148,7 @@ export const UI = {
         this.updateSevenSegment(125);
 
         // Tempo 관련 UI 업데이트 함수 정의
-        this.updateTempoUI = function() {
+        this.updateTempoUI = function () {
             if (window.knobInstances && window.knobInstances.tempo) {
                 window.knobInstances.tempo.setValue(AudioEngine.tempo);
             }
@@ -171,6 +171,10 @@ export const UI = {
             navigator.clipboard.writeText(url).then(() => {
                 this.showToast("Link copied! Share your beat.");
             });
+        };
+
+        document.getElementById('bmcBtn').onclick = () => {
+            window.open('https://www.buymeacoffee.com/spectricki', '_blank');
         };
 
         // Swing/Shuffle Control
