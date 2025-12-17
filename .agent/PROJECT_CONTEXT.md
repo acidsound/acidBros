@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v86
+- **Current Version**: v87
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -319,6 +319,14 @@ acidBros/
 
 ### v86: Transport Bar Tweaks
 - **Layout Refinement**: Reduced gap between transport controls from 5px to 4px for better fit on extremely narrow mobile screens.
+
+### v87: Song Mode Drag & Drop
+- **Timeline Editing**: Improved Song Mode interaction.
+  - **Drag Request**: Users can now drag `.song-block` elements to reorder them in the timeline.
+  - **Implementation**: Custom drag-and-drop logic in `UI.updateSongTimelineDOM` supporting both mouse and touch events.
+  - **Single Click**: Single click/tap still removes the block from the song.
+  - **Visuals**: Dragged item appears as a semi-transparent ghost scaling up (1.1x) for better visibility.
+- **Documentation**: Updated User Manual (EN/KO) to reflect drag-and-drop functionality.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

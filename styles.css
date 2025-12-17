@@ -2225,13 +2225,12 @@ h3 {
 .song-block {
     background: #444;
     color: #aaa;
-    padding: 5px 10px;
+    padding: 5px 5px;
     border-radius: 2px;
     font-size: 0.8em;
     border: 1px solid #222;
-    min-width: 30px;
+    width: 42px;
     text-align: center;
-    transition: all 0.2s;
 }
 
 .song-block:hover {

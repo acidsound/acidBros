@@ -45,7 +45,7 @@ Toggle between **Pattern Mode** and **Song Mode** using the animated switch. The
 
 ### Song Mode
 - **Pattern Timeline** – Click pattern buttons (P1-P16) to add them to your song arrangement.
-- **Timeline Blocks** – Click any block in the timeline to remove it from the song.
+- **Timeline Blocks** – Click a block to **remove** it. **Drag and drop** blocks to reorder them in the timeline.
 - **Multi-Row Layout** – Timeline wraps automatically, eliminating horizontal scrolling.
 
 ### SWING/SHUFFLE
