@@ -116,7 +116,7 @@ h3 {
 
 .transport-controls {
     display: flex;
-    gap: 5px;
+    gap: 4px;
     flex-wrap: wrap;
 }
 
