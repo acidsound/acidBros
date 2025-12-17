@@ -158,6 +158,14 @@ h3 {
     transform: translateY(1px);
 }
 
+.bmc {
+    background: linear-gradient(to bottom, #ffd, #fa0);
+}
+
+.bmc:hover {
+    background: linear-gradient(to bottom, #fa0, #ffd);
+}
+
 /* Swing Control Panel */
 .swing-control-panel {
     width: 100%;

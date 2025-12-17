@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v84
+- **Current Version**: v85
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -312,6 +312,10 @@ acidBros/
 - **Buy Me A Coffee**: Restored the support button in the transport bar with a clean SVG icon.
 - **Responsive Transport**: Optimized transport control spacing and button sizes for small screens (max-width: 400px) to prevent layout breaking.
 - **UI Update**: Added click handler for the new button to open the support page.
+
+### v85: Styled Support Button
+- **Visual Enhancement**: Added specific styling for the "Buy Me A Coffee" button (`.bmc`) with a yellow/gold gradient to make it stand out and match the brand color.
+- **Hover Effect**: Added a hover state with inverted gradient for tactile feedback.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`
