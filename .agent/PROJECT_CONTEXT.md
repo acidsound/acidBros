@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v87
+- **Current Version**: v88
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -144,7 +144,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v83)
+## Recent Changes (v57-v88)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -327,6 +327,12 @@ acidBros/
   - **Single Click**: Single click/tap still removes the block from the song.
   - **Visuals**: Dragged item appears as a semi-transparent ghost scaling up (1.1x) for better visibility.
 - **Documentation**: Updated User Manual (EN/KO) to reflect drag-and-drop functionality.
+
+### v88: Screenshot Automation Fix
+- **Stability Improvement**: Fixed GitHub Actions screenshot generation script issue.
+  - **Server Polling**: Added 127.0.0.1 binding and explicit polling to wait for server readiness.
+  - **UI Sync**: Implemented `waitForSelector` for `.step-303`, `.step-909`, and `.rotary-knob` to ensure UI is fully rendered before capture.
+  - **Robustness**: Replaced fixed timeouts with condition-based waiting.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`
