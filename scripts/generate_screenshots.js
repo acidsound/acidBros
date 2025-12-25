@@ -139,6 +139,14 @@ async function main() {
         await page.click('#settingsCloseBtn');
         await page.waitForTimeout(500);
 
+        // --- How to add new screenshots ---
+        // 1. Inspect the element you want to capture in the browser developer tools.
+        // 2. Identify a unique selector (e.g., class, id, or text).
+        // 3. Add a new block like the examples above:
+        //    const newFeature = page.locator('.your-selector');
+        //    await newFeature.screenshot({ path: path.join(assetsDir, 'new-feature-name.png') });
+        //    console.log('Taking New Feature Screenshot...');
+
     } catch (error) {
         console.error('Error taking screenshots:', error);
     } finally {
