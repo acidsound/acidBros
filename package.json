@@ -1,0 +1,12 @@
+{
+  "name": "acidbros-automation",
+  "version": "1.0.0",
+  "description": "Automation scripts for AcidBros",
+  "scripts": {
+    "generate-screenshots": "node scripts/generate_screenshots.js"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "http-server": "^14.1.1"
+  }
+}
