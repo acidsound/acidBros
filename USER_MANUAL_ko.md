@@ -20,6 +20,8 @@
     - **Rename** – 파일 이름 변경.
     - **Delete** – 파일 삭제.
   - 파일은 5초마다 자동으로 타임스탬프 기반 이름으로 저장됩니다.
+
+![File Manager](assets/manual-filemanager.png)
 - **RUN / STOP** – 시퀀서 시작 또는 일시 중지.
 - **RANDOMIZE** – 모든 유닛에 대한 새로운 무작위 패턴 및 사운드 패치 생성.
 - **CLEAR** – 모든 패턴(TB-303 노트 및 TR-909 드럼)을 빈 상태로 재설정.
@@ -27,6 +29,8 @@
 - **SETTINGS (⚙️)** – MIDI 및 키보드 매핑을 구성하여 수동 컨트롤 가능. 설정 패널을 열려면 클릭, MIDI 매핑 관리 인터페이스 포함.
 - **SUPPORT (☕️)** – 개발자 후원 (Buy me a coffee). AcidBros의 개발을 후원하세요.
 - **Oscilloscope** – 실시간 오디오 파형 시각적 피드백 (녹색 CRT 스타일), 템포 컨트롤 옆에 위치.
+
+![Oscilloscope](assets/manual-oscilloscope.png)
 - **TEMPO (BPM)** – 7세그먼트 LED 디스플레이가 있는 큰 노브 (60-200 BPM). 수직으로 드래그하여 조정, 더블 탭하여 125 BPM으로 재설정.
 
 ---
@@ -49,6 +53,8 @@
 - **패턴 타임라인** – 송 편성에 추가하려면 패턴 버튼(P1-P16) 클릭.
 - **타임라인 블록** – 블록을 **클릭하면 삭제**됩니다. **드래그 앤 드롭**하여 순서를 변경할 수 있습니다.
 - **다중 행 레이아웃** – 수평 스크롤 제거를 위해 타임라인이 자동으로 줄 바꿈됩니다.
+
+![Song Mode Timeline](assets/manual-songmode.png)
 
 ### SWING/SHUFFLE
 - **전환** – 셔플 버튼을 클릭하여 스윙 컨트롤 패널 열기.

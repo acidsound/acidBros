@@ -20,6 +20,8 @@ The top bar provides the main playback and project controls.
     - **Rename** – Change the file name.
     - **Delete** – Remove the file.
   - Files are auto-saved every 5 seconds with timestamp-based names.
+
+![File Manager](assets/manual-filemanager.png)
 - **RUN / STOP** – Start or pause the sequencer.
 - **RANDOMIZE** – Generate a fresh random pattern and sound patch for all units.
 - **CLEAR** – Reset all patterns (303 notes and 909 drums) to a blank state.
@@ -27,6 +29,8 @@ The top bar provides the main playback and project controls.
 - **SETTINGS (⚙️)** – Configure MIDI and keyboard mappings for hands-on control. Click to open the settings panel with MIDI mapping management interface.
 - **SUPPORT (☕️)** – Buy me a coffee. Support the development of AcidBros.
 - **Oscilloscope** – Real-time visual feedback of the audio waveform (green CRT style), located next to the tempo controls.
+
+![Oscilloscope](assets/manual-oscilloscope.png)
 - **TEMPO (BPM)** – Large knob with a 7‑segment LED display (60-200 BPM). Drag vertically to adjust, double‑tap to reset to 125 BPM.
 
 ---
@@ -49,6 +53,8 @@ Toggle between **Pattern Mode** and **Song Mode** using the animated switch. The
 - **Pattern Timeline** – Click pattern buttons (P1-P16) to add them to your song arrangement.
 - **Timeline Blocks** – Click a block to **remove** it. **Drag and drop** blocks to reorder them in the timeline.
 - **Multi-Row Layout** – Timeline wraps automatically, eliminating horizontal scrolling.
+
+![Song Mode Timeline](assets/manual-songmode.png)
 
 ### SWING/SHUFFLE
 - **Toggle** – Click the shuffle button to open the swing control panel.
