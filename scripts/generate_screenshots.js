@@ -15,16 +15,17 @@ async function main() {
     // Wait for server to start by polling
     console.log(`Waiting for server at ${baseUrl}...`);
     let serverReady = false;
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 60; i++) {
         try {
             const probeBrowser = await chromium.launch();
             const probePage = await probeBrowser.newPage();
-            await probePage.goto(baseUrl, { timeout: 2000 });
+            await probePage.goto(baseUrl, { timeout: 5000 });
             await probeBrowser.close();
             serverReady = true;
             console.log('Server is ready!');
             break;
         } catch (e) {
+            console.log(`Attempt ${i+1} failed: ${e.message}`);
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
     }

@@ -2,6 +2,8 @@
 
 **AcidBros**에 오신 것을 환영합니다. 웹 기반 애시드 테크노 스튜디오입니다! 이 설명서는 인터페이스를 안내하고 즉시 비트를 만들 수 있도록 도와줍니다.
 
+![AcidBros Interface](assets/screenshot-desktop.png)
+
 ---
 
 ## 1. 트랜스포트 및 전역 컨트롤
@@ -151,7 +153,12 @@ TR-909 섹션은 전용 클리어/랜덤 전환 버튼을 가지고 있습니다
 - **데스크톱** – 모든 컨트롤이 보이는 전체 레이아웃.
 - **태블릿** – 최적화된 간격과 터치 타겟.
 - **모바일 세로** – 스택 레이아웃으로 시퀀서 그리드는 4 또는 8 열로 조정됨.
+
+![Mobile Portrait Layout](assets/screenshot-mobile-portrait.png)
+
 - **모바일 가로** – 넓은 화면에 최적화된 수평 레이아웃.
+
+![Mobile Landscape Layout](assets/screenshot-mobile-landscape.png)
 
 ### 일반 상호작용
 - **노브 조정** – 클릭(또는 터치)하고 수직으로 드래그.

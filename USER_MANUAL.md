@@ -2,6 +2,8 @@
 
 Welcome to **AcidBros**, your web‑based acid techno studio! This manual guides you through the interface and helps you start making beats instantly.
 
+![AcidBros Interface](assets/screenshot-desktop.png)
+
 ---
 
 ## 1. Transport & Global Controls
@@ -151,7 +153,12 @@ The 909 section has a dedicated clear/randomize toggle:
 - **Desktop** – Full layout with all controls visible.
 - **Tablet** – Optimized spacing and touch targets.
 - **Mobile Portrait** – Stacked layout with sequencer grid adapting to 4 or 8 columns.
+
+![Mobile Portrait Layout](assets/screenshot-mobile-portrait.png)
+
 - **Mobile Landscape** – Horizontal layout optimized for wider screens.
+
+![Mobile Landscape Layout](assets/screenshot-mobile-landscape.png)
 
 ### Common Interactions
 - **Adjust Knobs** – Click (or touch) and drag vertically.
