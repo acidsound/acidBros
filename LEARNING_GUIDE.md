@@ -34,25 +34,7 @@ When you first open AcidBros, you'll see several sections on your screen. Don't 
 
 ### The Main Sections
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  TRANSPORT BAR (Top)                                    │
-│  [FILE] [▶ RUN] [⏹ STOP] [🎲 RANDOMIZE] [SHARE] [⚙️]   │
-│                                    [TEMPO KNOB] [SCOPE] │
-├─────────────────────────────────────────────────────────┤
-│  MODE SWITCH & PATTERN SELECTOR                         │
-│  [Pattern/Song] [P1][P2][P3]...[P16] [COPY][PASTE]     │
-├─────────────────────────────────────────────────────────┤
-│  TB-303 UNIT 1 (Bass Synthesizer)                       │
-│  [KNOBS: Tune, Cutoff, Reso, etc.] [16-STEP GRID]      │
-├─────────────────────────────────────────────────────────┤
-│  TB-303 UNIT 2 (Second Bass Synthesizer)                │
-│  [KNOBS: Tune, Cutoff, Reso, etc.] [16-STEP GRID]      │
-├─────────────────────────────────────────────────────────┤
-│  TR-909 (Drum Machine)                                  │
-│  [BD][SD][CH][OH][CP] Tracks with knobs and grids      │
-└─────────────────────────────────────────────────────────┘
-```
+![AcidBros Interface](assets/screenshot-desktop.png)
 
 ### Key Components Explained
 
@@ -182,6 +164,9 @@ Snare:  [○][○][○][○][●][○][○][○][○][○][○][○][●][○][�
 
 1. Click on the **note name** (e.g., "C") in any active step
 2. A piano keyboard pops up—this is the **Piano Roll**
+
+![Piano Roll](assets/manual-pianoroll.png)
+
 3. Click a different key to change that step's note
 4. Press the **×** to close the piano roll
 5. Listen to how the melody changes!
@@ -656,6 +641,9 @@ MIDI controllers let you use physical knobs, faders, and buttons to control Acid
 
 1. Click the **Settings** button (⚙️) in the transport bar
 2. Click the **MIDI** tab
+
+![Settings Panel](assets/manual-settings.png)
+
 3. You should see your controller listed under "MIDI Devices"
 4. A green dot means it's connected!
 
