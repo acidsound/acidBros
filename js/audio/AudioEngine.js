@@ -72,8 +72,55 @@ export const AudioEngine = {
                 console.warn('AudioEngine: AudioWorklet not supported (insecure context?), falling back to setTimeout.');
                 this.useWorklet = false;
             }
+
+            // --- iOS Safari Background Resume Handler ---
+            this.setupVisibilityHandler();
         }
         if (this.ctx.state === 'suspended') await this.ctx.resume();
+    },
+
+    // Handle iOS Safari background resume
+    setupVisibilityHandler() {
+        const overlay = document.getElementById('audioResumeOverlay');
+        if (!overlay) return;
+
+        // Handle visibility change (background -> foreground)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && this.isPlaying && this.ctx) {
+                // Check if AudioContext is suspended after returning from background
+                if (this.ctx.state === 'suspended') {
+                    console.log('AudioEngine: AudioContext suspended after background, showing resume overlay');
+                    overlay.style.display = 'flex';
+                }
+            }
+        });
+
+        // Handle overlay tap to resume
+        overlay.addEventListener('click', async () => {
+            if (this.ctx && this.ctx.state === 'suspended') {
+                try {
+                    await this.ctx.resume();
+                    console.log('AudioEngine: AudioContext resumed via user tap');
+                } catch (err) {
+                    console.error('AudioEngine: Failed to resume AudioContext', err);
+                }
+            }
+            overlay.style.display = 'none';
+        });
+
+        // Also handle touch events for better iOS responsiveness
+        overlay.addEventListener('touchend', async (e) => {
+            e.preventDefault();
+            if (this.ctx && this.ctx.state === 'suspended') {
+                try {
+                    await this.ctx.resume();
+                    console.log('AudioEngine: AudioContext resumed via user touch');
+                } catch (err) {
+                    console.error('AudioEngine: Failed to resume AudioContext', err);
+                }
+            }
+            overlay.style.display = 'none';
+        }, { passive: false });
     },
 
     addInstrument(id, instance) {

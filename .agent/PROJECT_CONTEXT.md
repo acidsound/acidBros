@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v88
+- **Current Version**: v89
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -144,7 +144,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v88)
+## Recent Changes (v57-v89)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -333,6 +333,19 @@ acidBros/
   - **Server Polling**: Added 127.0.0.1 binding and explicit polling to wait for server readiness.
   - **UI Sync**: Implemented `waitForSelector` for `.step-303`, `.step-909`, and `.rotary-knob` to ensure UI is fully rendered before capture.
   - **Robustness**: Replaced fixed timeouts with condition-based waiting.
+
+### v89: iOS Safari Background Resume
+- **Background Audio Recovery**: Implemented "Tap to Resume" UI pattern for iOS Safari.
+  - **Problem**: iOS Safari suspends AudioContext when app goes to background.
+  - **Detection**: `visibilitychange` event listener detects foreground return.
+  - **Condition**: Only shows overlay when `isPlaying` is true and `ctx.state === 'suspended'`.
+  - **UI**: Full-screen overlay with animated play button and instructional text.
+  - **Resume**: User tap triggers `ctx.resume()` and hides overlay.
+  - **Touch Events**: Both `click` and `touchend` handlers for better iOS responsiveness.
+- **New Files/Changes**:
+  - `index.html`: Added `#audioResumeOverlay` element.
+  - `styles.css`: Added `.audio-resume-*` styles with pulse animation and blur backdrop.
+  - `AudioEngine.js`: Added `setupVisibilityHandler()` method.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`
