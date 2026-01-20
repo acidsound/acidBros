@@ -62,6 +62,7 @@
   * File Manager (📁) for saving and managing multiple patterns/songs.
   * Settings (⚙️) for MIDI and keyboard mapping configuration.
   * Play, Stop, Clear, Randomize.
+  * **Randomize Lock**: Each machine header features a lock (🔒) button to exclude that unit from global randomization.
   * Share URL to export current pattern state.
   * **Import Patterns**: Paste shared URLs directly into pattern slots.
   * **Song Sharing**: Share complete songs with multiple patterns (see Manual).
@@ -83,7 +84,7 @@
 5. **Song Mode**:
    * Click pattern buttons to add them to the song timeline.
    * Click timeline blocks to remove them.
-6. **Randomize**: Click **RANDOMIZE** for a fresh pattern and sound patch.
+6. **Randomize**: Click **RANDOMIZE** for a fresh pattern and sound patch. Use the **LOCK (🔒)** buttons in machine headers to protect specific units from being randomized.
 7. **Share**: Click **SHARE URL** to copy a link with the current pattern data.
 
 ## Installation

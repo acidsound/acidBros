@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v89
+- **Current Version**: v90
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -144,7 +144,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v89)
+## Recent Changes (v57-v90)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -346,6 +346,17 @@ acidBros/
   - `index.html`: Added `#audioResumeOverlay` element.
   - `styles.css`: Added `.audio-resume-*` styles with pulse animation and blur backdrop.
   - `AudioEngine.js`: Added `setupVisibilityHandler()` method.
+
+### v90: Unit Randomization Lock
+- **New Feature**: Added a locking mechanism for each unit (TB-303 Unit 1, TB-303 Unit 2, TR-909).
+  - **Lock Button**: Added a new SVG lock icon button next to the trash (clear) icon in each machine header.
+  - **Functionality**: When locked, the unit is excluded from global randomization (Dice button in top bar).
+  - **Visuals**: Locked state is indicated by an orange background and a closed lock icon.
+  - **Persistence**: Lock states are saved to `localStorage` and persist across sessions.
+- **Implementation Highlights**:
+  - `Data.js`: Added `unitLocks` state and updated `randomize()` to respect locks.
+  - `UI.js`: Implemented click handlers and `updateLockUI()` for visual state management.
+  - `styles.css`: Added styles for `.header-lock-btn` and its `.locked` state.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

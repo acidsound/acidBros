@@ -140,6 +140,20 @@ export const UI = {
             this.update303ClearButtons();
         };
 
+        // Unit Locks
+        document.getElementById('lock303_1').onclick = () => {
+            const isLocked = Data.toggleUnitLock('tb303_1');
+            this.updateLockUI('tb303_1', isLocked);
+        };
+        document.getElementById('lock303_2').onclick = () => {
+            const isLocked = Data.toggleUnitLock('tb303_2');
+            this.updateLockUI('tb303_2', isLocked);
+        };
+        document.getElementById('lock909').onclick = () => {
+            const isLocked = Data.toggleUnitLock('tr909');
+            this.updateLockUI('tr909', isLocked);
+        };
+
         // Tempo Knob - Initialize with default value, will update after data import
         new RotaryKnob(document.getElementById('tempo-knob-container'), null, 'tempo', 60, 200, 125, 1, 'large');
 
@@ -330,6 +344,11 @@ export const UI = {
         MidiManager.init();
         this.initSettingsUI();
         this.updateMappedElementsUI(); // Initial update
+
+        // Sync Lock UI
+        this.updateLockUI('tb303_1', Data.unitLocks.tb303_1);
+        this.updateLockUI('tb303_2', Data.unitLocks.tb303_2);
+        this.updateLockUI('tr909', Data.unitLocks.tr909);
     },
 
     updateMappedElementsUI() {
@@ -348,6 +367,22 @@ export const UI = {
                 element.classList.add('midi-mapped');
             }
         });
+    },
+
+    updateLockUI(unitId, isLocked) {
+        const btnId = unitId === 'tr909' ? 'lock909' : (unitId === 'tb303_1' ? 'lock303_1' : 'lock303_2');
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+
+        if (isLocked) {
+            btn.classList.add('locked');
+            btn.querySelector('.icon-unlocked').style.display = 'none';
+            btn.querySelector('.icon-locked').style.display = 'block';
+        } else {
+            btn.classList.remove('locked');
+            btn.querySelector('.icon-unlocked').style.display = 'block';
+            btn.querySelector('.icon-locked').style.display = 'none';
+        }
     },
 
     showToast(message) {

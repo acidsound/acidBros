@@ -12,6 +12,11 @@ export const Data = {
 
     // Settings
     keepSoundSettings: false, // If true, don't change knobs when switching patterns
+    unitLocks: {
+        tb303_1: false,
+        tb303_2: false,
+        tr909: false
+    },
 
     // Pattern Bank (16 Patterns)
     patterns: [],
@@ -64,6 +69,9 @@ export const Data = {
             if (settings) {
                 const parsed = JSON.parse(settings);
                 this.keepSoundSettings = parsed.keepSoundSettings || false;
+                if (parsed.unitLocks) {
+                    this.unitLocks = { ...this.unitLocks, ...parsed.unitLocks };
+                }
             }
         } catch (e) {
             console.warn('Failed to load settings:', e);
@@ -73,7 +81,8 @@ export const Data = {
     saveSettings() {
         try {
             localStorage.setItem('acidbros-settings', JSON.stringify({
-                keepSoundSettings: this.keepSoundSettings
+                keepSoundSettings: this.keepSoundSettings,
+                unitLocks: this.unitLocks
             }));
         } catch (e) {
             console.warn('Failed to save settings:', e);
@@ -577,6 +586,48 @@ export const Data = {
         setK('ch_p1', 10, 40); setK('ch_level', 90, 100);
         setK('oh_p1', 40, 80); setK('oh_level', 90, 100);
         setK('cp_p1', 40, 70); setK('cp_level', 90, 100);
+    },
+
+    toggleUnitLock(unitId) {
+        if (this.unitLocks[unitId] !== undefined) {
+            this.unitLocks[unitId] = !this.unitLocks[unitId];
+            this.saveSettings();
+            return this.unitLocks[unitId];
+        }
+        return false;
+    },
+
+    randomize() {
+        const setK = (id, min, max) => {
+            if (window.knobInstances[id]) {
+                const val = Math.floor(Math.random() * (max - min + 1)) + min;
+                window.knobInstances[id].setValue(val);
+            }
+        };
+
+        // Randomize 303 Unit 1
+        if (!this.unitLocks.tb303_1) {
+            const wave1 = Math.random() > 0.5 ? 'sawtooth' : 'square';
+            document.getElementById(wave1 === 'sawtooth' ? 'wave-saw-1' : 'wave-sq-1').checked = true;
+            setK('tune303_1', 0, 0); setK('cutoff303_1', 20, 90); setK('reso303_1', 0, 15);
+            setK('env303_1', 30, 90); setK('decay303_1', 30, 80); setK('accent303_1', 50, 100); setK('vol303_1', 70, 90);
+        }
+
+        // Randomize 303 Unit 2
+        if (!this.unitLocks.tb303_2) {
+            const wave2 = Math.random() > 0.5 ? 'sawtooth' : 'square';
+            document.getElementById(wave2 === 'sawtooth' ? 'wave-saw-2' : 'wave-sq-2').checked = true;
+            setK('tune303_2', 0, 0); setK('cutoff303_2', 20, 90); setK('reso303_2', 0, 15);
+            setK('env303_2', 30, 90); setK('decay303_2', 30, 80); setK('accent303_2', 50, 100); setK('vol303_2', 70, 90);
+        }
+
+        if (!this.unitLocks.tr909) {
+            setK('bd_p1', 10, 60); setK('bd_p2', 30, 80); setK('bd_p3', 60, 100); setK('bd_level', 90, 100);
+            setK('sd_p1', 40, 70); setK('sd_p2', 20, 50); setK('sd_p3', 50, 90); setK('sd_level', 90, 100);
+            setK('ch_p1', 10, 40); setK('ch_level', 90, 100);
+            setK('oh_p1', 40, 80); setK('oh_level', 90, 100);
+            setK('cp_p1', 40, 70); setK('cp_level', 90, 100);
+        }
 
         // Save randomized settings to current pattern
         this.saveCurrentSettingsToPattern();
@@ -641,29 +692,31 @@ export const Data = {
             });
         };
 
-        randBassSeq(seq2);
-        randMelodySeq(seq1, seq2);
+        if (!this.unitLocks.tb303_2) randBassSeq(seq2);
+        if (!this.unitLocks.tb303_1) randMelodySeq(seq1, seq2);
 
         // Randomize 909
-        const t = p.units ? {
-            bd: p.units.tr909.tracks.bd.steps,
-            sd: p.units.tr909.tracks.sd.steps,
-            ch: p.units.tr909.tracks.ch.steps,
-            oh: p.units.tr909.tracks.oh.steps,
-            cp: p.units.tr909.tracks.cp.steps
-        } : p.seq909;
+        if (!this.unitLocks.tr909) {
+            const t = p.units ? {
+                bd: p.units.tr909.tracks.bd.steps,
+                sd: p.units.tr909.tracks.sd.steps,
+                ch: p.units.tr909.tracks.ch.steps,
+                oh: p.units.tr909.tracks.oh.steps,
+                cp: p.units.tr909.tracks.cp.steps
+            } : p.seq909;
 
-        ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(k => t[k].fill(0));
+            ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(k => t[k].fill(0));
 
-        [0, 4, 8, 12].forEach(i => t.bd[i] = 1);
-        if (Math.random() > 0.6) t.bd[14] = 1;
-        if (Math.random() > 0.85) t.bd[7] = 1;
-        [4, 12].forEach(i => { if (Math.random() > 0.5) t.sd[i] = 1; else t.cp[i] = 1; });
-        if (Math.random() > 0.7) t.sd[15] = 1;
-        if (Math.random() > 0.7) t.sd[6] = 1;
-        for (let i = 0; i < 16; i++) {
-            if (i % 4 === 2) t.oh[i] = 1;
-            else if (Math.random() > 0.3) t.ch[i] = 1;
+            [0, 4, 8, 12].forEach(i => t.bd[i] = 1);
+            if (Math.random() > 0.6) t.bd[14] = 1;
+            if (Math.random() > 0.85) t.bd[7] = 1;
+            [4, 12].forEach(i => { if (Math.random() > 0.5) t.sd[i] = 1; else t.cp[i] = 1; });
+            if (Math.random() > 0.7) t.sd[15] = 1;
+            if (Math.random() > 0.7) t.sd[6] = 1;
+            for (let i = 0; i < 16; i++) {
+                if (i % 4 === 2) t.oh[i] = 1;
+                else if (Math.random() > 0.3) t.ch[i] = 1;
+            }
         }
 
         UI.renderAll();

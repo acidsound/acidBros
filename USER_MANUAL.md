@@ -19,7 +19,7 @@ The top bar provides the main playback and project controls.
     - **Delete** – Remove the file.
   - Files are auto-saved every 5 seconds with timestamp-based names.
 - **RUN / STOP** – Start or pause the sequencer.
-- **RANDOMIZE** – Generate a fresh random pattern and sound patch for all units.
+- **RANDOMIZE (🎲)** – Generate a fresh random pattern and sound patch for all units. **Note:** Units with a locked randomization (🔒) will not be changed.
 - **CLEAR** – Reset all patterns (303 notes and 909 drums) to a blank state.
 - **SHARE URL** – Export the current pattern and settings as a shareable link. A toast notification confirms the link is copied.
 - **SETTINGS (⚙️)** – Configure MIDI and keyboard mappings for hands-on control. Click to open the settings panel with MIDI mapping management interface.
@@ -59,6 +59,12 @@ Toggle between **Pattern Mode** and **Song Mode** using the animated switch. The
 AcidBros features **two independent TB‑303 units** (Unit 1 & 2). Each unit offers classic acid‑style synthesis.
 
 ![TB‑303 Unit](assets/manual-tb303.png)
+
+### Machine Header
+- **UNIT TITLE** – Click the title to collapse/expand the unit.
+- **WAVEFORM** – Toggle between Sawtooth and Square waveforms.
+- **CLEAR (🗑️)** – Reset the sequence for this unit.
+- **LOCK (🔒)** – Toggle randomization lock. When active (orange), this unit will be skipped when clicking the global **RANDOMIZE** button.
 
 ### Sound Controls (Knobs & Switches)
 
@@ -126,10 +132,11 @@ Each track has dedicated parameter knobs and a level control:
 ### Sequencer Grid
 Each track has its own 16‑step grid. Active steps glow orange/yellow; inactive steps remain dark.
 
-### Clear/Randomize Button
-The 909 section has a dedicated clear/randomize toggle:
-- **Empty patterns** → Click to randomize all drum tracks.
-- **Filled patterns** → Click to clear all drum tracks.
+### Machine Header Actions
+- **CLEAR (🗑️)** – The 909 section has a dedicated clear/randomize toggle:
+  - **Empty patterns** → Click to randomize all drum tracks.
+  - **Filled patterns** → Click to clear all drum tracks.
+- **LOCK (🔒)** – Toggle randomization lock. When active (orange), the 909 will be skipped when clicking the global **RANDOMIZE** button.
 
 ---
 
