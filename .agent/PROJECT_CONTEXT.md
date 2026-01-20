@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v90
+- **Current Version**: v91
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -144,7 +144,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v90)
+## Recent Changes (v57-v91)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -357,6 +357,14 @@ acidBros/
   - `Data.js`: Added `unitLocks` state and updated `randomize()` to respect locks.
   - `UI.js`: Implemented click handlers and `updateLockUI()` for visual state management.
   - `styles.css`: Added styles for `.header-lock-btn` and its `.locked` state.
+
+### v91: UI Refinement & Icon Restoration
+- **Trash Icon Restoration**: Reverted the change that toggled clear buttons to dice icons when empty. Buttons now consistently show the trash icon as requested by the user.
+- **Button Aesthetic Unification**:
+  - Unified size for all machine header buttons (Clear and Lock) to 32x24px.
+  - Standardized spacing between buttons to 6px.
+  - Slightly increased icon stroke-width (2.5px) for better visibility.
+- **Visual Alignment**: Fine-tuned gaps in 303 waveform controls to match the 909 header layout.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

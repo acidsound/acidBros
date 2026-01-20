@@ -1876,14 +1876,14 @@ export const UI = {
             const isEmpty = s9[id].every(v => v === 0);
             if (!isEmpty) allEmpty = false;
 
-            btn.innerHTML = isEmpty ? diceIcon : trashIcon;
+            btn.innerHTML = trashIcon;
             btn.title = isEmpty ? 'Randomize Track' : 'Clear Track';
         });
 
         // Update header clear button
         const headerBtn = document.getElementById('clear909Btn');
         if (headerBtn) {
-            headerBtn.innerHTML = allEmpty ? diceIcon : trashIcon;
+            headerBtn.innerHTML = trashIcon;
             headerBtn.title = allEmpty ? 'Randomize All Tracks' : 'Clear All Tracks';
         }
     },
@@ -1897,8 +1897,8 @@ export const UI = {
         if (s1) {
             const btn1 = document.getElementById('clear303_1');
             if (btn1) {
+                btn1.innerHTML = trashIcon;
                 const isEmpty1 = s1.every(step => !step.active);
-                btn1.innerHTML = isEmpty1 ? diceIcon : trashIcon;
                 btn1.title = isEmpty1 ? 'Randomize Sequence' : 'Clear Sequence';
             }
         }
@@ -1908,8 +1908,8 @@ export const UI = {
         if (s2) {
             const btn2 = document.getElementById('clear303_2');
             if (btn2) {
+                btn2.innerHTML = trashIcon;
                 const isEmpty2 = s2.every(step => !step.active);
-                btn2.innerHTML = isEmpty2 ? diceIcon : trashIcon;
                 btn2.title = isEmpty2 ? 'Randomize Sequence' : 'Clear Sequence';
             }
         }

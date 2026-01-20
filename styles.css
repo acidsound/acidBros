@@ -613,8 +613,12 @@ h3 {
     display: flex;
     flex-direction: row;
     align-items: flex-end;
-    gap: 10px;
+    gap: 6px;
     margin-left: auto;
+}
+
+.waveform-control .header-lock-btn {
+    margin-left: 0;
 }
 
 .waveform-switch-group {
@@ -2274,33 +2278,42 @@ h3 {
     justify-content: center;
 }
 
-/* --- Header Clear Button (909) --- */
-.header-clear-btn {
+/* --- Header Action Buttons (Clear/Lock) --- */
+.header-clear-btn,
+.header-lock-btn {
     background: linear-gradient(to bottom, #444, #222);
     border: 1px solid #111;
     border-radius: 2px;
-    padding: 3px 8px;
+    width: 32px;
+    height: 24px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.1s;
-    margin-left: auto;
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     margin-bottom: 1px;
+    color: #888;
+    padding: 0;
 }
 
-.header-clear-btn:active {
+.header-clear-btn {
+    margin-left: auto;
+}
+
+.header-clear-btn:active,
+.header-lock-btn:active {
     transform: translateY(1px);
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
-    background: #222;
 }
 
-.header-clear-btn:hover {
+.header-clear-btn:hover,
+.header-lock-btn:hover {
     background: linear-gradient(to bottom, #555, #333);
 }
 
-.header-clear-btn svg {
+.header-clear-btn svg,
+.header-lock-btn svg {
     stroke: #888;
     transition: stroke 0.2s;
 }
@@ -2309,34 +2322,12 @@ h3 {
     stroke: #ff3333;
 }
 
-/* --- Header Lock Button --- */
-.header-lock-btn {
-    background: linear-gradient(to bottom, #444, #222);
-    border: 1px solid #111;
-    border-radius: 2px;
-    padding: 3px 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.1s;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    margin-bottom: 1px;
-    margin-left: 4px;
-    color: #888;
-}
-
-.header-lock-btn:active {
-    transform: translateY(1px);
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
-}
-
-.header-lock-btn:hover {
-    background: linear-gradient(to bottom, #555, #333);
-}
-
 .header-lock-btn:hover svg {
     stroke: #fff;
+}
+
+.header-lock-btn {
+    margin-left: 6px;
 }
 
 .header-lock-btn.locked {
@@ -2346,6 +2337,14 @@ h3 {
 
 .header-lock-btn.locked svg {
     stroke: #fff;
+}
+
+.header-clear-btn svg,
+.header-lock-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2.5px;
+    /* Slightly thicker for better visibility at small scale */
 }
 
 /* --- MIDI Learn Styles --- */
