@@ -147,18 +147,24 @@ export class BinaryFormatDecoder {
                 tr909: {
                     type: 'tr909',
                     tracks: {
-                        bd: { steps: Array(16).fill(0), tune: 50, attack: 50, decay: 50, level: 100 },
-                        sd: { steps: Array(16).fill(0), tune: 50, snappy: 50, decay: 50, level: 100 },
-                        ch: { steps: Array(16).fill(0), decay: 50, level: 100 },
-                        oh: { steps: Array(16).fill(0), decay: 50, level: 100 },
-                        cp: { steps: Array(16).fill(0), decay: 50, level: 100 }
+                        bd: { steps: Array(16).fill(0), tune: 50, level: 100, attack: 50, decay: 50 },
+                        sd: { steps: Array(16).fill(0), tune: 50, level: 100, tone: 50, snappy: 50 },
+                        lt: { steps: Array(16).fill(0), tune: 50, level: 100, decay: 50 },
+                        mt: { steps: Array(16).fill(0), tune: 50, level: 100, decay: 50 },
+                        ht: { steps: Array(16).fill(0), tune: 50, level: 100, decay: 50 },
+                        rs: { steps: Array(16).fill(0), level: 100 },
+                        ch: { steps: Array(16).fill(0), level: 100, ch_decay: 50 },
+                        oh: { steps: Array(16).fill(0), level: 100, oh_decay: 50 },
+                        cr: { steps: Array(16).fill(0), level: 100, cr_tune: 50 },
+                        rd: { steps: Array(16).fill(0), level: 100, rd_tune: 50 },
+                        cp: { steps: Array(16).fill(0), level: 100 }
                     }
                 }
             }
         });
 
         return {
-            ver: 4,
+            ver: 5,
             bpm: 125,
             swing: 50,
             mode: 'pattern',
@@ -331,7 +337,10 @@ export class BinaryFormatDecoder {
 
         const initialPos = pos;
         const instrumentCount = buffer[pos++];
-        const trackKeys = ['bd', 'sd', 'ch', 'oh', 'cp'];
+        const trackKeys = {
+            0x00: 'bd', 0x01: 'sd', 0x05: 'lt', 0x06: 'mt', 0x07: 'ht',
+            0x08: 'rs', 0x02: 'ch', 0x03: 'oh', 0x09: 'cr', 0x0A: 'rd', 0x04: 'cp'
+        };
 
         for (let i = 0; i < instrumentCount && pos < endOffset; i++) {
             const instrId = buffer[pos++];
@@ -339,15 +348,24 @@ export class BinaryFormatDecoder {
 
             const paramCount = buffer[pos++];
 
-            const trackKey = trackKeys[instrId] || 'bd';
-            let paramOrder;
-            if (instrId <= 0x01) { // BD, SD have 4 params
-                paramOrder = instrId === 0x00
-                    ? ['tune', 'attack', 'decay', 'level']
-                    : ['tune', 'snappy', 'decay', 'level'];
-            } else { // CH, OH, CP have 2 params
-                paramOrder = ['decay', 'level'];
+            const trackKey = trackKeys[instrId];
+            if (!trackKey) {
+                // Skip unknown instrument params
+                pos += paramCount;
+                continue;
             }
+
+            let paramOrder;
+            if (instrId === 0x00) paramOrder = ['tune', 'level', 'attack', 'decay'];
+            else if (instrId === 0x01) paramOrder = ['tune', 'level', 'tone', 'snappy'];
+            else if (instrId === 0x05 || instrId === 0x06 || instrId === 0x07) paramOrder = ['tune', 'level', 'decay'];
+            else if (instrId === 0x08) paramOrder = ['level'];
+            else if (instrId === 0x04) paramOrder = ['level'];
+            else if (instrId === 0x02) paramOrder = ['level', 'ch_decay'];
+            else if (instrId === 0x03) paramOrder = ['level', 'oh_decay'];
+            else if (instrId === 0x09) paramOrder = ['level', 'cr_tune'];
+            else if (instrId === 0x0A) paramOrder = ['level', 'rd_tune'];
+            else paramOrder = [];
 
             const settings = {};
             for (let j = 0; j < paramCount && pos < endOffset; j++) {
@@ -366,7 +384,10 @@ export class BinaryFormatDecoder {
     // Parse TR-909 Unit Block
     parseTR909UnitBlock(buffer, pos, endOffset, unitOrder, state) {
         const isPerPatternSettings = (state.shareMode === this.MODE_FULL || state.shareMode === this.MODE_PATTERN);
-        const trackKeys = ['bd', 'sd', 'ch', 'oh', 'cp'];
+        const trackKeys = {
+            0x00: 'bd', 0x01: 'sd', 0x05: 'lt', 0x06: 'mt', 0x07: 'ht',
+            0x08: 'rs', 0x02: 'ch', 0x03: 'oh', 0x09: 'cr', 0x0A: 'rd', 0x04: 'cp'
+        };
         let globalTrackSettings = null;
 
         // Header Settings Section (Only if NOT per-pattern)
@@ -418,9 +439,9 @@ export class BinaryFormatDecoder {
                 if (pos >= endOffset) break;
 
                 const attrCount = buffer[pos++];
-                const trackKey = trackKeys[instrId] || 'bd';
+                const trackKey = trackKeys[instrId];
 
-                if (attrCount > 0 && pos + 2 <= endOffset) {
+                if (trackKey && attrCount > 0 && pos + 2 <= endOffset) {
                     const triggerBits = this.readUint16LE(buffer, pos);
                     pos += 2;
 

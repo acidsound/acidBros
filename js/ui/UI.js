@@ -18,6 +18,14 @@ export const UI = {
         // Initialize Oscilloscope
         Oscilloscope.init();
 
+        const scopeContainer = document.getElementById('scopeContainer');
+        if (scopeContainer) {
+            scopeContainer.onclick = () => {
+                Oscilloscope.toggle();
+                scopeContainer.classList.toggle('disabled', !Oscilloscope.isEnabled);
+            };
+        }
+
         document.getElementById('playBtn').onclick = () => AudioEngine.play();
         document.getElementById('stopBtn').onclick = () => AudioEngine.stop();
         document.getElementById('randomBtn').onclick = () => Data.randomize();
@@ -1317,6 +1325,21 @@ export const UI = {
         updateDigit('digit-1', s[2]);
     },
 
+    // Expose voice method for preview logic in UI
+    voice909(time, type, params) {
+        const inst = this.instruments.get('tr909');
+        if (inst) {
+            if (type === 'bd') inst.playBD(time, params.bd);
+            if (type === 'sd') inst.playSD(time, params.sd);
+            if (type === 'lt' || type === 'mt' || type === 'ht') inst.playTom(time, type, params[type]);
+            if (type === 'ch') inst.playHat(time, false, params.ch);
+            if (type === 'oh') inst.playHat(time, true, params.oh);
+            if (type === 'cr' || type === 'rd') inst.playCym(time, type, params[type]);
+            if (type === 'rs') inst.playRim(time, params.rs);
+            if (type === 'cp') inst.playCP(time, params.cp);
+        }
+    },
+
     get303Params(unitId) {
         const getV = (id) => {
             const inputId = id + '-input';
@@ -1350,11 +1373,17 @@ export const UI = {
         };
         const lvl = (id) => getV(id) / 100;
 
-        if (track === 'bd') return { p1: getV('bd_p1'), p2: getV('bd_p2'), p3: getV('bd_p3'), vol: lvl('bd_level') };
-        if (track === 'sd') return { p1: getV('sd_p1'), p2: getV('sd_p2'), p3: getV('sd_p3'), vol: lvl('sd_level') };
-        if (track === 'ch') return { p1: getV('ch_p1'), vol: lvl('ch_level') };
-        if (track === 'oh') return { p1: getV('oh_p1'), vol: lvl('oh_level') };
-        if (track === 'cp') return { p1: getV('cp_p1'), vol: lvl('cp_level') };
+        if (track === 'bd') return { p1: getV('bd_p1'), vol: lvl('bd_level'), p2: getV('bd_p2'), p3: getV('bd_p3') };
+        if (track === 'sd') return { p1: getV('sd_p1'), vol: lvl('sd_level'), p2: getV('sd_p2'), p3: getV('sd_p3') };
+        if (track === 'lt') return { p1: getV('lt_p1'), vol: lvl('lt_level'), p2: getV('lt_p2') };
+        if (track === 'mt') return { p1: getV('mt_p1'), vol: lvl('mt_level'), p2: getV('mt_p2') };
+        if (track === 'ht') return { p1: getV('ht_p1'), vol: lvl('ht_level'), p2: getV('ht_p2') };
+        if (track === 'rs') return { vol: lvl('rs_level') };
+        if (track === 'cp') return { vol: lvl('cp_level') };
+        if (track === 'ch') return { vol: lvl('ch_level'), ch_decay: getV('ch_decay'), p2: getV('hat_tune') };
+        if (track === 'oh') return { vol: lvl('oh_level'), oh_decay: getV('oh_decay'), p2: getV('hat_tune') };
+        if (track === 'cr') return { vol: lvl('cr_level'), cr_tune: getV('cr_tune') };
+        if (track === 'rd') return { vol: lvl('rd_level'), rd_tune: getV('rd_tune') };
         return {};
     },
 
@@ -1365,9 +1394,15 @@ export const UI = {
             return {
                 bd: this.get909Params('bd'),
                 sd: this.get909Params('sd'),
+                lt: this.get909Params('lt'),
+                mt: this.get909Params('mt'),
+                ht: this.get909Params('ht'),
+                rs: this.get909Params('rs'),
+                cp: this.get909Params('cp'),
                 ch: this.get909Params('ch'),
                 oh: this.get909Params('oh'),
-                cp: this.get909Params('cp')
+                cr: this.get909Params('cr'),
+                rd: this.get909Params('rd')
             };
         }
         return null;
@@ -1792,11 +1827,17 @@ export const UI = {
         const container = document.getElementById('tracks909');
         container.innerHTML = '';
         const tracks = [
-            { id: 'bd', name: 'BASS DRUM', params: [{ l: 'TUNE', id: 'bd_p1', v: 50 }, { l: 'DECAY', id: 'bd_p2', v: 50 }, { l: 'ATTACK', id: 'bd_p3', v: 80 }, { l: 'LEVEL', id: 'bd_level', v: 100 }] },
-            { id: 'sd', name: 'SNARE DRUM', params: [{ l: 'TUNE', id: 'sd_p1', v: 50 }, { l: 'TONE', id: 'sd_p2', v: 30 }, { l: 'SNAPPY', id: 'sd_p3', v: 70 }, { l: 'LEVEL', id: 'sd_level', v: 100 }] },
-            { id: 'ch', name: 'CLOSED HAT', params: [{ l: 'DECAY', id: 'ch_p1', v: 20 }, { l: 'LEVEL', id: 'ch_level', v: 100 }] },
-            { id: 'oh', name: 'OPEN HAT', params: [{ l: 'DECAY', id: 'oh_p1', v: 60 }, { l: 'LEVEL', id: 'oh_level', v: 100 }] },
-            { id: 'cp', name: 'CLAP', params: [{ l: 'DECAY', id: 'cp_p1', v: 50 }, { l: 'LEVEL', id: 'cp_level', v: 100 }] },
+            { id: 'bd', name: 'BASS DRUM', params: [{ l: 'TUNE', id: 'bd_p1', v: 50 }, { l: 'LEVEL', id: 'bd_level', v: 100 }, { l: 'ATTACK', id: 'bd_p2', v: 80 }, { l: 'DECAY', id: 'bd_p3', v: 50 }] },
+            { id: 'sd', name: 'SNARE DRUM', params: [{ l: 'TUNE', id: 'sd_p1', v: 50 }, { l: 'LEVEL', id: 'sd_level', v: 100 }, { l: 'TONE', id: 'sd_p2', v: 30 }, { l: 'SNAPPY', id: 'sd_p3', v: 70 }] },
+            { id: 'lt', name: 'LOW TOM', params: [{ l: 'TUNE', id: 'lt_p1', v: 50 }, { l: 'LEVEL', id: 'lt_level', v: 100 }, { l: 'DECAY', id: 'lt_p2', v: 50 }] },
+            { id: 'mt', name: 'MID TOM', params: [{ l: 'TUNE', id: 'mt_p1', v: 50 }, { l: 'LEVEL', id: 'mt_level', v: 100 }, { l: 'DECAY', id: 'mt_p2', v: 50 }] },
+            { id: 'ht', name: 'HIGH TOM', params: [{ l: 'TUNE', id: 'ht_p1', v: 50 }, { l: 'LEVEL', id: 'ht_level', v: 100 }, { l: 'DECAY', id: 'ht_p2', v: 50 }] },
+            { id: 'rs', name: 'RIM SHOT', params: [{ l: 'LEVEL', id: 'rs_level', v: 100 }] },
+            { id: 'cp', name: 'HAND CLAP', params: [{ l: 'LEVEL', id: 'cp_level', v: 100 }] },
+            { id: 'ch', name: 'CLOSED HAT', params: [{ l: 'LEVEL', id: 'ch_level', v: 100 }, { l: 'DECAY', id: 'ch_decay', v: 20 }, { l: 'TUNE', id: 'hat_tune', v: 50 }] },
+            { id: 'oh', name: 'OPEN HAT', params: [{ l: 'LEVEL', id: 'oh_level', v: 100 }, { l: 'DECAY', id: 'oh_decay', v: 60 }] },
+            { id: 'cr', name: 'CRASH', params: [{ l: 'LEVEL', id: 'cr_level', v: 100 }, { l: 'TUNE', id: 'cr_tune', v: 50 }] },
+            { id: 'rd', name: 'RIDE', params: [{ l: 'LEVEL', id: 'rd_level', v: 100 }, { l: 'TUNE', id: 'rd_tune', v: 50 }] },
         ];
         tracks.forEach(t => {
             const row = document.createElement('div'); row.className = 'drum-track-row';
@@ -1869,21 +1910,21 @@ export const UI = {
         const diceIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1"></circle><circle cx="15.5" cy="8.5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="8.5" cy="15.5" r="1"></circle><circle cx="15.5" cy="15.5" r="1"></circle></svg>';
 
         let allEmpty = true;
-        ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(id => {
+        ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp', 'ch', 'oh', 'cr', 'rd'].forEach(id => {
             const btn = document.getElementById(`clear-${id}`);
             if (!btn) return;
 
             const isEmpty = s9[id].every(v => v === 0);
             if (!isEmpty) allEmpty = false;
 
-            btn.innerHTML = trashIcon;
+            btn.innerHTML = isEmpty ? diceIcon : trashIcon;
             btn.title = isEmpty ? 'Randomize Track' : 'Clear Track';
         });
 
         // Update header clear button
         const headerBtn = document.getElementById('clear909Btn');
         if (headerBtn) {
-            headerBtn.innerHTML = trashIcon;
+            headerBtn.innerHTML = allEmpty ? diceIcon : trashIcon;
             headerBtn.title = allEmpty ? 'Randomize All Tracks' : 'Clear All Tracks';
         }
     },
@@ -1897,8 +1938,8 @@ export const UI = {
         if (s1) {
             const btn1 = document.getElementById('clear303_1');
             if (btn1) {
-                btn1.innerHTML = trashIcon;
                 const isEmpty1 = s1.every(step => !step.active);
+                btn1.innerHTML = isEmpty1 ? diceIcon : trashIcon;
                 btn1.title = isEmpty1 ? 'Randomize Sequence' : 'Clear Sequence';
             }
         }
@@ -1908,8 +1949,8 @@ export const UI = {
         if (s2) {
             const btn2 = document.getElementById('clear303_2');
             if (btn2) {
-                btn2.innerHTML = trashIcon;
                 const isEmpty2 = s2.every(step => !step.active);
+                btn2.innerHTML = isEmpty2 ? diceIcon : trashIcon;
                 btn2.title = isEmpty2 ? 'Randomize Sequence' : 'Clear Sequence';
             }
         }
@@ -1918,7 +1959,7 @@ export const UI = {
     update909Grid() {
         const s9 = Data.getSequence('tr909');
         if (!s9) return;
-        ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(id => {
+        ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp', 'ch', 'oh', 'cr', 'rd'].forEach(id => {
             const div = document.getElementById(`seq909_${id}`);
             if (!div) return;
             Array.from(div.children).forEach((child, i) => {
@@ -1929,20 +1970,28 @@ export const UI = {
     },
 
     drawPlayhead(step) {
+        if (this.lastPlayheadStep === step) return;
         this.clearPlayhead();
-        const s1 = document.getElementById(`grid303_1`).children[step];
-        if (s1) s1.classList.add('current');
-        const s2 = document.getElementById(`grid303_2`).children[step];
-        if (s2) s2.classList.add('current');
+
+        const s1 = document.getElementById(`grid303_1`);
+        if (s1 && s1.children[step]) s1.children[step].classList.add('current');
+
+        const s2 = document.getElementById(`grid303_2`);
+        if (s2 && s2.children[step]) s2.children[step].classList.add('current');
 
         const s9 = document.querySelectorAll('.sequencer-909');
         s9.forEach(seq => {
             if (seq.children[step]) seq.children[step].classList.add('current');
         });
+
+        this.lastPlayheadStep = step;
     },
 
     clearPlayhead() {
-        document.querySelectorAll('.current').forEach(el => el.classList.remove('current'));
+        const currentElements = document.getElementsByClassName('current');
+        while (currentElements.length > 0) {
+            currentElements[0].classList.remove('current');
+        }
     },
 
     highlightStep(step) {

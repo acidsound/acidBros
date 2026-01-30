@@ -1,4 +1,4 @@
-const CACHE_NAME = 'acidbros-v91';
+const CACHE_NAME = 'acidbros-v94';
 const ASSETS = [
     './',
     './index.html',
@@ -18,7 +18,11 @@ const ASSETS = [
     './js/midi/MidiManager.js',
     './manifest.json',
     './assets/favicon.png',
-    './assets/DSEG7Classic-Bold.woff2'
+    './assets/DSEG7Classic-Bold.woff2',
+    './assets/samples/tr909/hh01.wav',
+    './assets/samples/tr909/oh01.wav',
+    './assets/samples/tr909/cr01.wav',
+    './assets/samples/tr909/rd01.wav'
 ];
 
 self.addEventListener('install', (e) => {

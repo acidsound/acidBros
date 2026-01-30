@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v91
+- **Current Version**: v94
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -17,7 +17,7 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Signal Chain**: `Instruments → Master Compressor → Analyser → Output`
 - **Instruments**:
   - `TB303.js`: Two independent TB-303 units with delay effect
-  - `TR909.js`: Five drum tracks (BD, SD, CH, OH, Clap)
+  - `TR909.js`: Full TR-909 implementation (BD, SD, LT, MT, HT, RS, CH, OH, CR, RD, CP)
 
 ### UI System
 - **Location**: `js/ui/UI.js`
@@ -26,7 +26,9 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - **Interaction**: Vertical drag (up/down) changes values
   - **Touch ID Tracking**: Each knob tracks its specific touch identifier
   - **Double-tap**: Resets to default value
-- **Oscilloscope**: `js/ui/Oscilloscope.js` handles real-time waveform visualization
+- **Oscilloscope**: `js/ui/Oscilloscope.js`
+  - **Power Toggle**: Can be enabled/disabled to save performance (CPU/GPU)
+  - **LOD Rendering**: Downsamples 2048 points to ~512 for efficiency
 - **Data Management**: 
   - `js/data/Data.js`: Handles patterns and song mode
   - `js/data/FileManager.js`: Persistent file storage using localStorage
@@ -63,16 +65,16 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - Ctrl+wheel zoom blocked on desktop
 
 #### 4. Service Worker & PWA
-- **Cache Version**: Currently v70 (increment on each deployment)
+- **Cache Version**: Currently v94 (increment on each deployment)
 - **Strategy**: Cache-first for offline support
-- **Assets**: All JS, CSS, HTML, fonts cached
+- **Assets**: All JS, CSS, HTML, fonts, and core 909 samples (CH/OH/CR/RD) cached
 
 ## File Structure
 ```
 acidBros/
-├── index.html              # Main HTML, includes anti-zoom scripts
-├── styles.css              # All styling, responsive design
-├── sw.js                   # Service worker (cache v70)
+├── index.html              # Main HTML (v94)
+├── styles.css              # Styling with oscilloscope power states
+├── sw.js                   # Service worker (cache v94)
 ├── manifest.json           # PWA manifest
 ├── js/
 │   ├── main.js            # Entry point
@@ -365,6 +367,22 @@ acidBros/
   - Standardized spacing between buttons to 6px.
   - Slightly increased icon stroke-width (2.5px) for better visibility.
 - **Visual Alignment**: Fine-tuned gaps in 303 waveform controls to match the 909 header layout.
+
+### v92: TR-909 Synthesis Restoration
+- **Synthesis Engine**: Transitioned core 909 instruments (BD, SD, Toms, Rim, Clap) from samples back to real-time synthesis.
+- **Improved Randomization**: Musical logic for drum patterns (Fill-in Toms, sparse Cymbals).
+- **Asset Cleanup**: Removed ~1MB of redundant WAV samples to streamline PWA cache.
+
+### v93: Oscilloscope Optimization (Performance)
+- **Power Toggle**: Optimized the oscilloscope to be toggleable via UI.
+- **LOD (Level of Detail)**: Reduced path rendering complexity by 75% through downsampling.
+- **GPU Optimization**: Disabled expensive `shadowBlur` effects.
+- **Visibility Handling**: Automatically pauses rendering loops when tab is hidden.
+
+### v94: UI Consistency & Bug Fixes
+- **Icon Toggles (Restored)**: Re-implemented Trash/Dice icon toggle for both TB-303 and TR-909 based on new user feedback. Empty tracks now correctly show the Dice icon.
+- **909 Playhead Fix**: Resolved frame skipping and timing variance in the 909 sequencer visualization.
+- **Data Robustness**: Added fallback for missing tracks (Crash/Ride) when loading older pattern versions.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

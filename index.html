@@ -87,7 +87,7 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v91</div>
+          <div class="version-display">v94</div>
           <button id="fileManagerBtn" class="transport-icon-btn" title="File Manager" aria-label="File Manager">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
               <path
@@ -155,8 +155,9 @@
           </button>
         </div>
         <div class="tempo-group">
-          <div class="oscilloscope-container">
+          <div class="oscilloscope-container" id="scopeContainer">
             <canvas id="oscilloscope" width="120" height="44"></canvas>
+            <button id="scopeToggle" class="scope-toggle" title="Toggle Oscilloscope (Performance)"></button>
           </div>
           <div class="tempo-container">
             <div id="tempo-knob-container"></div>

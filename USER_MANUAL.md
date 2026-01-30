@@ -24,7 +24,10 @@ The top bar provides the main playback and project controls.
 - **SHARE URL** – Export the current pattern and settings as a shareable link. A toast notification confirms the link is copied.
 - **SETTINGS (⚙️)** – Configure MIDI and keyboard mappings for hands-on control. Click to open the settings panel with MIDI mapping management interface.
 - **SUPPORT (☕️)** – Buy me a coffee. Support the development of AcidBros.
-- **Oscilloscope** – Real-time visual feedback of the audio waveform (green CRT style), located next to the tempo controls.
+- **Oscilloscope** – Real-time visual feedback of the audio waveform.
+  - **Power Toggle**: Click the oscilloscope display to turn it ON or OFF. 
+  - **Performance**: Turning it OFF significantly reduces CPU/GPU usage, which is recommended for low-power mobile devices.
+  - **Visual Indicator**: A small green LED lights up when active. The display dims when deactivated.
 - **TEMPO (BPM)** – Large knob with a 7‑segment LED display (60-200 BPM). Drag vertically to adjust, double‑tap to reset to 125 BPM.
 
 ---

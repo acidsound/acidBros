@@ -258,14 +258,20 @@ export class BinaryFormatEncoder {
     // Helper to write TR-909 Settings
     writeTR909Settings(buffer, offset, tracks) {
         const instruments = [
-            { id: 0x00, key: 'bd', params: ['tune', 'attack', 'decay', 'level'] },
-            { id: 0x01, key: 'sd', params: ['tune', 'snappy', 'decay', 'level'] },
-            { id: 0x02, key: 'ch', params: ['decay', 'level'] },
-            { id: 0x03, key: 'oh', params: ['decay', 'level'] },
-            { id: 0x04, key: 'cp', params: ['decay', 'level'] }
+            { id: 0x00, key: 'bd', params: ['tune', 'level', 'attack', 'decay'] },
+            { id: 0x01, key: 'sd', params: ['tune', 'level', 'tone', 'snappy'] },
+            { id: 0x05, key: 'lt', params: ['tune', 'level', 'decay'] },
+            { id: 0x06, key: 'mt', params: ['tune', 'level', 'decay'] },
+            { id: 0x07, key: 'ht', params: ['tune', 'level', 'decay'] },
+            { id: 0x08, key: 'rs', params: ['level'] },
+            { id: 0x04, key: 'cp', params: ['level'] },
+            { id: 0x02, key: 'ch', params: ['level', 'ch_decay'] },
+            { id: 0x03, key: 'oh', params: ['level', 'oh_decay'] },
+            { id: 0x09, key: 'cr', params: ['level', 'cr_tune'] },
+            { id: 0x0A, key: 'rd', params: ['level', 'rd_tune'] }
         ];
 
-        buffer[offset++] = instruments.length; // 5 instruments
+        buffer[offset++] = instruments.length; // 11 instruments
 
         for (const instr of instruments) {
             const track = tracks[instr.key];
@@ -281,10 +287,10 @@ export class BinaryFormatEncoder {
 
     // Capture TR-909 Settings length
     getTR909SettingsLength() {
-        // 1 (count) + 5 * (1 (id) + 1 (pcount)) = 11 bytes overhead
-        // Params: 4 + 4 + 2 + 2 + 2 = 14 bytes
-        // Total: 25 bytes
-        return 25;
+        // 1 (count) + 11 * (1 (id) + 1 (pcount)) = 23 bytes overhead
+        // Params: 4(bd) + 4(sd) + 3(lt) + 3(mt) + 3(ht) + 1(rs) + 2(ch) + 2(oh) + 3(cr) + 3(rd) + 2(cp) = 30 bytes
+        // Total: 53 bytes
+        return 53;
     }
 
     // Helper to write TR-909 Sequence
@@ -292,8 +298,14 @@ export class BinaryFormatEncoder {
         const instruments = [
             { id: 0x00, key: 'bd' },
             { id: 0x01, key: 'sd' },
+            { id: 0x05, key: 'lt' },
+            { id: 0x06, key: 'mt' },
+            { id: 0x07, key: 'ht' },
+            { id: 0x08, key: 'rs' },
             { id: 0x02, key: 'ch' },
             { id: 0x03, key: 'oh' },
+            { id: 0x09, key: 'cr' },
+            { id: 0x0A, key: 'rd' },
             { id: 0x04, key: 'cp' }
         ];
 
@@ -317,8 +329,8 @@ export class BinaryFormatEncoder {
 
     // Helper to get TR-909 Sequence length
     getTR909SequenceLength() {
-        // 1 (count) + 5 * (1 (id) + 1 (attr count) + 2 (bits)) = 1 + 5*4 = 21 bytes
-        return 21;
+        // 1 (count) + 11 * (1 (id) + 1 (attr count) + 2 (bits)) = 1 + 11*4 = 45 bytes
+        return 45;
     }
 
     // Encode TR-909 Unit Block

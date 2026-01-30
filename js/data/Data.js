@@ -39,11 +39,17 @@ export const Data = {
 
     getDefaultTR909Settings() {
         return {
-            bd: { tune: 50, attack: 50, decay: 50, level: 100 },
-            sd: { tune: 50, snappy: 50, decay: 50, level: 100 },
-            ch: { decay: 50, level: 100 },
-            oh: { decay: 50, level: 100 },
-            cp: { decay: 50, level: 100 }
+            bd: { tune: 50, level: 100, attack: 50, decay: 50 },
+            sd: { tune: 50, level: 100, tone: 50, snappy: 50 },
+            lt: { tune: 50, level: 100, decay: 50 },
+            mt: { tune: 50, level: 100, decay: 50 },
+            ht: { tune: 50, level: 100, decay: 50 },
+            rs: { level: 100 },
+            cp: { level: 100 },
+            ch: { level: 100, ch_decay: 50 },
+            oh: { level: 100, oh_decay: 50 },
+            cr: { level: 100, cr_tune: 50 },
+            rd: { level: 100, rd_tune: 50 }
         };
     },
 
@@ -107,9 +113,15 @@ export const Data = {
                     tracks: {
                         bd: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().bd },
                         sd: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().sd },
+                        lt: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().lt },
+                        mt: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().mt },
+                        ht: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().ht },
+                        rs: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().rs },
+                        cp: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().cp },
                         ch: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().ch },
                         oh: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().oh },
-                        cp: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().cp }
+                        cr: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().cr },
+                        rd: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().rd }
                     }
                 }
             }
@@ -145,20 +157,28 @@ export const Data = {
             if (id === 'tb303_1') return p.units.tb303_1.sequence;
             if (id === 'tb303_2') return p.units.tb303_2.sequence;
             if (id === 'tr909') {
-                // Return in old format for backward compatibility
+                const tracks = p.units.tr909.tracks;
+                const getSteps = (tid) => (tracks[tid] && tracks[tid].steps) ? tracks[tid].steps : Array(16).fill(0);
                 return {
-                    bd: p.units.tr909.tracks.bd.steps,
-                    sd: p.units.tr909.tracks.sd.steps,
-                    ch: p.units.tr909.tracks.ch.steps,
-                    oh: p.units.tr909.tracks.oh.steps,
-                    cp: p.units.tr909.tracks.cp.steps
+                    bd: getSteps('bd'), sd: getSteps('sd'), lt: getSteps('lt'),
+                    mt: getSteps('mt'), ht: getSteps('ht'), rs: getSteps('rs'),
+                    cp: getSteps('cp'), ch: getSteps('ch'), oh: getSteps('oh'),
+                    cr: getSteps('cr'), rd: getSteps('rd')
                 };
             }
         } else {
-            // Old structure fallback
-            if (id === 'tb303_1') return p.seq303_1;
-            if (id === 'tb303_2') return p.seq303_2;
-            if (id === 'tr909') return p.seq909;
+            if (id === 'tb303_1') return p.seq303_1 || Array(16).fill(null);
+            if (id === 'tb303_2') return p.seq303_2 || Array(16).fill(null);
+            if (id === 'tr909') {
+                const seq = p.seq909 || {};
+                const getSteps = (tid) => seq[tid] || Array(16).fill(0);
+                return {
+                    bd: getSteps('bd'), sd: getSteps('sd'), lt: getSteps('lt'),
+                    mt: getSteps('mt'), ht: getSteps('ht'), rs: getSteps('rs'),
+                    cp: getSteps('cp'), ch: getSteps('ch'), oh: getSteps('oh'),
+                    cr: getSteps('cr'), rd: getSteps('rd')
+                };
+            }
         }
         return null;
     },
@@ -256,11 +276,17 @@ export const Data = {
 
     applyTR909Settings(tracks) {
         const knobMap = {
-            bd: { tune: 'bd_p1', attack: 'bd_p2', decay: 'bd_p3', level: 'bd_level' },
-            sd: { tune: 'sd_p1', snappy: 'sd_p2', decay: 'sd_p3', level: 'sd_level' },
-            ch: { decay: 'ch_p1', level: 'ch_level' },
-            oh: { decay: 'oh_p1', level: 'oh_level' },
-            cp: { decay: 'cp_p1', level: 'cp_level' }
+            bd: { tune: 'bd_p1', level: 'bd_level', attack: 'bd_p2', decay: 'bd_p3' },
+            sd: { tune: 'sd_p1', level: 'sd_level', tone: 'sd_p2', snappy: 'sd_p3' },
+            lt: { tune: 'lt_p1', level: 'lt_level', decay: 'lt_p2' },
+            mt: { tune: 'mt_p1', level: 'mt_level', decay: 'mt_p2' },
+            ht: { tune: 'ht_p1', level: 'ht_level', decay: 'ht_p2' },
+            rs: { level: 'rs_level' },
+            cp: { level: 'cp_level' },
+            ch: { level: 'ch_level', ch_decay: 'ch_decay' },
+            oh: { level: 'oh_level', oh_decay: 'oh_decay' },
+            cr: { level: 'cr_level', cr_tune: 'cr_tune' },
+            rd: { level: 'rd_level', rd_tune: 'rd_tune' }
         };
 
         for (const [trackId, params] of Object.entries(knobMap)) {
@@ -323,12 +349,26 @@ export const Data = {
 
     saveTR909Settings(tracks) {
         const knobMap = {
-            bd: { tune: 'bd_p1-input', attack: 'bd_p2-input', decay: 'bd_p3-input', level: 'bd_level-input' },
-            sd: { tune: 'sd_p1-input', snappy: 'sd_p2-input', decay: 'sd_p3-input', level: 'sd_level-input' },
-            ch: { decay: 'ch_p1-input', level: 'ch_level-input' },
-            oh: { decay: 'oh_p1-input', level: 'oh_level-input' },
-            cp: { decay: 'cp_p1-input', level: 'cp_level-input' }
+            bd: { tune: 'bd_p1-input', level: 'bd_level-input', attack: 'bd_p2-input', decay: 'bd_p3-input' },
+            sd: { tune: 'sd_p1-input', level: 'sd_level-input', tone: 'sd_p2-input', snappy: 'sd_p3-input' },
+            lt: { tune: 'lt_p1-input', level: 'lt_level-input', decay: 'lt_p2-input' },
+            mt: { tune: 'mt_p1-input', level: 'mt_level-input', decay: 'mt_p2-input' },
+            ht: { tune: 'ht_p1-input', level: 'ht_level-input', decay: 'ht_p2-input' },
+            rs: { level: 'rs_level-input' },
+            cp: { level: 'cp_level-input' },
+            ch: { level: 'ch_level-input', ch_decay: 'ch_decay-input' },
+            oh: { level: 'oh_level-input', oh_decay: 'oh_decay-input' },
+            cr: { level: 'cr_level-input', cr_tune: 'cr_tune-input' },
+            rd: { level: 'rd_level-input', rd_tune: 'rd_tune-input' }
         };
+
+        // Ensure all tracks exist in the pattern before saving
+        for (const tid of ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp', 'ch', 'oh', 'cr', 'rd']) {
+            if (!tracks[tid]) {
+                const defaults = this.getDefaultTR909Settings()[tid];
+                tracks[tid] = { steps: Array(16).fill(0), ...defaults };
+            }
+        }
 
         for (const [trackId, params] of Object.entries(knobMap)) {
             const track = tracks[trackId];
@@ -622,11 +662,17 @@ export const Data = {
         }
 
         if (!this.unitLocks.tr909) {
-            setK('bd_p1', 10, 60); setK('bd_p2', 30, 80); setK('bd_p3', 60, 100); setK('bd_level', 90, 100);
-            setK('sd_p1', 40, 70); setK('sd_p2', 20, 50); setK('sd_p3', 50, 90); setK('sd_level', 90, 100);
-            setK('ch_p1', 10, 40); setK('ch_level', 90, 100);
-            setK('oh_p1', 40, 80); setK('oh_level', 90, 100);
-            setK('cp_p1', 40, 70); setK('cp_level', 90, 100);
+            setK('bd_p1', 30, 60); setK('bd_level', 90, 100); setK('bd_p2', 30, 80); setK('bd_p3', 40, 70);
+            setK('sd_p1', 40, 70); setK('sd_level', 90, 100); setK('sd_p2', 40, 60); setK('sd_p3', 50, 90);
+            setK('lt_p1', 30, 70); setK('lt_level', 90, 100); setK('lt_p2', 30, 70);
+            setK('mt_p1', 30, 70); setK('mt_level', 90, 100); setK('mt_p2', 30, 70);
+            setK('ht_p1', 30, 70); setK('ht_level', 90, 100); setK('ht_p2', 30, 70);
+            setK('rs_level', 80, 100);
+            setK('cp_level', 80, 100);
+            setK('ch_level', 90, 100); setK('ch_decay', 10, 40);
+            setK('oh_level', 90, 100); setK('oh_decay', 40, 80);
+            setK('cr_level', 90, 100); setK('cr_tune', 40, 60);
+            setK('rd_level', 90, 100); setK('rd_tune', 40, 60);
         }
 
         // Save randomized settings to current pattern
@@ -700,22 +746,62 @@ export const Data = {
             const t = p.units ? {
                 bd: p.units.tr909.tracks.bd.steps,
                 sd: p.units.tr909.tracks.sd.steps,
+                lt: p.units.tr909.tracks.lt.steps,
+                mt: p.units.tr909.tracks.mt.steps,
+                ht: p.units.tr909.tracks.ht.steps,
+                rs: p.units.tr909.tracks.rs.steps,
+                cp: p.units.tr909.tracks.cp.steps,
                 ch: p.units.tr909.tracks.ch.steps,
                 oh: p.units.tr909.tracks.oh.steps,
-                cp: p.units.tr909.tracks.cp.steps
+                cr: p.units.tr909.tracks.cr.steps,
+                rd: p.units.tr909.tracks.rd.steps
             } : p.seq909;
 
-            ['bd', 'sd', 'ch', 'oh', 'cp'].forEach(k => t[k].fill(0));
+            ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp', 'ch', 'oh', 'cr', 'rd'].forEach(k => {
+                if (t[k]) t[k].fill(0);
+            });
 
+            // BD: 4-on-the-floor
             [0, 4, 8, 12].forEach(i => t.bd[i] = 1);
             if (Math.random() > 0.6) t.bd[14] = 1;
             if (Math.random() > 0.85) t.bd[7] = 1;
-            [4, 12].forEach(i => { if (Math.random() > 0.5) t.sd[i] = 1; else t.cp[i] = 1; });
-            if (Math.random() > 0.7) t.sd[15] = 1;
-            if (Math.random() > 0.7) t.sd[6] = 1;
+
+            // SD/CP: Backbeat
+            [4, 12].forEach(i => {
+                if (Math.random() > 0.6) t.sd[i] = 1;
+                else if (Math.random() > 0.4) t.cp[i] = 1;
+            });
+            if (Math.random() > 0.8) t.sd[15] = 1;
+            if (Math.random() > 0.9) t.cp[11] = 1;
+
+            // Hats
             for (let i = 0; i < 16; i++) {
                 if (i % 4 === 2) t.oh[i] = 1;
-                else if (Math.random() > 0.3) t.ch[i] = 1;
+                else if (Math.random() > 0.4) t.ch[i] = 1;
+            }
+
+            // RS & CP (Extra Texture)
+            for (let i = 0; i < 16; i++) {
+                if (Math.random() > 0.9) t.rs[i] = 1;
+                if (Math.random() > 0.92) t.cp[i] = 1;
+            }
+
+            // Toms (Fill-ins): Determine if we should have a fill
+            if (Math.random() > 0.7) {
+                const tomTracks = ['lt', 'mt', 'ht'];
+                const tomTrack = tomTracks[Math.floor(Math.random() * tomTracks.length)];
+                // Place a fill at the end
+                [11, 12, 13, 14, 15].forEach(i => {
+                    if (Math.random() > 0.4) t[tomTrack][i] = 1;
+                });
+            }
+
+            // Cymbals (Scene transitions): Determine if we have cymbals
+            if (Math.random() > 0.8) {
+                const cym = Math.random() > 0.5 ? 'cr' : 'rd';
+                t[cym][0] = 1; // Start of pattern
+                // Very rare extra hit
+                if (Math.random() > 0.9) t[cym][12] = 1;
             }
         }
 
@@ -747,7 +833,7 @@ export const Data = {
         this.saveCurrentSettingsToPattern();
 
         const state = {
-            ver: 4,
+            ver: 5,
             bpm: AudioEngine.tempo,
             swing: AudioEngine.swing,
             mode: this.mode,

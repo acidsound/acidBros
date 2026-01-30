@@ -791,6 +791,34 @@ h3 {
     box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
     position: relative;
     overflow: hidden;
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+
+.oscilloscope-container.disabled {
+    opacity: 0.4;
+    background: #000;
+}
+
+.scope-toggle {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0f0;
+    border: none;
+    padding: 0;
+    box-shadow: 0 0 5px #0f0;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s;
+}
+
+.oscilloscope-container.disabled .scope-toggle {
+    background: #333;
+    box-shadow: none;
 }
 
 .oscilloscope-container::before {
@@ -924,9 +952,21 @@ h3 {
     position: relative;
 }
 
-.step-303.current {
-    background: linear-gradient(to bottom, #ffeb3b, #fbc02d);
-    box-shadow: 0 0 5px #ff3333;
+/* Beat grouping for 303: First 4 and 9-12 white/grey, next 4 and 13-16 orange-ish to match 909 */
+.sequencer-303 .step-303:nth-child(-n+4),
+.sequencer-303 .step-303:nth-child(n+9):nth-child(-n+12) {
+    background: linear-gradient(to bottom, #f0f0f0, #dcdcdc);
+}
+
+.sequencer-303 .step-303:nth-child(n+5):nth-child(-n+8),
+.sequencer-303 .step-303:nth-child(n+13) {
+    background: linear-gradient(to bottom, #ffccaa, #ffaa88);
+}
+
+.sequencer-303 .step-303.current {
+    background: linear-gradient(to bottom, #ffeb3b, #fbc02d) !important;
+    box-shadow: 0 0 5px #ff3333, inset 0 0 10px rgba(255, 255, 255, 0.5);
+    z-index: 10;
 }
 
 /* Knob Tooltip */
@@ -1372,10 +1412,10 @@ h3 {
     box-shadow: 0 0 5px #fff;
 }
 
-.step-909.current {
+.sequencer-909 .step-909.current {
     border: 2px solid #ffff00;
-    box-shadow: 0 0 8px #ffff00;
-    z-index: 10;
+    box-shadow: 0 0 10px #ffff00, inset 0 0 5px #ffff00;
+    z-index: 20;
 }
 
 /* --- Advanced Note Editor Popover --- */

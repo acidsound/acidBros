@@ -46,7 +46,11 @@ export const AudioEngine = {
             // Initialize Instruments
             this.addInstrument('tb303_1', new TB303(this.ctx, this.master));
             this.addInstrument('tb303_2', new TB303(this.ctx, this.master));
-            this.addInstrument('tr909', new TR909(this.ctx, this.master));
+            const tr909 = new TR909(this.ctx, this.master);
+            this.addInstrument('tr909', tr909);
+
+            // Fetch 909 samples
+            await tr909.initBuffers();
 
             // --- AudioWorklet Setup ---
             if (this.ctx.audioWorklet) {
@@ -318,6 +322,20 @@ export const AudioEngine = {
         const inst = this.instruments.get(id);
         if (inst) {
             inst.playStep(time, step, params, null, this.tempo);
+        }
+    },
+
+    voice909(time, type, params) {
+        const inst = this.instruments.get('tr909');
+        if (inst) {
+            if (type === 'bd') inst.playBD(time, params.bd);
+            if (type === 'sd') inst.playSD(time, params.sd);
+            if (type === 'lt' || type === 'mt' || type === 'ht') inst.playTom(time, type, params[type]);
+            if (type === 'ch') inst.playHat(time, false, params.ch);
+            if (type === 'oh') inst.playHat(time, true, params.oh);
+            if (type === 'cr' || type === 'rd') inst.playCym(time, type, params[type]);
+            if (type === 'rs') inst.playRim(time, params.rs);
+            if (type === 'cp') inst.playCP(time, params.cp);
         }
     },
 
