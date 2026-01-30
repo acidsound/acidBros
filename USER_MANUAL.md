@@ -126,11 +126,15 @@ The drum section provides classic 909 sounds.
 ### Drum Tracks
 Each track has dedicated parameter knobs and a level control:
 
-- **BASS DRUM (BD)** – Kick with Tune, Decay, Attack, Level.
-- **SNARE DRUM (SD)** – Snare with Tune, Tone, Snappy, Level.
-- **CLOSED HAT (CH)** – Short hat with Decay, Level.
-- **OPEN HAT (OH)** – Long hat with Decay, Level.
-- **CLAP (CP)** – Hand clap with Decay, Level.
+- **BASS DRUM (BD)** – Kick with Tune, Level, Attack, Decay.
+- **SNARE DRUM (SD)** – Snare with Tune, Level, Tone, Snappy.
+- **LOW TOM (LT) / MID TOM (MT) / HIGH TOM (HT)** – Pitch-sweeping toms with Tune, Level, Decay.
+- **RIM SHOT (RS)** – Percussive rim sound with Level control.
+- **HAND CLAP (CP)** – Classic 909 clap with Level control.
+- **CLOSED HAT (CH)** – Short hat with Level, Decay, Tune.
+- **OPEN HAT (OH)** – Long hat with Level, Decay.
+- **CRASH (CR)** – Crash cymbal with Level, Tune.
+- **RIDE (RD)** – Ride cymbal with Level, Tune.
 
 ### Sequencer Grid
 Each track has its own 16‑step grid. Active steps glow orange/yellow; inactive steps remain dark.
