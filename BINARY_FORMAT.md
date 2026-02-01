@@ -27,6 +27,7 @@ Each block starts with a 3-byte header:
 | 0x00 | End of Data | Marks the end of the data stream |
 | 0x01 | Global Settings | Tempo, swing, mode, song sequence |
 | 0x02 | Unit Block | Complete data for one synth unit (settings + patterns) |
+| 0x03 | Metadata Block | Track visibility and custom sample mappings |
 
 ---
 
@@ -398,17 +399,48 @@ When decoding:
 
 ## Default Values
 
-If blocks are missing during decoding:
-| Setting | Default Value |
-|---------|---------------|
-| Tempo | 125 BPM |
-| Swing | 50% |
-| Mode | Pattern mode |
-| TB-303 Waveform | Sawtooth (0x00) |
-| TB-303 Parameters | Application defaults |
-| TR-909 Parameters | Application defaults |
 | Pattern data | All steps inactive |
 | Song sequence | Pattern 0 only |
+| Active tracks | BD only |
+
+---
+
+## Metadata Block Details (0x03)
+
+This block stores UI state and metadata that doesn't fit into patterns, such as track visibility and custom sample mappings.
+
+```
+[0x03][Length (2 bytes)][ActiveTracks (2 bytes)][MapCount (1 byte)][Mapping 0]...[Mapping N]
+```
+
+### Fields
+
+| Field | Size | Description |
+| :--- | :--- | :--- |
+| **ActiveTracks** | 2 bytes | Bitmask of visible tracks (Little-Endian). Bit 0 = BD, Bit 1 = SD, etc. |
+| **MapCount** | 1 byte | Number of custom sample mappings. |
+| **Mapping** | Varies | Custom sample mapping entry. |
+
+### ActiveTracks Bitmask Order
+1.  Bit 0: BD
+2.  Bit 1: SD
+3.  Bit 2: LT
+4.  Bit 3: MT
+5.  Bit 4: HT
+6.  Bit 5: RS
+7.  Bit 6: CP
+8.  Bit 7: CH
+9.  Bit 8: OH
+10. Bit 9: CR
+11. Bit 10: RD
+
+### Mapping Entry Structure
+```
+[TrackIndex (1 byte)][IDLength (1 byte)][SampleID (N bytes)]
+```
+- **TrackIndex**: matches the bitmask order (0=BD, 1=SD, etc).
+- **IDLength**: Number of characters in the SampleID.
+- **SampleID**: Character-based identifier for the sample (used to look up in IndexedDB).
 
 ---
 

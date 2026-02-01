@@ -8,6 +8,7 @@ export class BinaryFormatEncoder {
         this.BLOCK_END = 0x00;
         this.BLOCK_GLOBAL = 0x01;
         this.BLOCK_UNIT = 0x02;
+        this.BLOCK_METADATA = 0x03;
 
         // Unit Types
         this.UNIT_TB303 = 0x01;
@@ -81,6 +82,9 @@ export class BinaryFormatEncoder {
         // TR-909 Unit Block
         buffers.push(this.encodeTR909UnitBlock(state, 0, allPatterns, this.MODE_FULL));
 
+        // Metadata Block
+        buffers.push(this.encodeMetadataBlock(state));
+
         // End Block
         buffers.push(new Uint8Array([this.BLOCK_END, 0x00, 0x00]));
 
@@ -104,6 +108,9 @@ export class BinaryFormatEncoder {
 
         // TR-909 Unit
         buffers.push(this.encodeTR909UnitBlock(state, 0, patternIndices, this.MODE_PATTERN));
+
+        // Metadata Block
+        buffers.push(this.encodeMetadataBlock(state));
 
         // End Block
         buffers.push(new Uint8Array([this.BLOCK_END, 0x00, 0x00]));
@@ -130,6 +137,50 @@ export class BinaryFormatEncoder {
                 buffer[8 + i] = state.song[i] & 0x0F;
             }
         }
+
+    }
+
+    // Encode Metadata Block (0x03)
+    // Format: [ActiveTracksUint16Bits][CustomMapCount][{TrackIdByte}{SampleIdString...}]
+    encodeMetadataBlock(state) {
+        const order = ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp', 'ch', 'oh', 'cr', 'rd'];
+        let activeBits = 0;
+        if (state.active909Tracks) {
+            state.active909Tracks.forEach(tid => {
+                const idx = order.indexOf(tid);
+                if (idx !== -1) activeBits |= (1 << idx);
+            });
+        } else {
+            activeBits = 1; // BD only
+        }
+
+        const customMap = state.customSampleMap || {};
+        const mapEntries = Object.entries(customMap);
+
+        // Estimate length: 2 (activeBits) + 1 (mapCount) + MapSize
+        let mapSize = 0;
+        mapEntries.forEach(([tid, sid]) => {
+            mapSize += 1; // Track index
+            mapSize += 1; // String length byte
+            mapSize += sid.length;
+        });
+
+        const dataLength = 3 + mapSize;
+        const buffer = new Uint8Array(3 + dataLength);
+        this.writeBlockHeader(buffer, 0, this.BLOCK_METADATA, dataLength);
+
+        this.writeUint16LE(buffer, 3, activeBits);
+        buffer[5] = mapEntries.length;
+
+        let offset = 6;
+        mapEntries.forEach(([tid, sid]) => {
+            const idx = order.indexOf(tid);
+            buffer[offset++] = idx !== -1 ? idx : 0xFF;
+            buffer[offset++] = sid.length;
+            for (let i = 0; i < sid.length; i++) {
+                buffer[offset++] = sid.charCodeAt(i);
+            }
+        });
 
         return buffer;
     }

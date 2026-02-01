@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v94
+- **Current Version**: v96
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -119,6 +119,21 @@ acidBros/
 - **Solution**: Hard refresh (Cmd+Shift+R) or clear cache
 - **Check**: Version display in transport controls
 
+## Documentation Maintenance
+To ensure project health and consistency, relevant documentation MUST be updated whenever functional or structural changes occur.
+
+| File | Purpose | Update Trigger |
+| :--- | :--- | :--- |
+| **`.agent/PROJECT_CONTEXT.md`** | Source of truth for agents. | **Required for EVERY change.** Update `Recent Changes` and `Architecture` sections. |
+| **`.agent/DESIGN_GUIDE.md`** | UI/UX standards and typography. | Any new component, modal, or styling pattern. **MUST be referenced for all UI work.** |
+| **`.qwen/PROJECT_SUMMARY.md`** | High-level technical summary. | Major feature additions or architectural shifts. |
+| **`BINARY_FORMAT.md`** | Data structure spec. | Any change to how patterns, settings, or project states are encoded/saved. |
+| **`USER_MANUAL.md` / `_ko.md`** | End-user instructions. | UI changes, new controls, or feature workflows. |
+| **`LEARNING_GUIDE.md`** | Beginner tutorials. | Changes affecting the "getting started" experience or core concepts. |
+| **`SYNTH_ARCHITECTURE.md`**| Detailed audio/logic spec. | Internal logic changes in TR-909 or TB-303 engines. |
+| **`README.md`** | Project landing page. | Major version bumps or dependency changes. |
+
+
 ## Deployment Workflow
 1. Make changes
 2. Update version in 3 places:
@@ -146,7 +161,7 @@ acidBros/
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v91)
+## Recent Changes (v57-v96)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -383,6 +398,24 @@ acidBros/
 - **Icon Toggles (Restored)**: Re-implemented Trash/Dice icon toggle for both TB-303 and TR-909 based on new user feedback. Empty tracks now correctly show the Dice icon.
 - **909 Playhead Fix**: Resolved frame skipping and timing variance in the 909 sequencer visualization.
 - **Data Robustness**: Added fallback for missing tracks (Crash/Ride) when loading older pattern versions.
+
+### v96: TR-909 Synthesis Refinement & shared Noise Fix
+- **BD Refinement**: Calibrated TUNE knob for pitch decay control (neutral at 40), softened click impact, and fixed master level mapping.
+- **SD Refinement**: Implemented dual Triangle VCO (1:1.62 ratio) and 20ms pitch bend for hardware accuracy.
+- **Shared Noise Fix**: Investigated and reverted the Shared Noise Bus architecture due to connection accumulation issues; restored per-trigger individual noise sources to prevent leakage.
+- **Improved Documentation**: Updated `SYNTH_ARCHITECTURE.md` with detailed 909 synthesis specs and signal flow diagrams.
+
+### v95: TR-909 Refinement & Custom Samples
+- **Refined Track Management**:
+    - Replaced "Add Track" text with a percussion icon button for better aesthetic fit.
+    - Grouped drum selection modal into **Synthesis** and **Factory Samples** categories.
+    - Added ability to remove tracks (BD remains locked as primary).
+- **Custom Sample Support**:
+    - **SampleStore.js**: Implemented IndexedDB storage for persisting custom audio files.
+    - **Upload & Mapping**: Users can upload audio files and map them to any 909 track.
+    - **Visual Feedback**: Custom tracks are highlighted with a "(CUSTOM)" label and golden accent.
+- **Binary Format v5**: Updated encoder/decoder and spec to support **Block 0x03 (Metadata)**, persisting active track visibility and sample mappings across saves.
+- **Documentation Guide**: Added explicit guide for mandatory documentation updates in `PROJECT_CONTEXT.md`.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

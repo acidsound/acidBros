@@ -1,0 +1,203 @@
+# acidBros Design Guide
+
+This document defines the visual and interaction design standards for the acidBros application. All new features and UI components **MUST** adhere to these guidelines.
+
+---
+
+## 1. Typography
+
+### Font Family
+- **Primary Font**: `'Arial Narrow', 'Helvetica Neue', Arial, sans-serif`
+- **LCD Display Font**: `'DSEG7Classic'` (7-segment only)
+
+### Font Rules
+- **Do NOT use multiple font families** within the same view or modal.
+- **Do NOT use inline styles for typography**. All text styles must be defined in `styles.css`.
+- Consistent font-size hierarchy:
+  | Element | Size | Weight | Use Case |
+  | :--- | :--- | :--- | :--- |
+  | Modal Title | 14px | Bold | `.modal-title` |
+  | Section Header | 10-11px | Bold | `.section-header` |
+  | Body / Labels | 12-14px | Normal/Bold | General text |
+  | Small Text | 10px | Bold | Labels, annotations |
+
+---
+
+## 2. Colors
+
+### Core Palette
+| Name | Variable | Hex | Usage |
+| :--- | :--- | :--- | :--- |
+| Background Main | `--bg-main` | `#111` | Page background |
+| Rack Background | `--rack-bg` | `#222` | Machine panels |
+| Accent Gold | - | `#ffcc00` | Active states, highlights, buttons |
+| Accent Gold Hover | - | `#ffdb4d` | Hover states |
+| Text Primary | - | `#ddd` | Main text |
+| Text Secondary | - | `#888` | Labels, section headers |
+| Border Dark | - | `#333`, `#444` | Dividers, modal borders |
+| Active Content BG | - | `rgba(255, 204, 0, 0.05)` | Selected items |
+
+### State Colors
+| State | Color | Application |
+| :--- | :--- | :--- |
+| Active/Selected | `#ffcc00` | Borders, text, checkmarks |
+| Inactive | `#444` | Default state |
+| Locked/Disabled | `opacity: 0.5` | Non-interactive elements |
+| Error/Alert | `#ff5555` | Destructive actions |
+
+---
+
+## 3. Component Standards
+
+### 3.1 Modal / Popover
+- **Structure**:
+  ```
+  .piano-overlay (backdrop)
+    └── .modal (or .add-track-modal, .note-editor, etc.)
+          ├── .modal-header
+          ├── .modal-body
+          └── .modal-footer (optional)
+  ```
+- **Header Class**: `.modal-header` (defined below)
+- **Background**: `#222`
+- **Border**: `1px solid #444`
+- **Border Radius**: `8px`
+- **Box Shadow**: `0 20px 50px rgba(0,0,0,0.9)`
+
+### 3.2 Modal Header (`.modal-header`)
+```css
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #333;
+    border-bottom: 1px solid #444;
+}
+
+.modal-header .modal-title {
+    margin: 0;
+    color: #ddd;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+```
+
+### 3.3 Close Button (`.close-btn`)
+```css
+.close-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 20px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: #fff;
+}
+```
+
+### 3.4 Apply / Action Button (`.apply-btn`)
+```css
+.apply-btn {
+    width: 100%;
+    padding: 12px;
+    background: #ffcc00;
+    border: none;
+    border-radius: 4px;
+    color: #000;
+    font-weight: bold;
+    font-size: 13px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.apply-btn:hover {
+    background: #ffdb4d;
+    box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3);
+}
+```
+
+---
+
+## 4. Icon Guidelines
+
+### 4.1 General
+- Prefer SVG for all icons.
+- Standard sizes: `18x18`, `22x22`, `32x32` pixels.
+- Stroke-based icons should use `stroke-width: 2`.
+- Color inherits from `currentColor` for flexibility.
+
+### 4.2 Drum Kit Icons
+Use recognizable, instrument-specific line-art icons.
+
+| ID | Instrument | Icon Description |
+| :--- | :--- | :--- |
+| `bd` | Bass Drum | Front view of circular drum with support legs and kick pedal. |
+| `sd` | Snare Drum | Drum with stick hitting the center of the head. |
+| `lt` | Low Tom | Floor tom drum. |
+| `mt` | Mid Tom | Medium rack tom. |
+| `ht` | High Tom | Small rack tom. |
+| `rs` | Rim Shot | Snare drum with drumstick lying across the rim diagonally. |
+| `cp` | Hand Clap | Clapping hands emoji (OpenMoji black variant). |
+| `ch` | Closed Hi-Hat | Two cymbals closed on a stand, with overlapping opaque bodies. |
+| `oh` | Open Hi-Hat | Two cymbals open on a stand, with the top one partially covering the bottom. |
+| `cr` | Crash Cymbal | Angled cymbal on a stand, side/angled view. |
+| `rd` | Ride Cymbal | Angled cymbal on a stand with a bell, being hit by a stick. |
+
+---
+
+## 5. Spacing & Layout
+
+### Grid and List Items
+- Use `gap: 1px` with a darker background (`#333`) for grid borders.
+- Item padding: `12px 15px` standard.
+- Section headers: `padding: 12px 15px`, `background: #1a1a1a`.
+
+### Row Consistency
+- All rows in a list (e.g., drum tracks, settings) should use the same class for consistent spacing.
+- Example: `.drum-track-row`, `.add-track-row` should share layout rules.
+
+---
+
+## 6. Interaction States
+
+### Toggle / Checkbox Items
+- **Inactive**: Default background, text `#ddd`, checkmark `○`.
+- **Active**: Background `rgba(255, 204, 0, 0.05)`, text `#ffcc00`, checkmark `●`.
+- **Locked**: `opacity: 0.5`, `cursor: default`.
+
+### Buttons
+- **Default**: Background `#444`, border `#555`, text `#ddd`.
+- **Hover**: Background `#555`, border `#ffcc00`, text `#ffcc00`.
+- **Active/Pressed**: Slight inward shadow or scale.
+
+---
+
+## 7. Avoiding Common Mistakes
+
+| ❌ Don't | ✅ Do |
+| :--- | :--- |
+| Use inline styles (`style="..."`) | Define in `styles.css` |
+| Mix multiple font families | Stick to `Arial Narrow` |
+| Use hardcoded colors | Use CSS variables or constants |
+| Create new one-off header classes | Reuse `.modal-header` |
+| Leave unrelated button margins | Ensure component self-containment |
+
+---
+
+## 8. File Reference
+
+| File | Purpose |
+| :--- | :--- |
+| `styles.css` | All component and utility styles |
+| `.agent/DESIGN_GUIDE.md` | This document (source of truth) |
+| `.agent/PROJECT_CONTEXT.md` | Architecture and feature context |
+
+---
+
+*Last Updated: 2026-02-01*

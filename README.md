@@ -38,7 +38,7 @@
   * Piano Roll Note Selection: intuitive pop‑over keyboard with step navigation.
   * Monophonic Logic: authentic slide and gate behavior.
 * **TR‑909 Emulation**:
-  * Five drum tracks: Bass Drum, Snare Drum, Closed Hat, Open Hat, Clap.
+  * Comprehensive TR-909 implementation with 11 drum tracks: Bass Drum, Snare Drum, Low/Mid/High Toms, Rim Shot, Hand Clap, Closed/Open Hats, Crash, and Ride cymbals.
   * Individual parameter controls and Level knobs for each drum sound.
   * 16‑step grid sequencer for each track.
   * Clear/Randomize toggle button for quick drum pattern creation.

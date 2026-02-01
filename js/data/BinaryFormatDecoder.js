@@ -8,6 +8,7 @@ export class BinaryFormatDecoder {
         this.BLOCK_END = 0x00;
         this.BLOCK_GLOBAL = 0x01;
         this.BLOCK_UNIT = 0x02;
+        this.BLOCK_METADATA = 0x03;
 
         // Unit Types
         this.UNIT_TB303 = 0x01;
@@ -85,6 +86,10 @@ export class BinaryFormatDecoder {
 
                 case this.BLOCK_UNIT:
                     this.parseUnitBlock(buffer, offset, header.length, state);
+                    break;
+
+                case this.BLOCK_METADATA:
+                    this.parseMetadataBlock(buffer, offset, header.length, state);
                     break;
 
                 case this.BLOCK_END:
@@ -198,6 +203,42 @@ export class BinaryFormatDecoder {
             state.song = [];
             for (let i = 0; i < songLength; i++) {
                 state.song.push(buffer[offset + 5 + i] & 0x0F);
+            }
+        }
+    }
+
+    // Parse Metadata Block (0x03)
+    parseMetadataBlock(buffer, offset, length, state) {
+        if (length < 3) return;
+
+        const activeBits = this.readUint16LE(buffer, offset);
+        const mapCount = buffer[offset + 2];
+
+        const order = ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp', 'ch', 'oh', 'cr', 'rd'];
+
+        // Restore active tracks
+        state.active909Tracks = [];
+        for (let i = 0; i < 16; i++) {
+            if (activeBits & (1 << i)) {
+                if (order[i]) state.active909Tracks.push(order[i]);
+            }
+        }
+        if (state.active909Tracks.length === 0) state.active909Tracks = ['bd'];
+
+        // Restore custom mapping
+        state.customSampleMap = {};
+        let pos = offset + 3;
+        for (let i = 0; i < mapCount && pos < offset + length; i++) {
+            const trackIdx = buffer[pos++];
+            const nameLen = buffer[pos++];
+
+            let sampleId = '';
+            for (let j = 0; j < nameLen && pos < offset + length; j++) {
+                sampleId += String.fromCharCode(buffer[pos++]);
+            }
+
+            if (order[trackIdx]) {
+                state.customSampleMap[order[trackIdx]] = sampleId;
             }
         }
     }

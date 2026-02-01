@@ -17,6 +17,8 @@ export const Data = {
         tb303_2: false,
         tr909: false
     },
+    active909Tracks: ['bd'], // Default list of visible 909 tracks
+    customSampleMap: {}, // trackId -> customSampleId (saved globally)
 
     // Pattern Bank (16 Patterns)
     patterns: [],
@@ -45,7 +47,7 @@ export const Data = {
             mt: { tune: 50, level: 100, decay: 50 },
             ht: { tune: 50, level: 100, decay: 50 },
             rs: { level: 100 },
-            cp: { level: 100 },
+            cp: { level: 100, decay: 50 },
             ch: { level: 100, ch_decay: 50 },
             oh: { level: 100, oh_decay: 50 },
             cr: { level: 100, cr_tune: 50 },
@@ -78,6 +80,12 @@ export const Data = {
                 if (parsed.unitLocks) {
                     this.unitLocks = { ...this.unitLocks, ...parsed.unitLocks };
                 }
+                if (parsed.active909Tracks) {
+                    this.active909Tracks = parsed.active909Tracks;
+                }
+                if (parsed.customSampleMap) {
+                    this.customSampleMap = parsed.customSampleMap;
+                }
             }
         } catch (e) {
             console.warn('Failed to load settings:', e);
@@ -88,7 +96,9 @@ export const Data = {
         try {
             localStorage.setItem('acidbros-settings', JSON.stringify({
                 keepSoundSettings: this.keepSoundSettings,
-                unitLocks: this.unitLocks
+                unitLocks: this.unitLocks,
+                active909Tracks: this.active909Tracks,
+                customSampleMap: this.customSampleMap
             }));
         } catch (e) {
             console.warn('Failed to save settings:', e);
@@ -124,7 +134,9 @@ export const Data = {
                         rd: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().rd }
                     }
                 }
-            }
+            },
+            // Metadata for tracks (source, custom sample ID)
+            tr909Meta: {}
         };
     },
 
@@ -587,9 +599,9 @@ export const Data = {
         const tr909_map = {
             bd: { 'bd_p1-input': 'tune', 'bd_p2-input': 'attack', 'bd_p3-input': 'decay', 'bd_level-input': 'level' },
             sd: { 'sd_p1-input': 'tune', 'sd_p2-input': 'snappy', 'sd_p3-input': 'decay', 'sd_level-input': 'level' },
-            ch: { 'ch_p1-input': 'decay', 'ch_level-input': 'level' },
-            oh: { 'oh_p1-input': 'decay', 'oh_level-input': 'level' },
-            cp: { 'cp_p1-input': 'decay', 'cp_level-input': 'level' }
+            ch: { 'ch_decay-input': 'decay', 'ch_level-input': 'level', 'ch_tune-input': 'tune' },
+            oh: { 'oh_decay-input': 'decay', 'oh_level-input': 'level', 'oh_tune-input': 'tune' },
+            cp: { 'cp_decay-input': 'decay', 'cp_level-input': 'level' }
         };
 
         for (const [trackId, params] of Object.entries(tr909_map)) {
@@ -662,17 +674,24 @@ export const Data = {
         }
 
         if (!this.unitLocks.tr909) {
-            setK('bd_p1', 30, 60); setK('bd_level', 90, 100); setK('bd_p2', 30, 80); setK('bd_p3', 40, 70);
-            setK('sd_p1', 40, 70); setK('sd_level', 90, 100); setK('sd_p2', 40, 60); setK('sd_p3', 50, 90);
-            setK('lt_p1', 30, 70); setK('lt_level', 90, 100); setK('lt_p2', 30, 70);
-            setK('mt_p1', 30, 70); setK('mt_level', 90, 100); setK('mt_p2', 30, 70);
-            setK('ht_p1', 30, 70); setK('ht_level', 90, 100); setK('ht_p2', 30, 70);
-            setK('rs_level', 80, 100);
-            setK('cp_level', 80, 100);
-            setK('ch_level', 90, 100); setK('ch_decay', 10, 40);
-            setK('oh_level', 90, 100); setK('oh_decay', 40, 80);
-            setK('cr_level', 90, 100); setK('cr_tune', 40, 60);
-            setK('rd_level', 90, 100); setK('rd_tune', 40, 60);
+            this.active909Tracks.forEach(tid => {
+                const knobMap = {
+                    bd: [['bd_p1', 30, 60], ['bd_level', 90, 100], ['bd_p2', 30, 80], ['bd_p3', 40, 70]],
+                    sd: [['sd_p1', 40, 70], ['sd_level', 90, 100], ['sd_p2', 40, 60], ['sd_p3', 50, 90]],
+                    lt: [['lt_p1', 30, 70], ['lt_level', 90, 100], ['lt_p2', 30, 70]],
+                    mt: [['mt_p1', 30, 70], ['mt_level', 90, 100], ['mt_p2', 30, 70]],
+                    ht: [['ht_p1', 30, 70], ['ht_level', 90, 100], ['ht_p2', 30, 70]],
+                    rs: [['rs_level', 80, 100]],
+                    cp: [['cp_level', 80, 100]],
+                    ch: [['ch_level', 90, 100], ['ch_decay', 10, 40], ['ch_tune', 30, 70]],
+                    oh: [['oh_level', 90, 100], ['oh_decay', 40, 80], ['oh_tune', 30, 70]],
+                    cr: [['cr_level', 90, 100], ['cr_tune', 40, 60]],
+                    rd: [['rd_level', 90, 100], ['rd_tune', 40, 60]]
+                };
+                if (knobMap[tid]) {
+                    knobMap[tid].forEach(k => setK(k[0], k[1], k[2]));
+                }
+            });
         }
 
         // Save randomized settings to current pattern
@@ -761,36 +780,41 @@ export const Data = {
                 if (t[k]) t[k].fill(0);
             });
 
-            // BD: 4-on-the-floor
-            [0, 4, 8, 12].forEach(i => t.bd[i] = 1);
-            if (Math.random() > 0.6) t.bd[14] = 1;
-            if (Math.random() > 0.85) t.bd[7] = 1;
+            // BD: 4-on-the-floor (Always randomized if in activeTracks, though BD is usually always there)
+            if (this.active909Tracks.includes('bd')) {
+                [0, 4, 8, 12].forEach(i => t.bd[i] = 1);
+                if (Math.random() > 0.6) t.bd[14] = 1;
+                if (Math.random() > 0.85) t.bd[7] = 1;
+            }
 
             // SD/CP: Backbeat
-            [4, 12].forEach(i => {
-                if (Math.random() > 0.6) t.sd[i] = 1;
-                else if (Math.random() > 0.4) t.cp[i] = 1;
-            });
-            if (Math.random() > 0.8) t.sd[15] = 1;
-            if (Math.random() > 0.9) t.cp[11] = 1;
+            if (this.active909Tracks.includes('sd') || this.active909Tracks.includes('cp')) {
+                [4, 12].forEach(i => {
+                    if (this.active909Tracks.includes('sd') && Math.random() > 0.6) t.sd[i] = 1;
+                    else if (this.active909Tracks.includes('cp') && Math.random() > 0.4) t.cp[i] = 1;
+                });
+                if (this.active909Tracks.includes('sd') && Math.random() > 0.8) t.sd[15] = 1;
+                if (this.active909Tracks.includes('cp') && Math.random() > 0.9) t.cp[11] = 1;
+            }
 
             // Hats
-            for (let i = 0; i < 16; i++) {
-                if (i % 4 === 2) t.oh[i] = 1;
-                else if (Math.random() > 0.4) t.ch[i] = 1;
+            if (this.active909Tracks.includes('oh') || this.active909Tracks.includes('ch')) {
+                for (let i = 0; i < 16; i++) {
+                    if (this.active909Tracks.includes('oh') && i % 4 === 2) t.oh[i] = 1;
+                    else if (this.active909Tracks.includes('ch') && Math.random() > 0.4) t.ch[i] = 1;
+                }
             }
 
             // RS & CP (Extra Texture)
             for (let i = 0; i < 16; i++) {
-                if (Math.random() > 0.9) t.rs[i] = 1;
-                if (Math.random() > 0.92) t.cp[i] = 1;
+                if (this.active909Tracks.includes('rs') && Math.random() > 0.9) t.rs[i] = 1;
+                if (this.active909Tracks.includes('cp') && Math.random() > 0.92) t.cp[i] = 1;
             }
 
-            // Toms (Fill-ins): Determine if we should have a fill
-            if (Math.random() > 0.7) {
-                const tomTracks = ['lt', 'mt', 'ht'];
-                const tomTrack = tomTracks[Math.floor(Math.random() * tomTracks.length)];
-                // Place a fill at the end
+            // Toms (Fill-ins)
+            const availableToms = ['lt', 'mt', 'ht'].filter(tid => this.active909Tracks.includes(tid));
+            if (availableToms.length > 0 && Math.random() > 0.7) {
+                const tomTrack = availableToms[Math.floor(Math.random() * availableToms.length)];
                 [11, 12, 13, 14, 15].forEach(i => {
                     if (Math.random() > 0.4) t[tomTrack][i] = 1;
                 });
@@ -820,7 +844,9 @@ export const Data = {
             currentPatternId: this.currentPatternId,
             patterns: this.patterns,
             song: this.song,
-            midi: MidiManager.mappings
+            midi: MidiManager.mappings,
+            active909Tracks: this.active909Tracks,
+            customSampleMap: this.customSampleMap
         };
 
         const encoder = new BinaryFormatEncoder();
@@ -840,7 +866,9 @@ export const Data = {
             currentPatternId: this.currentPatternId,
             patterns: this.patterns,
             song: this.song,
-            midi: MidiManager.mappings
+            midi: MidiManager.mappings,
+            active909Tracks: this.active909Tracks,
+            customSampleMap: this.customSampleMap
         };
 
         const encoder = new BinaryFormatEncoder();
@@ -899,6 +927,14 @@ export const Data = {
 
             // Handle song
             this.song = state.song || [0];
+
+            // Handle metadata
+            if (state.active909Tracks) this.active909Tracks = state.active909Tracks;
+            if (state.customSampleMap) {
+                this.customSampleMap = state.customSampleMap;
+                const tr909 = AudioEngine.instruments.get('tr909');
+                if (tr909) tr909.setCustomSampleMap(this.customSampleMap);
+            }
 
             // Apply settings from current pattern
             this.applyPatternSettings(this.currentPatternId);

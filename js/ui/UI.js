@@ -8,6 +8,51 @@ import { MidiManager } from '../midi/MidiManager.js';
 export const UI = {
     isInitialized: false,
 
+    svgIcon(id) {
+        const icons = {
+            add: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+            settings: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
+            // Drum Machine Icons (Updated based on reference image: circular front view with legs and pedal)
+            bd: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="8"></circle><path d="M8 17l-1 3M16 17l1 3"></path><path d="M10 22h4"></path><path d="M12 22v-6"></path><circle cx="12" cy="16" r="2"></circle></svg>`,
+            sd: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="9" rx="8" ry="3"></ellipse><path d="M4 9v7c0 1.66 3.58 3 8 3s8-1.34 8-3V9"></path><line x1="18" y1="3" x2="12" y2="9" stroke-width="2"></line></svg>`,
+            lt: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="10" rx="8" ry="5"></ellipse><path d="M4 10v6c0 2.5 3.5 4 8 4s8-1.5 8-4v-6"></path></svg>`,
+            mt: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="10" rx="6" ry="4"></ellipse><path d="M6 10v5c0 2 2.5 3 6 3s6-1 6-3v-5"></path></svg>`,
+            ht: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="10" rx="5" ry="3"></ellipse><path d="M7 10v4c0 1.5 2 2.5 5 2.5s5-1 5-2.5v-4"></path></svg>`,
+            rs: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="9" rx="8" ry="3"></ellipse><path d="M4 9v7c0 1.66 3.58 3 8 3s8-1.34 8-3V9"></path><line x1="2" y1="5" x2="22" y2="13" stroke-width="2"></line></svg>`,
+            cp: `<svg viewBox="0 0 72 72" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <g id="line">
+                    <line x1="20.36" x2="20.64" y1="18.34" y2="20.17" />
+                    <line x1="15.41" x2="14.06" y1="12.91" y2="6.62" />
+                    <line x1="12.51" x2="6.59" y1="18.51" y2="21.03" />
+                    <line x1="13.65" x2="9.21" y1="15.52" y2="13.22" />
+                    <line x1="54.53" x2="54.27" y1="14.5" y2="8.07" />
+                    <line x1="58.74" x2="65.09" y1="19.19" y2="20.16" />
+                    <line x1="56.88" x2="60.61" y1="16.59" y2="13.25" />
+                    <line x1="29.92" x2="16.84" y1="43.74" y2="30.42" />
+                    <line x1="34.07" x2="20.68" y1="38.58" y2="25.19" />
+                    <path d="M13.17,44c-2.89-2.89,1.18-6.82,3.42-4.57l9.86,10.04" />
+                    <path d="M13.37,36.14c-3.75-3.75,1.52-7.67,4.01-5.18" />
+                    <path d="M20.68,25.19c-2.79-2.79-8.3,0.78-3.3,5.77" />
+                    <path d="M52.82,38.66c-2.21-2.14-5.67-6.06-10.68-11.07c-3.07,0-3.43,4.57-2.27,7.42l3.46,3.46 L27.03,22.16c-2.59-2.59-7.47,1.9-4.28,5.1" />
+                    <line x1="13.37" x2="17.88" y1="36.14" y2="40.74" />
+                    <path d="M52.82,38.66c6.23,6.23,6.23,16.32,0,22.55s-16.19,6.26-22.41,0.03" />
+                    <line x1="13.17" x2="30.41" y1="44" y2="61.24" />
+                    <line x1="33.39" x2="31.35" y1="23.71" y2="9.56" />
+                    <line x1="40.08" x2="37.54" y1="24.62" y2="7.62" />
+                    <path d="M20.36,18.34c-0.62-4.04,4.98-4.8,5.46-1.66l0.22,1.7" />
+                    <path d="M25.17,12.13c-0.81-5.24,5.76-5.29,6.3-1.81" />
+                    <path d="M37.54,7.62c-0.6-3.9-7.15-4.28-6.08,2.7" />
+                    <path d="M55.33,36.56c-0.51-3.03-0.83-7.31-1.9-14.31c-2.48-1.82-5.46,1.65-6.22,4.64l-2.77-17.96 c-0.56-3.62-7.15-2.88-6.47,1.58" />
+                </g>
+            </svg>`,
+            ch: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10v12M8 22h8"></path><path d="M12 7v-2"></path><ellipse cx="12" cy="11" rx="9" ry="3" fill="#222"></ellipse><ellipse cx="12" cy="9" rx="9" ry="3" fill="#222"></ellipse></svg>`,
+            oh: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13v9M8 22h8"></path><path d="M12 6v-2"></path><ellipse cx="12" cy="13" rx="9" ry="3" fill="#222"></ellipse><ellipse cx="12" cy="9" rx="9" ry="3" fill="#222"></ellipse></svg>`,
+            cr: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-15 12 8)"><ellipse cx="12" cy="8" rx="9" ry="2"></ellipse></g><path d="M12 10v12M8 22h8"></path><path d="M12 6v-2"></path></svg>`,
+            rd: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-15 12 8)"><ellipse cx="12" cy="8" rx="9" ry="2"></ellipse><path d="M12 5c2 0 3 1.5 3 3H9c0-1.5 1-3 3-3z"></path><line x1="20" y1="2" x2="14" y2="6" stroke-width="2"></line></g><path d="M12 10v12M8 22h8"></path><path d="M12 5v-2"></path></svg>`
+        };
+        return icons[id] || '';
+    },
+
     init() {
         this.init303Knobs(1);
         this.init303Knobs(2);
@@ -1379,9 +1424,9 @@ export const UI = {
         if (track === 'mt') return { p1: getV('mt_p1'), vol: lvl('mt_level'), p2: getV('mt_p2') };
         if (track === 'ht') return { p1: getV('ht_p1'), vol: lvl('ht_level'), p2: getV('ht_p2') };
         if (track === 'rs') return { vol: lvl('rs_level') };
-        if (track === 'cp') return { vol: lvl('cp_level') };
-        if (track === 'ch') return { vol: lvl('ch_level'), ch_decay: getV('ch_decay'), p2: getV('hat_tune') };
-        if (track === 'oh') return { vol: lvl('oh_level'), oh_decay: getV('oh_decay'), p2: getV('hat_tune') };
+        if (track === 'cp') return { vol: lvl('cp_level'), decay: getV('cp_decay') };
+        if (track === 'ch') return { vol: lvl('ch_level'), ch_decay: getV('ch_decay'), p2: getV('ch_tune') };
+        if (track === 'oh') return { vol: lvl('oh_level'), oh_decay: getV('oh_decay'), p2: getV('oh_tune') };
         if (track === 'cr') return { vol: lvl('cr_level'), cr_tune: getV('cr_tune') };
         if (track === 'rd') return { vol: lvl('rd_level'), rd_tune: getV('rd_tune') };
         return {};
@@ -1826,23 +1871,35 @@ export const UI = {
     render909() {
         const container = document.getElementById('tracks909');
         container.innerHTML = '';
-        const tracks = [
-            { id: 'bd', name: 'BASS DRUM', params: [{ l: 'TUNE', id: 'bd_p1', v: 50 }, { l: 'LEVEL', id: 'bd_level', v: 100 }, { l: 'ATTACK', id: 'bd_p2', v: 80 }, { l: 'DECAY', id: 'bd_p3', v: 50 }] },
-            { id: 'sd', name: 'SNARE DRUM', params: [{ l: 'TUNE', id: 'sd_p1', v: 50 }, { l: 'LEVEL', id: 'sd_level', v: 100 }, { l: 'TONE', id: 'sd_p2', v: 30 }, { l: 'SNAPPY', id: 'sd_p3', v: 70 }] },
-            { id: 'lt', name: 'LOW TOM', params: [{ l: 'TUNE', id: 'lt_p1', v: 50 }, { l: 'LEVEL', id: 'lt_level', v: 100 }, { l: 'DECAY', id: 'lt_p2', v: 50 }] },
-            { id: 'mt', name: 'MID TOM', params: [{ l: 'TUNE', id: 'mt_p1', v: 50 }, { l: 'LEVEL', id: 'mt_level', v: 100 }, { l: 'DECAY', id: 'mt_p2', v: 50 }] },
-            { id: 'ht', name: 'HIGH TOM', params: [{ l: 'TUNE', id: 'ht_p1', v: 50 }, { l: 'LEVEL', id: 'ht_level', v: 100 }, { l: 'DECAY', id: 'ht_p2', v: 50 }] },
-            { id: 'rs', name: 'RIM SHOT', params: [{ l: 'LEVEL', id: 'rs_level', v: 100 }] },
-            { id: 'cp', name: 'HAND CLAP', params: [{ l: 'LEVEL', id: 'cp_level', v: 100 }] },
-            { id: 'ch', name: 'CLOSED HAT', params: [{ l: 'LEVEL', id: 'ch_level', v: 100 }, { l: 'DECAY', id: 'ch_decay', v: 20 }, { l: 'TUNE', id: 'hat_tune', v: 50 }] },
-            { id: 'oh', name: 'OPEN HAT', params: [{ l: 'LEVEL', id: 'oh_level', v: 100 }, { l: 'DECAY', id: 'oh_decay', v: 60 }] },
-            { id: 'cr', name: 'CRASH', params: [{ l: 'LEVEL', id: 'cr_level', v: 100 }, { l: 'TUNE', id: 'cr_tune', v: 50 }] },
-            { id: 'rd', name: 'RIDE', params: [{ l: 'LEVEL', id: 'rd_level', v: 100 }, { l: 'TUNE', id: 'rd_tune', v: 50 }] },
+        const allTracks = [
+            { id: 'bd', name: 'BD', params: [{ l: 'TUNE', id: 'bd_p1', v: 50 }, { l: 'LEVEL', id: 'bd_level', v: 100 }, { l: 'ATTACK', id: 'bd_p2', v: 80 }, { l: 'DECAY', id: 'bd_p3', v: 50 }] },
+            { id: 'sd', name: 'SD', params: [{ l: 'TUNE', id: 'sd_p1', v: 50 }, { l: 'LEVEL', id: 'sd_level', v: 100 }, { l: 'TONE', id: 'sd_p2', v: 30 }, { l: 'SNAPPY', id: 'sd_p3', v: 70 }] },
+            { id: 'lt', name: 'LT', params: [{ l: 'TUNE', id: 'lt_p1', v: 50 }, { l: 'LEVEL', id: 'lt_level', v: 100 }, { l: 'DECAY', id: 'lt_p2', v: 50 }] },
+            { id: 'mt', name: 'MT', params: [{ l: 'TUNE', id: 'mt_p1', v: 50 }, { l: 'LEVEL', id: 'mt_level', v: 100 }, { l: 'DECAY', id: 'mt_p2', v: 50 }] },
+            { id: 'ht', name: 'HT', params: [{ l: 'TUNE', id: 'ht_p1', v: 50 }, { l: 'LEVEL', id: 'ht_level', v: 100 }, { l: 'DECAY', id: 'ht_p2', v: 50 }] },
+            { id: 'rs', name: 'RS', params: [{ l: 'LEVEL', id: 'rs_level', v: 100 }] },
+            { id: 'cp', name: 'CP', params: [{ l: 'LEVEL', id: 'cp_level', v: 100 }, { l: 'DECAY', id: 'cp_decay', v: 50 }] },
+            { id: 'ch', name: 'CH', params: [{ l: 'LEVEL', id: 'ch_level', v: 100 }, { l: 'DECAY', id: 'ch_decay', v: 20 }, { l: 'TUNE', id: 'ch_tune', v: 50 }] },
+            { id: 'oh', name: 'OH', params: [{ l: 'LEVEL', id: 'oh_level', v: 100 }, { l: 'DECAY', id: 'oh_decay', v: 60 }, { l: 'TUNE', id: 'oh_tune', v: 50 }] },
+            { id: 'cr', name: 'CR', params: [{ l: 'LEVEL', id: 'cr_level', v: 100 }, { l: 'TUNE', id: 'cr_tune', v: 50 }] },
+            { id: 'rd', name: 'RD', params: [{ l: 'LEVEL', id: 'rd_level', v: 100 }, { l: 'TUNE', id: 'rd_tune', v: 50 }] },
         ];
+
+        // Filter tracks based on Data.active909Tracks
+        const tracks = allTracks.filter(t => Data.active909Tracks.includes(t.id));
+
         tracks.forEach(t => {
-            const row = document.createElement('div'); row.className = 'drum-track-row';
+            const isCustom = Data.customSampleMap && Data.customSampleMap[t.id];
+            const row = document.createElement('div'); row.className = 'drum-track-row' + (isCustom ? ' custom-track' : '');
             const hdr = document.createElement('div'); hdr.className = 'track-header';
             const knobDiv = document.createElement('div'); knobDiv.className = 'track-knobs';
+
+            // Adjust name if custom
+            let displayName = t.name;
+            if (isCustom) {
+                displayName += ' (CUSTOM)';
+            }
+
             t.params.forEach(p => {
                 let val = p.v;
                 if (window.knobInstances && window.knobInstances[p.id]) {
@@ -1851,9 +1908,10 @@ export const UI = {
                 const k = new RotaryKnob(knobDiv, p.l, p.id, 0, 100, val, 1, 'small');
                 k.defaultVal = p.v;
             });
+
             const name = document.createElement('div');
             name.className = 'track-name';
-            name.innerText = t.id.toUpperCase();
+            name.innerText = displayName;
 
             const clearBtn = document.createElement('div');
             clearBtn.className = 'mini-btn icon-btn';
@@ -1898,6 +1956,20 @@ export const UI = {
             }
             row.appendChild(seqDiv); container.appendChild(row);
         });
+
+        // Manage Tracks Button
+        const manageRow = document.createElement('div');
+        manageRow.className = 'drum-track-row';
+        const manageBtn = document.createElement('div');
+        manageBtn.className = 'manage-909-track-btn';
+        manageBtn.innerHTML = this.svgIcon('settings') + '<span>MANAGE</span>';
+        manageBtn.title = 'Manage Drum Tracks';
+        manageBtn.onclick = () => {
+            this.showAddTrackPopover();
+        };
+        manageRow.appendChild(manageBtn);
+        container.appendChild(manageRow);
+
         this.update909Grid();
         this.update909ClearButtons();
     },
@@ -1985,6 +2057,245 @@ export const UI = {
         });
 
         this.lastPlayheadStep = step;
+    },
+
+    showAddTrackPopover(x, y) {
+        const existing = document.getElementById('add-track-popover-overlay');
+        if (existing) existing.remove();
+
+        // Template state: copy current active tracks
+        let selectedIds = [...Data.active909Tracks];
+
+        const overlay = document.createElement('div');
+        overlay.id = 'add-track-popover-overlay';
+        overlay.className = 'piano-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal add-track-modal';
+
+        const header = document.createElement('div');
+        header.className = 'modal-header';
+        header.innerHTML = '<span class="modal-title">MANAGE DRUM TRACKS</span><button class="close-btn">&times;</button>';
+        header.querySelector('.close-btn').onclick = () => overlay.remove();
+        modal.appendChild(header);
+
+        const content = document.createElement('div');
+        content.className = 'modal-body';
+
+        const list = document.createElement('div');
+        list.className = 'add-track-list';
+
+        const allTracks = [
+            { id: 'bd', name: 'BD' }, { id: 'sd', name: 'SD' },
+            { id: 'lt', name: 'LT' }, { id: 'mt', name: 'MT' }, { id: 'ht', name: 'HT' },
+            { id: 'rs', name: 'RS' }, { id: 'cp', name: 'CP' },
+            { id: 'ch', name: 'CH' }, { id: 'oh', name: 'OH' },
+            { id: 'cr', name: 'CR' }, { id: 'rd', name: 'RD' }
+        ];
+
+        const synthIds = ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp'];
+        const sampleIds = ['ch', 'oh', 'cr', 'rd'];
+
+        const renderItems = (title, ids) => {
+            const secHdr = document.createElement('div');
+            secHdr.className = 'add-track-section-header';
+            secHdr.innerText = title;
+            list.appendChild(secHdr);
+
+            ids.forEach(id => {
+                const track = allTracks.find(t => t.id === id);
+                const item = document.createElement('div');
+                item.className = 'add-track-item' + (selectedIds.includes(id) ? ' active' : '');
+                if (id === 'bd') item.classList.add('locked');
+
+                item.innerHTML = `
+                    <div class="track-icon">${this.svgIcon(id)}</div>
+                    <div class="track-label">${track.name}</div>
+                    <div class="track-check">${selectedIds.includes(id) ? '●' : '○'}</div>
+                `;
+
+                item.onclick = () => {
+                    if (id === 'bd') return; // Cannot toggle BD
+                    if (selectedIds.includes(id)) {
+                        selectedIds = selectedIds.filter(idx => idx !== id);
+                        item.classList.remove('active');
+                        item.querySelector('.track-check').innerText = '○';
+                    } else {
+                        selectedIds.push(id);
+                        item.classList.add('active');
+                        item.querySelector('.track-check').innerText = '●';
+                    }
+                };
+                list.appendChild(item);
+            });
+        };
+
+        renderItems('SYNTHESIS', synthIds);
+        renderItems('FACTORY SAMPLES', sampleIds);
+
+        // Custom Samples Header
+        const customHdr = document.createElement('div');
+        customHdr.className = 'add-track-section-header';
+        customHdr.innerText = 'CUSTOM SAMPLES';
+        list.appendChild(customHdr);
+
+        const uploadItem = document.createElement('div');
+        uploadItem.className = 'add-track-item upload-item';
+        uploadItem.innerHTML = this.svgIcon('add') + '<span>UPLOAD NEW</span>';
+        uploadItem.onclick = () => {
+            this.triggerSampleUpload();
+            overlay.remove();
+        };
+        list.appendChild(uploadItem);
+
+        content.appendChild(list);
+        modal.appendChild(content);
+
+        // Footer Actions
+        const footer = document.createElement('div');
+        footer.className = 'modal-footer';
+        const applyBtn = document.createElement('button');
+        applyBtn.className = 'apply-btn';
+        applyBtn.innerText = 'APPLY CHANGES';
+        applyBtn.onclick = () => {
+            // Sort selectedIds according to standard 909 order
+            const order = ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp', 'ch', 'oh', 'cr', 'rd'];
+            Data.active909Tracks = selectedIds.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+
+            // Cleanup custom mappings for removed tracks
+            Object.keys(Data.customSampleMap).forEach(tid => {
+                if (!Data.active909Tracks.includes(tid)) {
+                    delete Data.customSampleMap[tid];
+                    const tr909 = AudioEngine.instruments.get('tr909');
+                    if (tr909) delete tr909.customSampleMap[tid];
+                }
+            });
+
+            Data.saveSettings();
+            this.render909();
+            overlay.remove();
+        };
+        footer.appendChild(applyBtn);
+        modal.appendChild(footer);
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    },
+
+    add909Track(id, source = 'factory', sampleId = null) {
+        if (!Data.active909Tracks.includes(id)) {
+            Data.active909Tracks.push(id);
+            // Sorting
+            const order = ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp', 'ch', 'oh', 'cr', 'rd'];
+            Data.active909Tracks.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+
+            // Metadata extension could go here if we expand Data.js further
+            // For now we persist just the list.
+
+            Data.saveSettings();
+            this.render909();
+        }
+    },
+
+    triggerSampleUpload() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'audio/*';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                const arrayBuffer = ev.target.result;
+                const sampleId = 'custom_' + Date.now();
+
+                try {
+                    const { SampleStore } = await import('../data/SampleStore.js');
+                    await SampleStore.saveSample(sampleId, arrayBuffer, file.name);
+
+                    // Decode for immediate use
+                    const buffer = await AudioEngine.ctx.decodeAudioData(arrayBuffer.slice(0));
+                    const tr909 = AudioEngine.instruments.get('tr909');
+                    if (tr909) tr909.customSamples.set(sampleId, buffer);
+
+                    // Show track selection to map the sample
+                    this.showTrackMappingPopover(sampleId, file.name);
+
+                } catch (err) {
+                    console.error('Failed to save custom sample', err);
+                    alert('Failed to upload sample: ' + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+        input.click();
+    },
+
+    showTrackMappingPopover(sampleId, sampleName) {
+        const existing = document.getElementById('add-track-popover-overlay');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'add-track-popover-overlay';
+        overlay.className = 'piano-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal add-track-modal';
+
+        const header = document.createElement('div');
+        header.className = 'modal-header';
+        header.innerHTML = `<span class="modal-title">MAP SAMPLE TO:</span><button class="close-btn">&times;</button>`;
+        header.querySelector('.close-btn').onclick = () => overlay.remove();
+        modal.appendChild(header);
+
+
+        const content = document.createElement('div');
+        content.className = 'modal-body';
+
+        const list = document.createElement('div');
+        list.className = 'add-track-list';
+
+        const allTracks = [
+            { id: 'bd', name: 'BD' }, { id: 'sd', name: 'SD' },
+            { id: 'lt', name: 'LT' }, { id: 'mt', name: 'MT' }, { id: 'ht', name: 'HT' },
+            { id: 'rs', name: 'RS' }, { id: 'cp', name: 'CP' },
+            { id: 'ch', name: 'CH' }, { id: 'oh', name: 'OH' },
+            { id: 'cr', name: 'CR' }, { id: 'rd', name: 'RD' }
+        ];
+
+        allTracks.forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'add-track-item';
+            item.innerHTML = `
+                <div class="track-icon">${this.svgIcon(t.id)}</div>
+                <div class="track-label">${t.name}</div>
+            `;
+            item.onclick = () => {
+                Data.customSampleMap[t.id] = sampleId;
+                Data.saveSettings();
+
+                // Update TR909 engine map
+                const tr909 = AudioEngine.instruments.get('tr909');
+                if (tr909) tr909.customSampleMap[t.id] = sampleId;
+
+                // Ensure track is visible
+                this.add909Track(t.id, 'custom', sampleId);
+
+                overlay.remove();
+                this.render909();
+            };
+            list.appendChild(item);
+        });
+
+        content.appendChild(list);
+        modal.appendChild(content);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
     },
 
     clearPlayhead() {

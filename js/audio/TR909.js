@@ -4,8 +4,14 @@ export class TR909 {
         this.output = output;
         this.noiseBuffer = null;
         this.samples = {};
-        // Note: initBuffers should be called and awaited by the engine
+        this.customSamples = new Map(); // id -> AudioBuffer
+        this.customSampleMap = {}; // trackId -> customSampleId
     }
+
+    setCustomSampleMap(map) {
+        this.customSampleMap = { ...map };
+    }
+    // Note: initBuffers should be called and awaited by the engine
 
     async initBuffers() {
         // Load Noise Buffer (Required for Snare and Clap synthesis)
@@ -39,6 +45,25 @@ export class TR909 {
 
         await Promise.all(loaders);
         console.log('TR-909 Samples (Hats/Cymbals) loaded');
+
+        // Load Custom Samples from SampleStore
+        try {
+            const { SampleStore } = await import('../data/SampleStore.js');
+            const allCustom = await SampleStore.getAllSamples();
+            for (const s of allCustom) {
+                const buffer = await this.ctx.decodeAudioData(s.data.slice(0));
+                this.customSamples.set(s.id, buffer);
+            }
+            console.log(`TR-909: Loaded ${allCustom.length} custom samples from store`);
+        } catch (err) {
+            console.warn('TR-909: Failed to load custom samples', err);
+        }
+
+        // Initialize map from Data if available
+        const { Data } = await import('../data/Data.js');
+        if (Data && Data.customSampleMap) {
+            this.customSampleMap = { ...Data.customSampleMap };
+        }
     }
 
     playSample(time, buffer, P, playbackRate = 1.0) {
@@ -64,78 +89,175 @@ export class TR909 {
     }
 
     playBD(time, P) {
+        const now = time;
+        const baseFreq = 48; // Fixed hardware base frequency
+
+        // --- Master Gain (Fixes Level Control) ---
+        const masterGain = this.ctx.createGain();
+        masterGain.gain.setValueAtTime(P.vol * 1.5, now);
+        masterGain.connect(this.output);
+
+        // --- 1. Main Drum Voice (Triangle -> Saturator Simulation) ---
         const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+        const oscGain = this.ctx.createGain();
+        const shaper = this.ctx.createWaveShaper();
 
-        // Tune: Base freq 40Hz to 80Hz
-        const baseFreq = 40 + (P.p1 / 100) * 40;
-        osc.frequency.setValueAtTime(baseFreq * 2.5, time); // Start high for "click"
-        osc.frequency.exponentialRampToValueAtTime(baseFreq, time + 0.05);
+        osc.type = 'triangle';
 
-        // Decay: 0.1 to 0.6 seconds
-        const decayTime = 0.1 + (P.p3 / 100) * 0.5;
+        // TUNE: Pitch Envelope Decay (P.p1)
+        // Neutral (40) should be a tight thud.
+        // Below 40: Very fast envelope (effectively no sweep).
+        // Above 40: Increasing decay time for the pitch sweep.
+        let pitchDecay;
+        if (P.p1 <= 40) {
+            pitchDecay = 0.005 + (P.p1 / 40) * 0.015; // 5ms to 20ms (Very tight)
+        } else {
+            pitchDecay = 0.02 + ((P.p1 - 40) / 60) * 0.150; // 20ms to 170ms
+        }
 
-        // Attack (Click)
+        const startPitch = baseFreq * 6; // Start around 288Hz
+        osc.frequency.setValueAtTime(startPitch, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq, now + pitchDecay);
+
+        // Simulated saturate/diode clip (Simple sigmoid)
+        function makeDistortionCurve(amount) {
+            const k = typeof amount === 'number' ? amount : 50;
+            const n_samples = 44100;
+            const curve = new Float32Array(n_samples);
+            const deg = Math.PI / 180;
+            for (let i = 0; i < n_samples; ++i) {
+                const x = i * 2 / n_samples - 1;
+                curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+            }
+            return curve;
+        }
+        shaper.curve = makeDistortionCurve(10); // Subtle clipping
+
+        // Main Volume Envelope (DECAY: P.p3)
+        const decayTime = 0.1 + (P.p3 / 100) * 0.8;
+        oscGain.gain.setValueAtTime(0, now);
+        oscGain.gain.linearRampToValueAtTime(1.0, now + 0.002);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + decayTime);
+
+        // --- 2. Attack Component (Click: Pulse + Filtered Noise) ---
+        // ATTACK (P.p2) controls click volume. Reduced for accuracy.
         const clickOsc = this.ctx.createOscillator();
         const clickGain = this.ctx.createGain();
         clickOsc.type = 'square';
-        clickOsc.frequency.setValueAtTime(baseFreq * 8, time);
-        clickGain.gain.setValueAtTime(P.vol * 0.3 * (P.p2 / 100), time); // P.p2 = Attack/Click level
-        clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.01);
+        clickOsc.frequency.setValueAtTime(800, now);
 
-        gain.gain.setValueAtTime(P.vol * 1.5, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + decayTime);
+        // Noise for attack click
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = this.noiseBuffer;
 
-        osc.connect(gain);
-        gain.connect(this.output);
+        const noiseFilter = this.ctx.createBiquadFilter();
+        const noiseGain = this.ctx.createGain();
+
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.setValueAtTime(2500, now);
+
+        // Calibrated click level: very short transients (5-8ms)
+        const clickLevel = (P.p2 / 100) * 0.4; // Reduced multiplier
+        clickGain.gain.setValueAtTime(clickLevel, now);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.008);
+        noiseGain.gain.setValueAtTime(clickLevel * 0.5, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.005);
+
+        // Connections
+        osc.connect(shaper);
+        shaper.connect(oscGain);
+        oscGain.connect(masterGain);
+
         clickOsc.connect(clickGain);
-        clickGain.connect(this.output);
+        clickGain.connect(masterGain);
 
-        osc.start(time);
-        osc.stop(time + decayTime + 0.1);
-        clickOsc.start(time);
-        clickOsc.stop(time + 0.02);
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(masterGain);
+
+        // Start/Stop
+        osc.start(now);
+        osc.stop(now + decayTime + 0.1);
+        clickOsc.start(now);
+        clickOsc.stop(now + 0.02);
+        noise.start(now);
+        noise.stop(now + 0.02);
     }
 
     playSD(time, P) {
+        const now = time;
+        // TUNE: VR1 Adjusts the pitch bend depth and base frequencies
+        const baseFreq = 180 + (P.p1 / 100) * 60;
+
+        // --- 1. Drum Body (VCO-1 & VCO-2: Triangle) ---
+        // Service notes: VCO-1 lower, VCO-2 higher. Ratio ~1:1.6
         const osc1 = this.ctx.createOscillator();
         const osc2 = this.ctx.createOscillator();
+        const bodyGain = this.ctx.createGain();
+
+        osc1.type = 'triangle';
+        osc2.type = 'triangle';
+
+        const f1 = baseFreq;
+        const f2 = baseFreq * 1.62; // Hardware-accurate ratio
+
+        // Pitch Bend (IC36 control voltage generator) - approx 20ms
+        const bendDepth = 1.5;
+        osc1.frequency.setValueAtTime(f1 * bendDepth, now);
+        osc1.frequency.exponentialRampToValueAtTime(f1, now + 0.02);
+        osc2.frequency.setValueAtTime(f2 * bendDepth, now);
+        osc2.frequency.exponentialRampToValueAtTime(f2, now + 0.02);
+
+        // Body (ENV 3)
+        bodyGain.gain.setValueAtTime(P.vol * 1.2, now);
+        bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+        // --- 2. Snappy (Noise through parallel filters) ---
         const noise = this.ctx.createBufferSource();
-        const noiseFilter = this.ctx.createBiquadFilter();
-        const gain = this.ctx.createGain();
-        const noiseGain = this.ctx.createGain();
-
-        const baseFreq = 150 + (P.p1 / 100) * 150; // Tune
-        osc1.frequency.setValueAtTime(baseFreq, time);
-        osc1.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, time + 0.1);
-        osc2.frequency.setValueAtTime(baseFreq * 1.5, time);
-        osc2.frequency.exponentialRampToValueAtTime(baseFreq * 0.8, time + 0.1);
-
         noise.buffer = this.noiseBuffer;
-        noiseFilter.type = 'highpass';
-        noiseFilter.frequency.setValueAtTime(1000 + (P.p2 / 100) * 1000, time); // Tone (P.p2)
 
-        const snappiness = P.p3 / 100;
-        gain.gain.setValueAtTime(P.vol * (1 - snappiness * 0.5), time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+        // LPF Path (IC39b) - Constant "body" noise
+        const snapLPF = this.ctx.createBiquadFilter();
+        const snapLPFGain = this.ctx.createGain();
+        snapLPF.type = 'lowpass';
+        snapLPF.frequency.setValueAtTime(4000 + (P.p2 / 100) * 4000, now);
 
-        noiseGain.gain.setValueAtTime(P.vol * snappiness * 1.5, time); // Snappy (P.p3)
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+        // HPF Path (IC39a) - "Articulate" high frequency components
+        const snapHPF = this.ctx.createBiquadFilter();
+        const snapHPFGain = this.ctx.createGain();
+        snapHPF.type = 'highpass';
+        snapHPF.frequency.setValueAtTime(1200 + (P.p2 / 100) * 2000, now);
 
-        osc1.connect(gain);
-        osc2.connect(gain);
-        noise.connect(noiseFilter);
-        noiseFilter.connect(noiseGain);
+        const snappyLevel = P.p3 / 100;
+        // LPF provides the "meat" of the snare snap
+        snapLPFGain.gain.setValueAtTime(P.vol * snappyLevel * 1.5, now);
+        snapLPFGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
-        gain.connect(this.output);
-        noiseGain.connect(this.output);
+        // HPF is the articulate "sizzle", more influenced by Snappy knob
+        snapHPFGain.gain.setValueAtTime(P.vol * snappyLevel * 1.0, now);
+        snapHPFGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
 
-        osc1.start(time);
-        osc2.start(time);
-        noise.start(time);
-        osc1.stop(time + 0.2);
-        osc2.stop(time + 0.2);
-        noise.stop(time + 0.3);
+        // Connections
+        osc1.connect(bodyGain);
+        osc2.connect(bodyGain);
+        bodyGain.connect(this.output);
+
+        noise.connect(snapLPF);
+        snapLPF.connect(snapLPFGain);
+        snapLPFGain.connect(this.output);
+
+        noise.connect(snapHPF);
+        snapHPF.connect(snapHPFGain);
+        snapHPFGain.connect(this.output);
+
+        // Start/Stop
+        osc1.start(now);
+        osc2.start(now);
+        noise.start(now);
+
+        osc1.stop(now + 0.2);
+        osc2.stop(now + 0.2);
+        noise.stop(now + 0.5);
     }
 
     playHat(time, isOpen, P) {
@@ -166,76 +288,155 @@ export class TR909 {
     }
 
     playCP(time, P) {
+        if (!P) return;
+
+        const now = time;
+        const burstCount = 4;
+        const burstInterval = 0.008; // 8ms
+        const duration = 0.2 + (P.decay / 100) * 0.6; // Scale duration by decay parameter
+
         const noise = this.ctx.createBufferSource();
-        const noiseFilter = this.ctx.createBiquadFilter();
-        const gain = this.ctx.createGain();
-
         noise.buffer = this.noiseBuffer;
-        noiseFilter.type = 'bandpass';
-        noiseFilter.frequency.setValueAtTime(1200, time);
-        noiseFilter.Q.setValueAtTime(1, time);
-
-        gain.gain.setValueAtTime(0, time);
-        // Multi-stage envelope for "clapping" feel
-        [0, 0.01, 0.02, 0.03].forEach(offset => {
-            gain.gain.linearRampToValueAtTime(P.vol * 1.2, time + offset);
-            gain.gain.linearRampToValueAtTime(P.vol * 0.5, time + offset + 0.005);
-        });
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
-
-        noise.connect(noiseFilter);
-        noiseFilter.connect(gain);
-        gain.connect(this.output);
-
-        noise.start(time);
-        noise.stop(time + 0.4);
-    }
-
-    playTom(time, type, P) {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        // Tune: 60Hz to 160Hz depending on Tom type
-        let baseFreq = 60;
-        if (type === 'mt') baseFreq = 90;
-        if (type === 'ht') baseFreq = 130;
-
-        const tunedFreq = baseFreq + (P.p1 / 100) * baseFreq;
-        osc.frequency.setValueAtTime(tunedFreq * 1.5, time);
-        osc.frequency.exponentialRampToValueAtTime(tunedFreq, time + 0.1);
-
-        // Decay
-        const decayTime = 0.1 + (P.p2 / 100) * 0.8;
-        gain.gain.setValueAtTime(P.vol * 1.5, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + decayTime);
-
-        osc.connect(gain);
-        gain.connect(this.output);
-        osc.start(time);
-        osc.stop(time + decayTime + 0.1);
-    }
-
-    playRim(time, P) {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(1700, time);
-
-        gain.gain.setValueAtTime(P.vol * 1.2, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
 
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(1700, time);
-        filter.Q.setValueAtTime(10, time);
+        filter.frequency.setValueAtTime(1200, now);
+        filter.Q.setValueAtTime(1.0, now);
 
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.output);
+        const gainNode = this.ctx.createGain();
+        gainNode.gain.setValueAtTime(0, now);
 
-        osc.start(time);
-        osc.stop(time + 0.1);
+        // Initial burst effects (multi-hit attack)
+        for (let i = 0; i < burstCount; i++) {
+            const t = now + i * burstInterval;
+            gainNode.gain.exponentialRampToValueAtTime(P.vol * 1.5, t + 0.001);
+            gainNode.gain.exponentialRampToValueAtTime(P.vol * 0.2, t + burstInterval);
+        }
+
+        // Final decay tail
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        noise.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(this.output);
+
+        noise.start(now);
+        noise.stop(now + duration + 0.1);
+    }
+
+    playTom(time, type, P) {
+        const now = time;
+        // Tune mappings for LT, MT, HT
+        let f1, f2, f3;
+        if (type === 'lt') { f1 = 80; f2 = 120; f3 = 160; }
+        else if (type === 'mt') { f1 = 120; f2 = 180; f3 = 240; }
+        else { f1 = 180; f2 = 270; f3 = 360; }
+
+        const tuneOffset = (P.p1 / 100) * (f1 * 0.5);
+        const decayTime = 0.1 + (P.p2 / 100) * 0.8;
+
+        const masterGain = this.ctx.createGain();
+        masterGain.gain.setValueAtTime(P.vol * 1.2, now);
+        masterGain.gain.exponentialRampToValueAtTime(0.001, now + decayTime);
+        masterGain.connect(this.output);
+
+        [f1, f2, f3].forEach((f, i) => {
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+
+            // VCO-1 (lowest) is usually a bit waveshaped, others cleaner
+            osc.type = (i === 0) ? 'triangle' : 'sine';
+            const targetFreq = f + tuneOffset;
+
+            osc.frequency.setValueAtTime(targetFreq * 1.3, now);
+            osc.frequency.exponentialRampToValueAtTime(targetFreq, now + 0.05);
+
+            // Per-oscillator volume balance
+            const gainVal = (i === 0) ? 1.0 : (i === 1 ? 0.6 : 0.4);
+            g.gain.setValueAtTime(gainVal, now);
+
+            // Add skin noise to the highest oscillator (VCO-3)
+            if (i === 2) {
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = this.noiseBuffer;
+                const filter = this.ctx.createBiquadFilter();
+                const nGain = this.ctx.createGain();
+
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(targetFreq * 2, now);
+                nGain.gain.setValueAtTime(0.3, now);
+                nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+                noise.connect(filter);
+                filter.connect(nGain);
+                nGain.connect(masterGain);
+                noise.start(now);
+                noise.stop(now + 0.1);
+            }
+
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(now);
+            osc.stop(now + decayTime + 0.1);
+        });
+    }
+
+    playRim(time, P) {
+        if (!P) return;
+
+        const now = time;
+        const masterGain = this.ctx.createGain();
+        masterGain.gain.setValueAtTime(P.vol * 1.5, now);
+
+        // 1. Core Resonant Bank (Bridged-T Networks)
+        // Exact hardware frequencies: 220, 500, 1000 Hz
+        const frequencies = [220, 500, 1000];
+        const gains = [0.5, 0.4, 0.3];
+        const decays = [0.05, 0.04, 0.035]; // High frequencies decay faster in metallic hits
+
+        frequencies.forEach((f, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.frequency.setValueAtTime(f, now);
+            // Subtle pitch decay to simulate the tension release of the ringing circuit
+            osc.frequency.exponentialRampToValueAtTime(f * 0.98, now + decays[i]);
+
+            gain.gain.setValueAtTime(gains[i], now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + decays[i]);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + decays[i] + 0.01);
+        });
+
+        // 2. The "D89 Positive Pulse" (The sharp metallic trigger snap)
+        // This provides the 'metallic' bite that sines alone lack.
+        const snap = this.ctx.createOscillator();
+        const snapGain = this.ctx.createGain();
+
+        snap.type = 'triangle'; // Richer harmonics than sine for the 'hit'
+        snap.frequency.setValueAtTime(1800, now);
+        snap.frequency.exponentialRampToValueAtTime(400, now + 0.01);
+
+        snapGain.gain.setValueAtTime(0.6, now);
+        snapGain.gain.linearRampToValueAtTime(0, now + 0.006);
+
+        snap.connect(snapGain);
+        snapGain.connect(masterGain);
+
+        snap.start(now);
+        snap.stop(now + 0.01);
+
+        // 3. Final HPF to tighten the sound
+        const hpf = this.ctx.createBiquadFilter();
+        hpf.type = "highpass";
+        hpf.frequency.setValueAtTime(200, now);
+
+        masterGain.connect(hpf);
+        hpf.connect(this.output);
     }
 
     playCym(time, type, P) {
@@ -266,21 +467,28 @@ export class TR909 {
     }
 
     processStep(time, stepIndex, seqData, params, tempo) {
-        // seqData is expected to be { bd: [], sd: [], ... }
-        // params is expected to be { bd: {}, sd: {}, ... }
+        // ... (existing factory triggers) ...
+        const playOrCustom = (id, factoryMethod, paramArgs) => {
+            if (seqData[id] && seqData[id][stepIndex]) {
+                const customId = this.customSampleMap[id];
+                if (customId && this.customSamples.has(customId)) {
+                    this.playSample(time, this.customSamples.get(customId), params[id]);
+                } else {
+                    factoryMethod.apply(this, [time, ...paramArgs]);
+                }
+            }
+        };
 
-        if (seqData.bd && seqData.bd[stepIndex]) this.playBD(time, params.bd);
-        if (seqData.sd && seqData.sd[stepIndex]) this.playSD(time, params.sd);
-        if (seqData.ch && seqData.ch[stepIndex]) this.playHat(time, false, params.ch);
-        if (seqData.oh && seqData.oh[stepIndex]) this.playHat(time, true, params.oh);
-        if (seqData.cp && seqData.cp[stepIndex]) this.playCP(time, params.cp);
-
-        // New tracks
-        if (seqData.lt && seqData.lt[stepIndex]) this.playTom(time, 'lt', params.lt);
-        if (seqData.mt && seqData.mt[stepIndex]) this.playTom(time, 'mt', params.mt);
-        if (seqData.ht && seqData.ht[stepIndex]) this.playTom(time, 'ht', params.ht);
-        if (seqData.rs && seqData.rs[stepIndex]) this.playRim(time, params.rs);
-        if (seqData.cr && seqData.cr[stepIndex]) this.playCym(time, 'cr', params.cr);
-        if (seqData.rd && seqData.rd[stepIndex]) this.playCym(time, 'rd', params.rd);
+        playOrCustom('bd', this.playBD, [params.bd]);
+        playOrCustom('sd', this.playSD, [params.sd]);
+        playOrCustom('ch', this.playHat, [false, params.ch]);
+        playOrCustom('oh', this.playHat, [true, params.oh]);
+        playOrCustom('cp', this.playCP, [params.cp]);
+        playOrCustom('lt', this.playTom, ['lt', params.lt]);
+        playOrCustom('mt', this.playTom, ['mt', params.mt]);
+        playOrCustom('ht', this.playTom, ['ht', params.ht]);
+        playOrCustom('rs', this.playRim, [params.rs]);
+        playOrCustom('cr', this.playCym, ['cr', params.cr]);
+        playOrCustom('rd', this.playCym, ['rd', params.rd]);
     }
 }
