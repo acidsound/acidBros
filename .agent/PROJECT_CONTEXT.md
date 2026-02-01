@@ -17,7 +17,9 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Signal Chain**: `Instruments → Master Compressor → Analyser → Output`
 - **Instruments**:
   - `TB303.js`: Two independent TB-303 units with delay effect
-  - `TR909.js`: Full TR-909 implementation (BD, SD, LT, MT, HT, RS, CH, OH, CR, RD, CP)
+  - `TR909.js`: Full TR-909 implementation using modular `DrumVoice` architecture
+    - `DrumVoice.js`: Hybrid Synth+Sample engine
+    - `SynthVoices.js`: Modular synthesis algorithms (BD, SD, Toms, Rim, CP)
 
 ### UI System
 - **Location**: `js/ui/UI.js`
@@ -26,6 +28,98 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - **Interaction**: Vertical drag (up/down) changes values
   - **Touch ID Tracking**: Each knob tracks its specific touch identifier
   - **Double-tap**: Resets to default value
+
+#### Creating New Knob-Based UIs (Pattern: TB-303/DrumSynth)
+
+When building new UIs with RotaryKnob, follow this established pattern:
+
+**1. HTML Structure** - Use empty `knob-group` containers:
+```html
+<div class="my-module" id="my-module">
+  <div class="module-controls">
+    <select class="my-select" data-param="type">...</select>
+    <div class="knob-group" id="my-module-knobs"></div>
+  </div>
+</div>
+```
+
+**2. JavaScript - Define KNOB_DEFS and create knobs dynamically:**
+```javascript
+import { RotaryKnob } from './RotaryKnob.js';
+
+const MyUI = {
+    knobs: {},
+
+    // Define all knobs with their ranges
+    KNOB_DEFS: {
+        myModule: [
+            { id: 'cutoff', label: 'CUT', min: 20, max: 10000, def: 2000 },
+            { id: 'resonance', label: 'RES', min: 0, max: 100, def: 30 },
+            { id: 'level', label: 'LVL', min: 0, max: 100, def: 80 }
+        ]
+    },
+
+    init() {
+        this.buildKnobs();
+    },
+
+    buildKnobs() {
+        Object.keys(this.KNOB_DEFS).forEach(modId => {
+            const container = document.getElementById(`${modId}-knobs`);
+            if (!container) return;
+
+            container.innerHTML = '';
+            this.knobs[modId] = {};
+
+            this.KNOB_DEFS[modId].forEach(def => {
+                const knobId = `${modId}_${def.id}`;
+                // Args: container, label, id, min, max, default, step, size
+                const knob = new RotaryKnob(container, def.label, knobId, 
+                                           def.min, def.max, def.def, 1, 'small');
+                this.knobs[modId][def.id] = knob;
+            });
+        });
+    },
+
+    collectParams() {
+        const params = {};
+        Object.keys(this.knobs).forEach(modId => {
+            params[modId] = {};
+            Object.keys(this.knobs[modId]).forEach(param => {
+                params[modId][param] = this.knobs[modId][param].value;
+            });
+        });
+        return params;
+    }
+};
+```
+
+**3. CSS - Use knob-group layout:**
+```css
+.my-module .knob-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.my-module .knob-wrapper.small {
+    width: 55px;
+}
+
+.my-module .rotary-knob {
+    width: 40px;
+    height: 40px;
+}
+```
+
+**Key Points:**
+- `knob-group` is a flex container, knobs auto-flow horizontally
+- Use `KNOB_DEFS` object to define all parameters in one place
+- `RotaryKnob` constructor signature: `(container, label, id, min, max, default, step, size)`
+- Size options: `'small'`, `'medium'`, `'large'`
+- Access value via `knob.value`, set via `knob.setValue(val)`
+- For auto-trigger on change, listen to `#${knobId}-input` input event
+
 - **Oscilloscope**: `js/ui/Oscilloscope.js`
   - **Power Toggle**: Can be enabled/disabled to save performance (CPU/GPU)
   - **LOD Rendering**: Downsamples 2048 points to ~512 for efficiency

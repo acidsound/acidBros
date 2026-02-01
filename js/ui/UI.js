@@ -4,6 +4,7 @@ import { Data } from '../data/Data.js';
 import { Oscilloscope } from './Oscilloscope.js';
 import { FileManager } from '../data/FileManager.js';
 import { MidiManager } from '../midi/MidiManager.js';
+import { DrumSynthUI } from './DrumSynthUI.js';
 
 export const UI = {
     isInitialized: false,
@@ -361,6 +362,9 @@ export const UI = {
         this.updateLockUI('tb303_1', Data.unitLocks.tb303_1);
         this.updateLockUI('tb303_2', Data.unitLocks.tb303_2);
         this.updateLockUI('tr909', Data.unitLocks.tr909);
+
+        // --- DrumSynth Editor ---
+        DrumSynthUI.init();
     },
 
     updateMappedElementsUI() {
@@ -1377,18 +1381,26 @@ export const UI = {
         };
         const lvl = (id) => getV(id) / 100;
 
-        if (track === 'bd') return { p1: getV('bd_p1'), vol: lvl('bd_level'), p2: getV('bd_p2'), p3: getV('bd_p3') };
-        if (track === 'sd') return { p1: getV('sd_p1'), vol: lvl('sd_level'), p2: getV('sd_p2'), p3: getV('sd_p3') };
-        if (track === 'lt') return { p1: getV('lt_p1'), vol: lvl('lt_level'), p2: getV('lt_p2') };
-        if (track === 'mt') return { p1: getV('mt_p1'), vol: lvl('mt_level'), p2: getV('mt_p2') };
-        if (track === 'ht') return { p1: getV('ht_p1'), vol: lvl('ht_level'), p2: getV('ht_p2') };
-        if (track === 'rs') return { vol: lvl('rs_level') };
-        if (track === 'cp') return { vol: lvl('cp_level'), decay: getV('cp_decay') };
-        if (track === 'ch') return { vol: lvl('ch_level'), ch_decay: getV('ch_decay'), p2: getV('ch_tune') };
-        if (track === 'oh') return { vol: lvl('oh_level'), oh_decay: getV('oh_decay'), p2: getV('oh_tune') };
-        if (track === 'cr') return { vol: lvl('cr_level'), cr_tune: getV('cr_tune') };
-        if (track === 'rd') return { vol: lvl('rd_level'), rd_tune: getV('rd_tune') };
-        return {};
+        let params = {};
+        if (track === 'bd') params = { p1: getV('bd_p1'), vol: lvl('bd_level'), p2: getV('bd_p2'), p3: getV('bd_p3') };
+        else if (track === 'sd') params = { p1: getV('sd_p1'), vol: lvl('sd_level'), p2: getV('sd_p2'), p3: getV('sd_p3') };
+        else if (track === 'lt') params = { p1: getV('lt_p1'), vol: lvl('lt_level'), p2: getV('lt_p2') };
+        else if (track === 'mt') params = { p1: getV('mt_p1'), vol: lvl('mt_level'), p2: getV('mt_p2') };
+        else if (track === 'ht') params = { p1: getV('ht_p1'), vol: lvl('ht_level'), p2: getV('ht_p2') };
+        else if (track === 'rs') params = { vol: lvl('rs_level') };
+        else if (track === 'cp') params = { vol: lvl('cp_level'), decay: getV('cp_decay') };
+        else if (track === 'ch') params = { vol: lvl('ch_level'), ch_decay: getV('ch_decay'), p2: getV('ch_tune') };
+        else if (track === 'oh') params = { vol: lvl('oh_level'), oh_decay: getV('oh_decay'), p2: getV('oh_tune') };
+        else if (track === 'cr') params = { vol: lvl('cr_level'), cr_tune: getV('cr_tune') };
+        else if (track === 'rd') params = { vol: lvl('rd_level'), rd_tune: getV('rd_tune') };
+
+        // Attach custom synth if present in Data
+        const tr909Settings = Data.getUnitSettings('tr909');
+        if (tr909Settings && tr909Settings[track] && tr909Settings[track].customSynth) {
+            params.customSynth = tr909Settings[track].customSynth;
+        }
+
+        return params;
     },
 
     getParams(id) {
@@ -1827,25 +1839,27 @@ export const UI = {
         updateUI();
     },
 
+    allTracks: [
+        { id: 'bd', name: 'BD', params: [{ l: 'TUNE', id: 'bd_p1', v: 50 }, { l: 'LEVEL', id: 'bd_level', v: 100 }, { l: 'ATTACK', id: 'bd_p2', v: 80 }, { l: 'DECAY', id: 'bd_p3', v: 50 }] },
+        { id: 'sd', name: 'SD', params: [{ l: 'TUNE', id: 'sd_p1', v: 50 }, { l: 'LEVEL', id: 'sd_level', v: 100 }, { l: 'TONE', id: 'sd_p2', v: 30 }, { l: 'SNAPPY', id: 'sd_p3', v: 70 }] },
+        { id: 'lt', name: 'LT', params: [{ l: 'TUNE', id: 'lt_p1', v: 50 }, { l: 'LEVEL', id: 'lt_level', v: 100 }, { l: 'DECAY', id: 'lt_p2', v: 50 }] },
+        { id: 'mt', name: 'MT', params: [{ l: 'TUNE', id: 'mt_p1', v: 50 }, { l: 'LEVEL', id: 'mt_level', v: 100 }, { l: 'DECAY', id: 'mt_p2', v: 50 }] },
+        { id: 'ht', name: 'HT', params: [{ l: 'TUNE', id: 'ht_p1', v: 50 }, { l: 'LEVEL', id: 'ht_level', v: 100 }, { l: 'DECAY', id: 'ht_p2', v: 50 }] },
+        { id: 'rs', name: 'RS', params: [{ l: 'LEVEL', id: 'rs_level', v: 100 }] },
+        { id: 'cp', name: 'CP', params: [{ l: 'LEVEL', id: 'cp_level', v: 100 }, { l: 'DECAY', id: 'cp_decay', v: 50 }] },
+        { id: 'ch', name: 'CH', params: [{ l: 'LEVEL', id: 'ch_level', v: 100 }, { l: 'DECAY', id: 'ch_decay', v: 20 }, { l: 'TUNE', id: 'ch_tune', v: 50 }] },
+        { id: 'oh', name: 'OH', params: [{ l: 'LEVEL', id: 'oh_level', v: 100 }, { l: 'DECAY', id: 'oh_decay', v: 60 }, { l: 'TUNE', id: 'oh_tune', v: 50 }] },
+        { id: 'cr', name: 'CR', params: [{ l: 'LEVEL', id: 'cr_level', v: 100 }, { l: 'TUNE', id: 'cr_tune', v: 50 }] },
+        { id: 'rd', name: 'RD', params: [{ l: 'LEVEL', id: 'rd_level', v: 100 }, { l: 'TUNE', id: 'rd_tune', v: 50 }] },
+    ],
+
     render909() {
         const container = document.getElementById('tracks909');
+        if (!container) return;
         container.innerHTML = '';
-        const allTracks = [
-            { id: 'bd', name: 'BD', params: [{ l: 'TUNE', id: 'bd_p1', v: 50 }, { l: 'LEVEL', id: 'bd_level', v: 100 }, { l: 'ATTACK', id: 'bd_p2', v: 80 }, { l: 'DECAY', id: 'bd_p3', v: 50 }] },
-            { id: 'sd', name: 'SD', params: [{ l: 'TUNE', id: 'sd_p1', v: 50 }, { l: 'LEVEL', id: 'sd_level', v: 100 }, { l: 'TONE', id: 'sd_p2', v: 30 }, { l: 'SNAPPY', id: 'sd_p3', v: 70 }] },
-            { id: 'lt', name: 'LT', params: [{ l: 'TUNE', id: 'lt_p1', v: 50 }, { l: 'LEVEL', id: 'lt_level', v: 100 }, { l: 'DECAY', id: 'lt_p2', v: 50 }] },
-            { id: 'mt', name: 'MT', params: [{ l: 'TUNE', id: 'mt_p1', v: 50 }, { l: 'LEVEL', id: 'mt_level', v: 100 }, { l: 'DECAY', id: 'mt_p2', v: 50 }] },
-            { id: 'ht', name: 'HT', params: [{ l: 'TUNE', id: 'ht_p1', v: 50 }, { l: 'LEVEL', id: 'ht_level', v: 100 }, { l: 'DECAY', id: 'ht_p2', v: 50 }] },
-            { id: 'rs', name: 'RS', params: [{ l: 'LEVEL', id: 'rs_level', v: 100 }] },
-            { id: 'cp', name: 'CP', params: [{ l: 'LEVEL', id: 'cp_level', v: 100 }, { l: 'DECAY', id: 'cp_decay', v: 50 }] },
-            { id: 'ch', name: 'CH', params: [{ l: 'LEVEL', id: 'ch_level', v: 100 }, { l: 'DECAY', id: 'ch_decay', v: 20 }, { l: 'TUNE', id: 'ch_tune', v: 50 }] },
-            { id: 'oh', name: 'OH', params: [{ l: 'LEVEL', id: 'oh_level', v: 100 }, { l: 'DECAY', id: 'oh_decay', v: 60 }, { l: 'TUNE', id: 'oh_tune', v: 50 }] },
-            { id: 'cr', name: 'CR', params: [{ l: 'LEVEL', id: 'cr_level', v: 100 }, { l: 'TUNE', id: 'cr_tune', v: 50 }] },
-            { id: 'rd', name: 'RD', params: [{ l: 'LEVEL', id: 'rd_level', v: 100 }, { l: 'TUNE', id: 'rd_tune', v: 50 }] },
-        ];
 
         // Filter tracks based on Data.active909Tracks
-        const tracks = allTracks.filter(t => Data.active909Tracks.includes(t.id));
+        const tracks = this.allTracks.filter(t => Data.active909Tracks.includes(t.id));
 
         tracks.forEach(t => {
             const isCustom = Data.customSampleMap && Data.customSampleMap[t.id];
@@ -2063,8 +2077,19 @@ export const UI = {
 
             ids.forEach(id => {
                 const track = allTracks.find(t => t.id === id);
+
+                // Wrapper for row (Item + Edit Btn)
+                const row = document.createElement('div');
+                row.className = 'add-track-row';
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.gap = '8px';
+                row.style.marginBottom = '4px';
+
+                // Main Toggle Item
                 const item = document.createElement('div');
                 item.className = 'add-track-item' + (selectedIds.includes(id) ? ' active' : '');
+                item.style.flex = '1'; // Take remaining space
                 if (id === 'bd') item.classList.add('locked');
 
                 item.innerHTML = `
@@ -2085,7 +2110,32 @@ export const UI = {
                         item.querySelector('.track-check').innerText = '●';
                     }
                 };
-                list.appendChild(item);
+
+                row.appendChild(item);
+
+                // Edit Button (Sibling)
+                if (synthIds.includes(id)) {
+                    const editBtn = document.createElement('button');
+                    editBtn.innerText = '⚙️'; // Using Gear icon for 'Edit/Setup'
+                    editBtn.className = 'track-edit-btn-side'; // New class
+                    editBtn.title = 'Edit Drum Synth';
+                    // Inline styles for quick layout (can move to CSS later)
+                    editBtn.style.background = 'none';
+                    editBtn.style.border = '1px solid #444';
+                    editBtn.style.color = '#888';
+                    editBtn.style.padding = '8px 12px';
+                    editBtn.style.cursor = 'pointer';
+                    editBtn.style.borderRadius = '4px';
+                    editBtn.style.fontSize = '14px';
+
+                    editBtn.onclick = () => {
+                        DrumSynthUI.open(id);
+                    };
+
+                    row.appendChild(editBtn);
+                }
+
+                list.appendChild(row);
             });
         };
 

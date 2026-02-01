@@ -121,17 +121,17 @@ export const Data = {
                 tr909: {
                     type: 'tr909',
                     tracks: {
-                        bd: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().bd },
-                        sd: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().sd },
-                        lt: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().lt },
-                        mt: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().mt },
-                        ht: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().ht },
-                        rs: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().rs },
-                        cp: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().cp },
-                        ch: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().ch },
-                        oh: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().oh },
-                        cr: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().cr },
-                        rd: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().rd }
+                        bd: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().bd, customSynth: {} },
+                        sd: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().sd, customSynth: {} },
+                        lt: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().lt, customSynth: {} },
+                        mt: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().mt, customSynth: {} },
+                        ht: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().ht, customSynth: {} },
+                        rs: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().rs, customSynth: {} },
+                        cp: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().cp, customSynth: {} },
+                        ch: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().ch, customSynth: {} },
+                        oh: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().oh, customSynth: {} },
+                        cr: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().cr, customSynth: {} },
+                        rd: { steps: Array(16).fill(0), ...this.getDefaultTR909Settings().rd, customSynth: {} }
                     }
                 }
             },
@@ -206,6 +206,19 @@ export const Data = {
             return p.units.tr909?.tracks;
         }
         return null;
+    },
+
+    saveCustomSynth(trackId, preset) {
+        const p = this.patterns[this.currentPatternId];
+        if (!p || !p.units || !p.units.tr909) return;
+
+        if (!p.units.tr909.tracks[trackId]) {
+            const defaults = this.getDefaultTR909Settings()[trackId];
+            p.units.tr909.tracks[trackId] = { steps: Array(16).fill(0), ...defaults, customSynth: {} };
+        }
+
+        p.units.tr909.tracks[trackId].customSynth = JSON.parse(JSON.stringify(preset));
+        console.log(`Data: Saved custom synth for ${trackId}`, preset);
     },
 
     // --- Pattern Management ---
