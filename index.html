@@ -5,7 +5,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>AcidBros: WebAudio Acid Studio</title>
-  <link rel="stylesheet" type="text/css" href="styles.css" />
+  <link rel="stylesheet" type="text/css" href="css/base.css" />
+  <link rel="stylesheet" type="text/css" href="css/icons.css" />
+  <link rel="stylesheet" type="text/css" href="css/layout.css" />
+  <link rel="stylesheet" type="text/css" href="css/components.css" />
+  <link rel="stylesheet" type="text/css" href="css/machines.css" />
+  <link rel="stylesheet" type="text/css" href="css/overlays.css" />
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="manifest" href="manifest.json">
 
@@ -87,71 +92,32 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v96</div>
+          <div class="version-display">v125</div>
           <button id="fileManagerBtn" class="transport-icon-btn" title="File Manager" aria-label="File Manager">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-              <path
-                d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
-            </svg>
+            <span class="icon icon-lg icon-folder"></span>
           </button>
           <button id="playBtn" class="transport-icon-btn play" data-midi-mappable="button" title="Run"
             aria-label="Play">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z" />
-            </svg>
+            <span class="icon icon-lg icon-play"></span>
           </button>
           <button id="stopBtn" class="transport-icon-btn stop" data-midi-mappable="button" title="Stop"
             aria-label="Stop">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="6" y="6" width="12" height="12" />
-            </svg>
+            <span class="icon icon-lg icon-stop"></span>
           </button>
           <button id="randomBtn" class="transport-icon-btn" title="Randomize" aria-label="Randomize Pattern">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <circle cx="8.5" cy="8.5" r="1"></circle>
-              <circle cx="15.5" cy="8.5" r="1"></circle>
-              <circle cx="12" cy="12" r="1"></circle>
-              <circle cx="8.5" cy="15.5" r="1"></circle>
-              <circle cx="15.5" cy="15.5" r="1"></circle>
-            </svg>
+            <span class="icon icon-lg icon-dice"></span>
           </button>
           <button id="clearBtn" class="transport-icon-btn" title="Clear" aria-label="Clear Pattern">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
+            <span class="icon icon-lg icon-trash"></span>
           </button>
           <button id="shareBtn" class="transport-icon-btn share" title="Share" aria-label="Share URL">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="18" cy="5" r="3"></circle>
-              <circle cx="6" cy="12" r="3"></circle>
-              <circle cx="18" cy="19" r="3"></circle>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-            </svg>
+            <span class="icon icon-lg icon-share"></span>
           </button>
           <button id="settingsBtn" class="transport-icon-btn" title="Settings" aria-label="Settings">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path
-                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
-              </path>
-            </svg>
+            <span class="icon icon-lg icon-cog"></span>
           </button>
           <button id="bmcBtn" class="transport-icon-btn bmc" title="Buy me a coffee">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
-              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
-              <line x1="6" y1="1" x2="6" y2="4"></line>
-              <line x1="10" y1="1" x2="10" y2="4"></line>
-              <line x1="14" y1="1" x2="14" y2="4"></line>
-            </svg>
+            <span class="icon icon-lg icon-coffee"></span>
           </button>
         </div>
         <div class="tempo-group">
@@ -211,12 +177,7 @@
         <div class="switch-group-item">
           <div class="switch-label">SHUFFLE</div>
           <button id="shuffleBtn" class="file-manager-btn" title="Swing/Shuffle" aria-label="Swing and Shuffle Control">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="5" cy="12" r="3" fill="currentColor" stroke="none" />
-              <circle cx="14" cy="12" r="3" />
-              <circle cx="21" cy="12" r="3" fill="currentColor" stroke="none" />
-            </svg>
+            <span class="icon icon-shuffle"></span>
           </button>
         </div>
       </div>
@@ -245,9 +206,9 @@
           </div>
           <div class="pattern-actions">
             <button id="copyPatternBtn" class="icon-action-btn" title="Copy Pattern"><span
-                class="icon-copy"></span></button>
+                class="icon icon-copy"></span></button>
             <button id="pastePatternBtn" class="icon-action-btn" title="Paste Pattern"><span
-                class="icon-paste"></span></button>
+                class="icon icon-paste"></span></button>
           </div>
         </div>
 
@@ -296,40 +257,29 @@
     <div id="fileManagerOverlay" class="file-manager-overlay" style="display: none;">
       <div id="fileManagerPopover" class="file-manager-popover">
         <div class="file-manager-header">
-
-          <button id="fileNewBtn" class="file-action-btn" title="New">
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-            </svg>
-          </button>
-          <button id="fileSaveBtn" class="file-action-btn" title="Save">
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" />
-            </svg>
-          </button>
-          <button id="fileImportBtn" class="file-action-btn" title="Import">
-            <svg viewBox="0 0 24 24">
-              <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-            </svg>
-          </button>
-          <button id="fileExportBtn" class="file-action-btn" title="Export">
-            <svg viewBox="0 0 24 24">
-              <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
-            </svg>
-          </button>
-          <button id="fileDeleteAllBtn" class="file-action-btn" title="Delete All">
-            <svg viewBox="0 0 24 24">
-              <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
-            </svg>
-          </button>
+          <h3 class="modal-title">FILE MANAGER</h3>
           <button id="fileCloseBtn" class="file-close-btn" title="Close">
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-            </svg>
+            <span class="icon icon-close"></span>
           </button>
+
+          <!-- Actions Row -->
+          <div class="file-header-actions">
+            <button id="fileNewBtn" class="file-action-btn" title="New">
+              <span class="icon icon-file-new"></span>
+            </button>
+            <button id="fileSaveBtn" class="file-action-btn" title="Save">
+              <span class="icon icon-file-save"></span>
+            </button>
+            <button id="fileImportBtn" class="file-action-btn" title="Import">
+              <span class="icon icon-file-import"></span>
+            </button>
+            <button id="fileExportBtn" class="file-action-btn" title="Export">
+              <span class="icon icon-file-export"></span>
+            </button>
+            <button id="fileDeleteAllBtn" class="file-action-btn" title="Delete All">
+              <span class="icon icon-file-delete-all"></span>
+            </button>
+          </div>
         </div>
         <div class="file-list-container">
           <div id="fileList" class="file-list"></div>
@@ -342,12 +292,9 @@
     <div id="settingsOverlay" class="file-manager-overlay" style="display: none;">
       <div id="settingsPopover" class="file-manager-popover settings-popover">
         <div class="file-manager-header">
-          <h3 style="margin: 0; color: #ddd;">Settings</h3>
+          <h3 class="modal-title">SETTINGS</h3>
           <button id="settingsCloseBtn" class="file-close-btn" title="Close">
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-            </svg>
+            <span class="icon icon-close"></span>
           </button>
         </div>
 
@@ -383,10 +330,7 @@
                   <h4>MIDI Devices</h4>
                   <div class="tab-actions">
                     <button id="midiRefreshBtn" class="file-action-btn" title="Refresh Devices">
-                      <svg viewBox="0 0 24 24" width="16" height="16">
-                        <path
-                          d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
-                      </svg>
+                      <span class="icon icon-sm icon-refresh"></span>
                     </button>
                   </div>
                 </div>
@@ -399,9 +343,7 @@
                   <h4>MIDI Mappings</h4>
                   <div class="tab-actions">
                     <button id="midiClearAllBtn" class="file-action-btn" title="Clear All Mappings">
-                      <svg viewBox="0 0 24 24" width="16" height="16">
-                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                      </svg>
+                      <span class="icon icon-sm icon-trash"></span>
                     </button>
                   </div>
                 </div>
@@ -431,23 +373,11 @@
             </div>
           </div>
           <button id="clear303_1" class="header-clear-btn clear-303-btn" title="Clear Sequence">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
+            <span class="icon icon-sm icon-trash"></span>
           </button>
           <button id="lock303_1" class="header-lock-btn" title="Lock Randomization">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round" class="icon-unlocked">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-            </svg>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round" class="icon-locked" style="display: none;">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
+            <span class="icon icon-sm icon-unlocked" id="lock-icon-303-1-unlocked"></span>
+            <span class="icon icon-sm icon-locked" id="lock-icon-303-1-locked" style="display: none;"></span>
           </button>
         </div>
       </div>
@@ -471,23 +401,11 @@
             </div>
           </div>
           <button id="clear303_2" class="header-clear-btn clear-303-btn" title="Clear Sequence">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
+            <span class="icon icon-sm icon-trash"></span>
           </button>
           <button id="lock303_2" class="header-lock-btn" title="Lock Randomization">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round" class="icon-unlocked">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-            </svg>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round" class="icon-locked" style="display: none;">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
+            <span class="icon icon-sm icon-unlocked" id="lock-icon-303-2-unlocked"></span>
+            <span class="icon icon-sm icon-locked" id="lock-icon-303-2-locked" style="display: none;"></span>
           </button>
         </div>
       </div>
@@ -498,25 +416,13 @@
     <!-- TR-909 -->
     <div class="machine tr-909">
       <div class="machine-header">
-        <h2>TR-909 <small>RHYTHM COMPOSER</small></h2>
+        <h2>TR-909</h2>
         <button id="clear909Btn" class="header-clear-btn" title="Clear All Tracks">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          </svg>
+          <span class="icon icon-sm icon-trash"></span>
         </button>
         <button id="lock909" class="header-lock-btn" title="Lock Randomization">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" class="icon-unlocked">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-          </svg>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" class="icon-locked" style="display: none;">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
+          <span class="icon icon-sm icon-unlocked" id="lock-icon-909-unlocked"></span>
+          <span class="icon icon-sm icon-locked" id="lock-icon-909-locked" style="display: none;"></span>
         </button>
       </div>
       <div id="tracks909"></div>
@@ -527,9 +433,7 @@
   <div id="audioResumeOverlay" class="audio-resume-overlay" style="display: none;">
     <div class="audio-resume-content">
       <div class="audio-resume-icon">
-        <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M8 5v14l11-7z" />
-        </svg>
+        <span class="icon icon-play" style="width: 80px; height: 80px;"></span>
       </div>
       <div class="audio-resume-text">Tap to Resume</div>
       <div class="audio-resume-subtext">Audio was paused in background</div>

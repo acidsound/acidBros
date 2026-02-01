@@ -138,6 +138,7 @@ export class BinaryFormatEncoder {
             }
         }
 
+        return buffer;
     }
 
     // Encode Metadata Block (0x03)

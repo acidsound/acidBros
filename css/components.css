@@ -1,0 +1,343 @@
+/* --- Component Widgets --- */
+
+/* Tempo & Info Display - 7 Segment */
+.led-display {
+    background: #000;
+    padding: 4px 8px;
+    border: 2px solid #555;
+    border-radius: 2px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 1);
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    box-sizing: border-box;
+}
+
+.digit {
+    position: relative;
+    width: 18px;
+    height: 30px;
+    margin: 0 1px;
+}
+
+.segment {
+    position: absolute;
+    background-color: #300;
+    border-radius: 1px;
+    transition: background-color 0.05s;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.segment.on {
+    background-color: #ff0000;
+    box-shadow: 0 0 8px #ff0000, 0 0 3px #ffaaaa;
+    z-index: 2;
+}
+
+/* Segment Positions */
+.segment.a {
+    top: 0;
+    left: 3px;
+    right: 3px;
+    height: 3px;
+}
+
+.segment.b {
+    top: 3px;
+    right: 0;
+    height: 11px;
+    width: 3px;
+}
+
+.segment.c {
+    bottom: 3px;
+    right: 0;
+    height: 11px;
+    width: 3px;
+}
+
+.segment.d {
+    bottom: 0;
+    left: 3px;
+    right: 3px;
+    height: 3px;
+}
+
+.segment.e {
+    bottom: 3px;
+    left: 0;
+    height: 11px;
+    width: 3px;
+}
+
+.segment.f {
+    top: 3px;
+    left: 0;
+    height: 11px;
+    width: 3px;
+}
+
+.segment.g {
+    top: 13.5px;
+    left: 3px;
+    right: 3px;
+    height: 3px;
+}
+
+/* --- ROTARY KNOB STYLES --- */
+.knob-group {
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    transition: margin-bottom 0.2s ease;
+}
+
+.machine.collapsed .knob-group {
+    margin-bottom: 0;
+    border-bottom: none;
+}
+
+.knob-group-section {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 0 6px;
+    position: relative;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.knob-group-section::before {
+    content: attr(data-label);
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: #555;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.knob-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 50px;
+    position: relative;
+}
+
+.knob-label {
+    font-size: 9px;
+    font-weight: bold;
+    margin-bottom: 6px;
+    text-align: center;
+    pointer-events: none;
+    text-transform: uppercase;
+    color: #333;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.rotary-knob {
+    width: 40px;
+    height: 40px;
+    background: var(--knob-body);
+    border-radius: 50%;
+    position: relative;
+    cursor: ns-resize;
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 1px solid #666;
+    touch-action: none;
+}
+
+.rotary-knob.large {
+    width: 60px;
+    height: 60px;
+}
+
+/* Knob Input (Hidden Range) */
+.knob-input {
+    display: none;
+}
+
+/* Static gloss overlay */
+.knob-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 50%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.knob-wrapper.large::after {
+    width: 60px;
+    height: 60px;
+    top: 0;
+}
+
+/* Knob Indicator Line */
+.rotary-knob::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    width: 3px;
+    height: 14px;
+    background: var(--knob-indicator);
+    transform-origin: bottom center;
+    transform: translateX(-50%);
+    border-radius: 1px;
+}
+
+.rotary-knob.large::after {
+    width: 4px;
+    height: 20px;
+    top: 5px;
+}
+
+/* Knob Tooltip */
+.knob-tooltip {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    color: #f00;
+    font-family: 'DSEG7Classic', monospace;
+    font-size: 12px;
+    padding: 2px 4px;
+    border: 1px solid #555;
+    border-radius: 2px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s;
+    z-index: 100;
+    white-space: nowrap;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.knob-tooltip.visible {
+    opacity: 1;
+}
+
+/* Scalable Switches (Waveform, Mode) */
+.waveform-switch,
+.mode-switch {
+    position: relative;
+    background: #111;
+    border-radius: 2px;
+    display: flex;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+    border: 1px solid #555;
+}
+
+.waveform-switch {
+    width: 60px;
+    height: 24px;
+}
+
+.mode-switch {
+    width: 80px;
+    height: 28px;
+}
+
+.waveform-switch input,
+.mode-switch input {
+    display: none;
+}
+
+.waveform-switch label,
+.mode-switch label {
+    width: 50%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+    cursor: pointer;
+}
+
+.switch-handle {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: calc(50% - 2px);
+    height: calc(100% - 4px);
+    background: linear-gradient(to bottom, #eee, #ccc);
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+    z-index: 1;
+}
+
+.waveform-switch input[id*="wave-sq"]:checked~.switch-handle,
+.mode-switch input[value="song"]:checked~.switch-handle {
+    transform: translateX(100%);
+}
+
+.waveform-switch input:checked+label .icon,
+.mode-switch input:checked+label .icon {
+    opacity: 1;
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+}
+
+/* Mini Buttons for Steps */
+.mini-btn {
+    flex: 1;
+    font-size: 8px;
+    text-align: center;
+    cursor: pointer;
+    background: linear-gradient(to bottom, #444, #222);
+    color: #888;
+    border: 1px solid #111;
+    padding: 3px 0;
+    border-radius: 2px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 1);
+    transition: all 0.1s;
+}
+
+.mini-btn:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+    background: #222;
+}
+
+.mini-btn.active {
+    color: #fff;
+    text-shadow: 0 0 2px #f00;
+    background: linear-gradient(to bottom, #d00, #900);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 5px #f00;
+    border-color: #500;
+}
+
+/* Common Action Button */
+.icon-action-btn {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(to bottom, #555, #333);
+    border: 1px solid #000;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 0.15s ease;
+}

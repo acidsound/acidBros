@@ -1,0 +1,1127 @@
+/* --- Modal & Popover Base --- */
+.piano-overlay,
+.add-track-popover-overlay,
+.file-manager-overlay,
+.settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+    font-family: 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.note-editor,
+.file-manager-popover,
+.add-track-modal,
+.settings-popover {
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 8px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* --- Shared Modal Header --- */
+.modal-header,
+.file-manager-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #333;
+    border-bottom: 1px solid #444;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.modal-title,
+.file-manager-header h3 {
+    margin: 0;
+    color: #ddd;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* --- Section Headers --- */
+.section-header,
+.add-track-section-header {
+    background: #1a1a1a;
+    padding: 12px 15px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #888;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #333;
+    pointer-events: none;
+    /* Ensure it's not clickable */
+}
+
+/* --- Buttons --- */
+.close-btn,
+.file-close-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 20px;
+    cursor: pointer;
+    transition: color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+}
+
+.close-btn:active,
+.file-close-btn:active {
+    color: #fff;
+}
+
+.apply-btn {
+    width: 100%;
+    padding: 12px;
+    background: #ffcc00;
+    border: none;
+    border-radius: 4px;
+    color: #000;
+    font-weight: bold;
+    font-size: 13px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.apply-btn:active {
+    background: #ffdb4d;
+    box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3);
+}
+
+/* --- File Manager Specific --- */
+.file-manager-popover {
+    width: 90%;
+    max-width: 600px;
+}
+
+.file-manager-header {
+    background: #333;
+    padding: 10px 15px;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #444;
+    position: relative;
+    gap: 10px;
+}
+
+.file-header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.file-manager-header .modal-title {
+    margin: 0;
+    color: #ddd;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.file-action-btn {
+    background: linear-gradient(to bottom, #444, #333);
+    border: 1px solid #222;
+    color: #ddd;
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
+    transition: all 0.1s;
+}
+
+.file-action-btn:active {
+    background: #222;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    transform: translateY(1px);
+}
+
+.file-action-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+.file-close-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    box-shadow: none;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+.file-close-btn:active {
+    color: #fff;
+    background: transparent;
+}
+
+.file-list-container {
+    background: #2a2a2a;
+    border-top: 1px solid #000;
+    padding: 0;
+}
+
+.file-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.file-item {
+    padding: 8px 15px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.1s;
+    height: 40px;
+}
+
+.file-item:active {
+    background: #333;
+}
+
+.file-item.active {
+    background: rgba(255, 204, 0, 0.05);
+    border-left: 4px solid #ffcc00;
+}
+
+.file-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.file-name {
+    color: #eee;
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+.file-date {
+    color: #888;
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+.file-item-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.file-action-icon-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-action-icon-btn:active {
+    background: #444;
+    color: #fff;
+}
+
+.empty-file-list {
+    padding: 40px 20px;
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+}
+
+/* --- Drum Track Management (Add Track Modal) --- */
+.add-track-modal {
+    width: 380px;
+    max-width: 95vw;
+}
+
+.add-track-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: #444;
+}
+
+.add-track-section-header {
+    grid-column: 1 / span 2;
+}
+
+.add-track-item {
+    background: #222;
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+}
+
+.add-track-item:active:not(.locked) {
+    background: #2a2a2a;
+}
+
+.add-track-item.active {
+    background: rgba(255, 204, 0, 0.05);
+    color: #ffcc00;
+}
+
+.add-track-item.locked {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.track-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+}
+
+.add-track-item.active .track-icon {
+    color: #ffcc00;
+}
+
+.track-label {
+    flex: 1;
+    font-size: 13px;
+    font-weight: bold;
+    color: #ddd;
+}
+
+.add-track-item.active .track-label {
+    color: #ffcc00;
+}
+
+.track-check {
+    font-size: 16px;
+    color: #444;
+}
+
+.add-track-item.active .track-check {
+    color: #ffcc00;
+}
+
+.modal-footer {
+    padding: 15px;
+    background: #2a2a2a;
+    border-top: 1px solid #444;
+}
+
+/* --- Settings Specific --- */
+.settings-popover {
+    width: 600px;
+    max-width: 95vw;
+    height: 500px;
+}
+
+.settings-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.settings-sidebar {
+    width: 140px;
+    background: #2a2a2a;
+    border-right: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-tab-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    padding: 15px;
+    text-align: left;
+    cursor: pointer;
+    border-bottom: 1px solid #333;
+    transition: all 0.2s;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.settings-tab-btn:active {
+    background: #333;
+    color: #ddd;
+}
+
+.settings-tab-btn.active {
+    background: #333;
+    color: #ffcc00;
+    border-left: 3px solid #ffcc00;
+}
+
+.settings-content {
+    flex: 1;
+    background: #1a1a1a;
+    padding: 20px;
+    overflow-y: auto;
+    color: #ddd;
+}
+
+.tab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.tab-header h4 {
+    margin: 0;
+    color: #ddd;
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.tab-actions {
+    display: flex;
+    gap: 5px;
+}
+
+/* Settings Options */
+.settings-option {
+    margin-bottom: 20px;
+}
+
+.settings-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    color: #ddd;
+    font-size: 14px;
+}
+
+.settings-checkbox input[type="checkbox"] {
+    display: none;
+}
+
+.settings-checkbox .checkmark {
+    width: 20px;
+    height: 20px;
+    background: #333;
+    border: 2px solid #555;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.settings-checkbox input[type="checkbox"]:checked+.checkmark {
+    background: #d85c2e;
+    border-color: #ff7744;
+}
+
+.settings-checkbox input[type="checkbox"]:checked+.checkmark::after {
+    content: '✓';
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.settings-checkbox:active .checkmark {
+    border-color: #888;
+}
+
+.settings-checkbox .label-text {
+    flex: 1;
+}
+
+.settings-help {
+    margin: 8px 0 0 32px;
+    color: #888;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* MIDI Mapping List */
+.midi-mapping-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #222;
+    border: 1px solid #444;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    color: #ddd;
+    font-size: 12px;
+}
+
+.midi-mapping-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.midi-mapping-target {
+    font-weight: bold;
+    color: #fff;
+}
+
+.midi-mapping-source {
+    color: #aaa;
+    font-family: monospace;
+}
+
+.midi-delete-btn {
+    background: transparent;
+    border: none;
+    color: #ff4444;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.midi-delete-btn:active {
+    color: #ff0000;
+}
+
+/* MIDI Device List */
+.midi-device-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #222;
+    border: 1px solid #444;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    color: #ddd;
+}
+
+.midi-device-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.midi-device-name {
+    font-weight: bold;
+    color: #fff;
+    font-size: 13px;
+}
+
+.midi-device-meta {
+    color: #888;
+    font-size: 11px;
+}
+
+.midi-device-status {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #444;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.midi-device-status.connected {
+    background: #00ff00;
+    box-shadow: 0 0 8px #00ff00;
+}
+
+.midi-device-status.disconnected {
+    background: #ff3333;
+}
+
+/* --- Piano Editor Specific --- */
+.step-nav button {
+    background: linear-gradient(to bottom, #444, #333);
+    border: 1px solid #222;
+    color: #ddd;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
+    font-weight: bold;
+    font-family: 'Arial Narrow', sans-serif;
+}
+
+.step-indicator {
+    font-family: 'DSEG7Classic', monospace;
+    color: #ff3333;
+    font-size: 20px;
+    background: #000;
+    padding: 6px 10px;
+    border-radius: 2px;
+    border: 1px solid #555;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.8);
+    min-width: 44px;
+    text-align: center;
+}
+
+.toggle-btn {
+    flex: 1;
+    padding: 12px;
+    background: linear-gradient(to bottom, #3a3a3a, #2a2a2a);
+    border: 1px solid #111;
+    color: #888;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.1s;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
+    font-size: 12px;
+}
+
+.toggle-btn.active {
+    color: #fff;
+    border-color: #ffcc00;
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+}
+
+/* --- Audio Resume Overlay --- */
+.audio-resume-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+}
+
+.audio-resume-icon {
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, #ffcc00 0%, #d85c2e 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow: 0 0 40px rgba(255, 204, 0, 0.5);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.audio-resume-text {
+    font-size: 28px;
+    font-weight: bold;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-top: 30px;
+}
+
+/* --- Toast --- */
+#toast {
+    visibility: hidden;
+    min-width: 250px;
+    background-color: #222;
+    color: #fff;
+    text-align: center;
+    border-radius: 4px;
+    padding: 16px;
+    position: fixed;
+    z-index: 2500;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%);
+    font-size: 14px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+    border: 1px solid #444;
+}
+
+#toast.show {
+    visibility: visible;
+    animation: fadein 0.5s, fadeout 0.5s 2.5s;
+}
+
+@keyframes fadein {
+    from {
+        bottom: 0;
+        opacity: 0;
+    }
+
+    to {
+        bottom: 30px;
+        opacity: 1;
+    }
+}
+
+@keyframes fadeout {
+    from {
+        bottom: 30px;
+        opacity: 1;
+    }
+
+    to {
+        bottom: 0;
+        opacity: 0;
+    }
+}
+
+/* --- Note Editor Specific --- */
+.note-editor {
+    width: 90%;
+    max-width: 400px;
+}
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: #333;
+    border-bottom: 1px solid #444;
+}
+
+.step-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.step-nav button {
+    background: linear-gradient(to bottom, #444, #333);
+    border: 1px solid #222;
+    color: #ddd;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
+    font-weight: bold;
+}
+
+.step-nav button:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.editor-controls {
+    padding: 15px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    background: #2a2a2a;
+}
+
+.control-row {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.control-label {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: bold;
+}
+
+.octave-selector {
+    display: flex;
+    background: #111;
+    border-radius: 4px;
+    padding: 3px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.octave-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #666;
+    padding: 10px 0;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    font-weight: bold;
+}
+
+.octave-btn:active {
+    color: #999;
+}
+
+.octave-btn.active {
+    background: #444;
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.toggle-row {
+    display: flex;
+    gap: 10px;
+}
+
+.toggle-btn {
+    flex: 1;
+    padding: 12px;
+    background: linear-gradient(to bottom, #3a3a3a, #2a2a2a);
+    border: 1px solid #111;
+    color: #888;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.1s;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
+    font-size: 12px;
+}
+
+.toggle-btn:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.toggle-btn.active {
+    color: white;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.toggle-btn.accent.active {
+    background: linear-gradient(to bottom, #e53935, #b71c1c);
+    box-shadow: 0 0 10px #e53935;
+}
+
+.toggle-btn.slide.active {
+    background: linear-gradient(to bottom, #43a047, #2e7d32);
+    box-shadow: 0 0 10px #43a047;
+}
+
+.preview-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #aaa;
+    cursor: pointer;
+    user-select: none;
+}
+
+.preview-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #d85c2e;
+    cursor: pointer;
+}
+
+.piano-container {
+    position: relative;
+    height: 160px;
+    background: #1a1a1a;
+    border-top: 1px solid #444;
+    margin-top: auto;
+    padding: 0 10px;
+}
+
+.piano-key-new {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border: 1px solid #888;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    cursor: pointer;
+    box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.1), 2px 2px 5px rgba(0, 0, 0, 0.3);
+    transition: background 0.05s;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 10px;
+    font-size: 10px;
+    font-weight: bold;
+    color: #444;
+}
+
+.piano-key-new.active.disabled {
+    background: #555 !important;
+    color: #888 !important;
+    box-shadow: inset 0 0 10px #333 !important;
+    border-color: #444 !important;
+}
+
+.piano-key-new:active {
+    transform: translateY(2px);
+    box-shadow: inset 0 -2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.piano-key-new.white {
+    background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+    z-index: 1;
+}
+
+.piano-key-new.white.active {
+    background: #d85c2e;
+    border-color: #a33;
+    color: white;
+    box-shadow: 0 0 15px #d85c2e;
+}
+
+.piano-key-new.black {
+    background: linear-gradient(to bottom, #333 0%, #000 100%);
+    z-index: 2;
+    height: 60%;
+    border: 1px solid #000;
+    border-bottom: 1px solid #333;
+    color: #ccc;
+}
+
+.piano-key-new.black.active {
+    background: #d85c2e;
+    border-color: #fff;
+    color: white;
+    box-shadow: 0 0 15px #d85c2e;
+}
+
+.mute-btn {
+    width: 100%;
+    padding: 15px;
+    background: #222;
+    color: #888;
+    border: none;
+    border-top: 1px solid #444;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: background 0.2s;
+    font-size: 12px;
+}
+
+.mute-btn:active {
+    background: #333;
+    color: #fff;
+}
+
+.mute-btn.active {
+    background: #333;
+    color: #d85c2e;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+/* --- MIDI Learn Mode Banner --- */
+.learn-mode-exit-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #ff6b35 0%, #d85c2e 100%);
+    color: white;
+    padding: 12px 20px;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.learn-mode-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.learn-mode-banner-text {
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+.exit-learn-mode-btn {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.exit-learn-mode-btn:active {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* MIDI Learn Mode Highlights */
+body.midi-learn-active [data-midi-mappable] {
+    outline: 2px dashed #00ff00;
+    cursor: crosshair !important;
+    position: relative;
+    z-index: 50;
+}
+
+body.midi-learn-active .midi-mapped {
+    outline: 2px solid #00aaff !important;
+    cursor: crosshair !important;
+    position: relative;
+    z-index: 50;
+}
+
+body.midi-learn-active .midi-mapped::after {
+    content: '✓';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #00aaff;
+    color: white;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    z-index: 51;
+    box-shadow: 0 0 4px rgba(0, 170, 255, 0.8);
+}
+
+.midi-learning {
+    outline: 2px solid #ff0000 !important;
+    box-shadow: 0 0 15px #ff0000 !important;
+    animation: midi-blink 0.5s infinite alternate;
+}
+
+@keyframes midi-blink {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0.5;
+    }
+}
+
+/* --- Audio Resume Overlay --- */
+.audio-resume-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    text-align: center;
+}
+
+.audio-resume-subtext {
+    font-size: 14px;
+    color: #888;
+    text-align: center;
+}
+
+/* --- Responsive Overlays --- */
+@media (max-width: 600px) {
+
+    .note-editor,
+    .file-manager-popover,
+    .add-track-modal,
+    .settings-popover {
+        width: 95%;
+    }
+
+    .settings-sidebar {
+        width: 100px;
+    }
+
+    .piano-container {
+        flex-grow: 0;
+        height: 140px;
+    }
+
+    .editor-controls {
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .toggle-btn {
+        padding: 10px;
+        font-size: 12px;
+    }
+
+    .octave-btn {
+        padding: 10px 0;
+        font-size: 12px;
+    }
+}

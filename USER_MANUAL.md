@@ -49,7 +49,7 @@ Toggle between **Pattern Mode** and **Song Mode** using the animated switch. The
 ### Song Mode
 - **Pattern Timeline** – Click pattern buttons (P1-P16) to add them to your song arrangement.
 - **Timeline Blocks** – Click a block to **remove** it. **Drag and drop** blocks to reorder them in the timeline.
-- **Multi-Row Layout** – Timeline wraps automatically, eliminating horizontal scrolling.
+- **Multi-Row Grid Layout** – Timeline uses a consistent 8/16 column grid to match the pattern selectors, eliminating horizontal scrolling.
 
 ### SWING/SHUFFLE
 - **Toggle** – Click the shuffle button to open the swing control panel.
@@ -151,7 +151,7 @@ Each track has its own 16‑step grid. Active steps glow orange/yellow; inactive
 
 ### Visual Feedback
 - **Toast Notifications** – Appear at the bottom for copy, paste, and share actions.
-- **Hover Effects** – Buttons and knobs glow on hover.
+- **Touch-Optimized Active States** – Buttons and knobs provide instant visual feedback on touch/click using `:active` states (glow/transform).
 - **Active States** – Current pattern, playing step, and active controls are highlighted.
 - **Smooth Animations** – Mode switch, button presses, and transitions are animated.
 - **Oscilloscope** – Visualizes the master audio output in real-time.

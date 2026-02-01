@@ -64,6 +64,11 @@ This document defines the visual and interaction design standards for the acidBr
 - **Border Radius**: `8px`
 - **Box Shadow**: `0 20px 50px rgba(0,0,0,0.9)`
 
+#### 3.2.1 Mandatory Header Layout
+- **Structure**: Always place the title first as a block element (`<h3>` or `.modal-title`), followed by the close button.
+- **Close Button Positioning**: **MUST** use `position: absolute; top: 5px; right: 5px;`. Do NOT use flexbox `justify-content` to position the close button.
+- **Visuals**: Maintain the established background (`#333`) and padding. Do not add decorative sub-containers or background changes unless explicitly defined in the guide.
+
 ### 3.2 Modal Header (`.modal-header`)
 ```css
 .modal-header {
@@ -127,10 +132,12 @@ This document defines the visual and interaction design standards for the acidBr
 ## 4. Icon Guidelines
 
 ### 4.1 General
-- Prefer SVG for all icons.
+- **External Files**: All SVG icons MUST be stored as separate files in the `assets/icons/` directory.
+- **No Dynamic Generation**: Icons should NOT be generated as strings in JavaScript (e.g., `UI.svgIcon()`).
+- **Implementation**: Use CSS `mask-image` or `<svg><use xlink:href="..." /></svg>` for icons that require dynamic coloring (e.g., `currentColor`).
 - Standard sizes: `18x18`, `22x22`, `32x32` pixels.
 - Stroke-based icons should use `stroke-width: 2`.
-- Color inherits from `currentColor` for flexibility.
+- Color should be controllable via CSS (usually via `currentColor`).
 
 ### 4.2 Drum Kit Icons
 Use recognizable, instrument-specific line-art icons.
@@ -178,7 +185,21 @@ Use recognizable, instrument-specific line-art icons.
 
 ---
 
-## 7. Avoiding Common Mistakes
+## 7. Mobile-First Interaction
+
+### No Hover Effects
+- **Do NOT rely on `:hover` for visual feedback**. Hover is not available on touch devices.
+- Use `:active` for press/tap feedback instead.
+- If hover is used on desktop, ensure the element is fully functional without it on mobile.
+
+### Touch Considerations
+- Minimum touch target size: `44x44px` (per Apple HIG / Material guidelines).
+- Use `touch-action: manipulation` to eliminate 300ms tap delay.
+- Avoid gestures that conflict with browser native gestures (e.g., horizontal swipe on song timeline).
+
+---
+
+## 8. Avoiding Common Mistakes
 
 | ❌ Don't | ✅ Do |
 | :--- | :--- |
@@ -187,10 +208,11 @@ Use recognizable, instrument-specific line-art icons.
 | Use hardcoded colors | Use CSS variables or constants |
 | Create new one-off header classes | Reuse `.modal-header` |
 | Leave unrelated button margins | Ensure component self-containment |
+| Use `:hover` for essential feedback | Use `:active` for touch feedback |
 
 ---
 
-## 8. File Reference
+## 9. File Reference
 
 | File | Purpose |
 | :--- | :--- |
@@ -200,4 +222,4 @@ Use recognizable, instrument-specific line-art icons.
 
 ---
 
-*Last Updated: 2026-02-01*
+*Last Updated: 2026-02-02*

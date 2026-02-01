@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v96
+- **Current Version**: v125
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -67,14 +67,27 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 #### 4. Service Worker & PWA
 - **Cache Version**: Currently v94 (increment on each deployment)
 - **Strategy**: Cache-first for offline support
-- **Assets**: All JS, CSS, HTML, fonts, and core 909 samples (CH/OH/CR/RD) cached
+- **Assets**: All JS, CSS, HTML, fonts, core 909 samples (CH/OH/CR/RD), and individual SVG icons cached
+
+#### 5. External SVG Icon System (v97)
+- **Problem**: Dynamically generated SVG strings in JS were hard to maintain and violated modern architectural guidelines.
+- **Solution**: Individual external SVG files
+  - **Storage**: All icons stored as separate `.svg` files in `assets/icons/`.
+  - **Implementation**: Used CSS `mask-image` for icons that need dynamic coloring (via `currentColor` or `background-color`).
+  - **Efficiency**: Reduced JS bundle size and improved template readability.
 
 ## File Structure
 ```
 acidBros/
-├── index.html              # Main HTML (v94)
-├── styles.css              # Styling with oscilloscope power states
-├── sw.js                   # Service worker (cache v94)
+├── index.html              # Main HTML (v125)
+├── css/                    # Modular CSS system (v125)
+│   ├── base.css            # Root vars, Resets, Typography
+│   ├── icons.css           # SVG Icon System (Mask-image)
+│   ├── layout.css          # Rack, Top-bar, Responsive
+│   ├── components.css      # Knobs, Switches, LED Display
+│   ├── machines.css        # TB-303 & TR-909 specifics
+│   └── overlays.css        # Modals, Toasts, File Manager
+├── sw.js                   # Service worker (cache v98)
 ├── manifest.json           # PWA manifest
 ├── js/
 │   ├── main.js            # Entry point
@@ -94,7 +107,12 @@ acidBros/
 │       └── MidiManager.js # MIDI & Keyboard mapping logic
 └── assets/
     ├── favicon.png
-    └── DSEG7Classic-Bold.woff2 # 7-segment display font
+    ├── DSEG7Classic-Bold.woff2 # 7-segment display font
+    └── icons/                 # External SVG icon system
+        ├── add.svg
+        ├── play.svg
+        ├── stop.svg
+        └── ... (other icons)
 ```
 
 ## Common Issues & Solutions
@@ -161,7 +179,7 @@ To ensure project health and consistency, relevant documentation MUST be updated
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v96)
+## Recent Changes (v57-v125)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -416,6 +434,23 @@ To ensure project health and consistency, relevant documentation MUST be updated
     - **Visual Feedback**: Custom tracks are highlighted with a "(CUSTOM)" label and golden accent.
 - **Binary Format v5**: Updated encoder/decoder and spec to support **Block 0x03 (Metadata)**, persisting active track visibility and sample mappings across saves.
 - **Documentation Guide**: Added explicit guide for mandatory documentation updates in `PROJECT_CONTEXT.md`.
+
+### v113-v125: UI Refresh & Modular CSS System
+- **Modular CSS**: Migrated from a single `styles.css` to a modular system in `css/` directory (`base.css`, `layout.css`, `machines.css`, `overlays.css`, `icons.css`, `components.css`).
+- **Mobile-First UX**: Replaced all `:hover` states with touch-optimized `:active` states for better mobile responsiveness.
+- **File Manager UI**:
+  - Restructured to a 2-tier header (Title row + Action buttons row).
+  - Unified styling with the Settings modal and enforced via `DESIGN_GUIDE.md`.
+  - Removed text labels from action buttons for a cleaner, icon-only aesthetic.
+- **Song Mode Enhancements**:
+  - Unified `.pat-btn` and `.song-block` styling (size, font, colors).
+  - Refined `.song-timeline` layout using CSS Grid (8/16 columns) to match patterns.
+  - Simplified timeline visuals by removing background and using a top border divider.
+  - Disabled horizontal scrolling on timeline for a more stable grid experience.
+- **MIDI Learn Visibility**:
+  - Added green/blue dashed outlines and checkmark badges for mappable/mapped elements during Learn mode.
+  - Integrated red pulse animation (`midi-blink`) for the element currently undergoing learning.
+- **Design Guide**: Updated `.agent/DESIGN_GUIDE.md` with mandatory modal header layout rules and interaction standards.
 
 ## Next Session Quick Start
 1. Check current version in `sw.js` and `index.html`

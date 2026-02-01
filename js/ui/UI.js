@@ -9,48 +9,7 @@ export const UI = {
     isInitialized: false,
 
     svgIcon(id) {
-        const icons = {
-            add: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
-            settings: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
-            // Drum Machine Icons (Updated based on reference image: circular front view with legs and pedal)
-            bd: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="8"></circle><path d="M8 17l-1 3M16 17l1 3"></path><path d="M10 22h4"></path><path d="M12 22v-6"></path><circle cx="12" cy="16" r="2"></circle></svg>`,
-            sd: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="9" rx="8" ry="3"></ellipse><path d="M4 9v7c0 1.66 3.58 3 8 3s8-1.34 8-3V9"></path><line x1="18" y1="3" x2="12" y2="9" stroke-width="2"></line></svg>`,
-            lt: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="10" rx="8" ry="5"></ellipse><path d="M4 10v6c0 2.5 3.5 4 8 4s8-1.5 8-4v-6"></path></svg>`,
-            mt: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="10" rx="6" ry="4"></ellipse><path d="M6 10v5c0 2 2.5 3 6 3s6-1 6-3v-5"></path></svg>`,
-            ht: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="10" rx="5" ry="3"></ellipse><path d="M7 10v4c0 1.5 2 2.5 5 2.5s5-1 5-2.5v-4"></path></svg>`,
-            rs: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="9" rx="8" ry="3"></ellipse><path d="M4 9v7c0 1.66 3.58 3 8 3s8-1.34 8-3V9"></path><line x1="2" y1="5" x2="22" y2="13" stroke-width="2"></line></svg>`,
-            cp: `<svg viewBox="0 0 72 72" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <g id="line">
-                    <line x1="20.36" x2="20.64" y1="18.34" y2="20.17" />
-                    <line x1="15.41" x2="14.06" y1="12.91" y2="6.62" />
-                    <line x1="12.51" x2="6.59" y1="18.51" y2="21.03" />
-                    <line x1="13.65" x2="9.21" y1="15.52" y2="13.22" />
-                    <line x1="54.53" x2="54.27" y1="14.5" y2="8.07" />
-                    <line x1="58.74" x2="65.09" y1="19.19" y2="20.16" />
-                    <line x1="56.88" x2="60.61" y1="16.59" y2="13.25" />
-                    <line x1="29.92" x2="16.84" y1="43.74" y2="30.42" />
-                    <line x1="34.07" x2="20.68" y1="38.58" y2="25.19" />
-                    <path d="M13.17,44c-2.89-2.89,1.18-6.82,3.42-4.57l9.86,10.04" />
-                    <path d="M13.37,36.14c-3.75-3.75,1.52-7.67,4.01-5.18" />
-                    <path d="M20.68,25.19c-2.79-2.79-8.3,0.78-3.3,5.77" />
-                    <path d="M52.82,38.66c-2.21-2.14-5.67-6.06-10.68-11.07c-3.07,0-3.43,4.57-2.27,7.42l3.46,3.46 L27.03,22.16c-2.59-2.59-7.47,1.9-4.28,5.1" />
-                    <line x1="13.37" x2="17.88" y1="36.14" y2="40.74" />
-                    <path d="M52.82,38.66c6.23,6.23,6.23,16.32,0,22.55s-16.19,6.26-22.41,0.03" />
-                    <line x1="13.17" x2="30.41" y1="44" y2="61.24" />
-                    <line x1="33.39" x2="31.35" y1="23.71" y2="9.56" />
-                    <line x1="40.08" x2="37.54" y1="24.62" y2="7.62" />
-                    <path d="M20.36,18.34c-0.62-4.04,4.98-4.8,5.46-1.66l0.22,1.7" />
-                    <path d="M25.17,12.13c-0.81-5.24,5.76-5.29,6.3-1.81" />
-                    <path d="M37.54,7.62c-0.6-3.9-7.15-4.28-6.08,2.7" />
-                    <path d="M55.33,36.56c-0.51-3.03-0.83-7.31-1.9-14.31c-2.48-1.82-5.46,1.65-6.22,4.64l-2.77-17.96 c-0.56-3.62-7.15-2.88-6.47,1.58" />
-                </g>
-            </svg>`,
-            ch: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10v12M8 22h8"></path><path d="M12 7v-2"></path><ellipse cx="12" cy="11" rx="9" ry="3" fill="#222"></ellipse><ellipse cx="12" cy="9" rx="9" ry="3" fill="#222"></ellipse></svg>`,
-            oh: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13v9M8 22h8"></path><path d="M12 6v-2"></path><ellipse cx="12" cy="13" rx="9" ry="3" fill="#222"></ellipse><ellipse cx="12" cy="9" rx="9" ry="3" fill="#222"></ellipse></svg>`,
-            cr: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-15 12 8)"><ellipse cx="12" cy="8" rx="9" ry="2"></ellipse></g><path d="M12 10v12M8 22h8"></path><path d="M12 6v-2"></path></svg>`,
-            rd: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-15 12 8)"><ellipse cx="12" cy="8" rx="9" ry="2"></ellipse><path d="M12 5c2 0 3 1.5 3 3H9c0-1.5 1-3 3-3z"></path><line x1="20" y1="2" x2="14" y2="6" stroke-width="2"></line></g><path d="M12 10v12M8 22h8"></path><path d="M12 5v-2"></path></svg>`
-        };
-        return icons[id] || '';
+        return `<span class="icon icon-${id}"></span>`;
     },
 
     init() {
@@ -1008,7 +967,7 @@ export const UI = {
             duplicateBtn.className = 'file-action-icon-btn';
             duplicateBtn.title = 'Duplicate';
             duplicateBtn.setAttribute('aria-label', 'Duplicate File');
-            duplicateBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+            duplicateBtn.innerHTML = this.svgIcon('copy');
             duplicateBtn.onclick = (e) => {
                 e.stopPropagation();
                 FileManager.duplicateFile(file.id);
@@ -1021,7 +980,7 @@ export const UI = {
             renameBtn.className = 'file-action-icon-btn';
             renameBtn.title = 'Rename';
             renameBtn.setAttribute('aria-label', 'Rename File');
-            renameBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+            renameBtn.innerHTML = this.svgIcon('edit');
             renameBtn.onclick = (e) => {
                 e.stopPropagation();
                 const newName = prompt('Enter new name:', file.name);
@@ -1036,7 +995,7 @@ export const UI = {
             deleteBtn.className = 'file-action-icon-btn file-delete-icon-btn';
             deleteBtn.title = 'Delete';
             deleteBtn.setAttribute('aria-label', 'Delete File');
-            deleteBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
+            deleteBtn.innerHTML = this.svgIcon('trash');
             deleteBtn.onclick = (e) => {
                 e.stopPropagation();
                 FileManager.deleteFile(file.id);
@@ -1962,7 +1921,7 @@ export const UI = {
         manageRow.className = 'drum-track-row';
         const manageBtn = document.createElement('div');
         manageBtn.className = 'manage-909-track-btn';
-        manageBtn.innerHTML = this.svgIcon('settings') + '<span>MANAGE</span>';
+        manageBtn.innerHTML = this.svgIcon('sd') + '<span>MANAGE TRACKS</span>';
         manageBtn.title = 'Manage Drum Tracks';
         manageBtn.onclick = () => {
             this.showAddTrackPopover();
@@ -1978,8 +1937,8 @@ export const UI = {
         const s9 = Data.getSequence('tr909');
         if (!s9) return;
 
-        const trashIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-        const diceIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1"></circle><circle cx="15.5" cy="8.5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="8.5" cy="15.5" r="1"></circle><circle cx="15.5" cy="15.5" r="1"></circle></svg>';
+        const trashIcon = this.svgIcon('trash');
+        const diceIcon = this.svgIcon('dice');
 
         let allEmpty = true;
         ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp', 'ch', 'oh', 'cr', 'rd'].forEach(id => {
@@ -2002,8 +1961,8 @@ export const UI = {
     },
 
     update303ClearButtons() {
-        const trashIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-        const diceIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1"></circle><circle cx="15.5" cy="8.5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="8.5" cy="15.5" r="1"></circle><circle cx="15.5" cy="15.5" r="1"></circle></svg>';
+        const trashIcon = this.svgIcon('trash');
+        const diceIcon = this.svgIcon('dice');
 
         // Update Unit 1
         const s1 = Data.getSequence('tb303_1');
@@ -2133,20 +2092,7 @@ export const UI = {
         renderItems('SYNTHESIS', synthIds);
         renderItems('FACTORY SAMPLES', sampleIds);
 
-        // Custom Samples Header
-        const customHdr = document.createElement('div');
-        customHdr.className = 'add-track-section-header';
-        customHdr.innerText = 'CUSTOM SAMPLES';
-        list.appendChild(customHdr);
 
-        const uploadItem = document.createElement('div');
-        uploadItem.className = 'add-track-item upload-item';
-        uploadItem.innerHTML = this.svgIcon('add') + '<span>UPLOAD NEW</span>';
-        uploadItem.onclick = () => {
-            this.triggerSampleUpload();
-            overlay.remove();
-        };
-        list.appendChild(uploadItem);
 
         content.appendChild(list);
         modal.appendChild(content);
@@ -2197,105 +2143,6 @@ export const UI = {
             Data.saveSettings();
             this.render909();
         }
-    },
-
-    triggerSampleUpload() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'audio/*';
-        input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (ev) => {
-                const arrayBuffer = ev.target.result;
-                const sampleId = 'custom_' + Date.now();
-
-                try {
-                    const { SampleStore } = await import('../data/SampleStore.js');
-                    await SampleStore.saveSample(sampleId, arrayBuffer, file.name);
-
-                    // Decode for immediate use
-                    const buffer = await AudioEngine.ctx.decodeAudioData(arrayBuffer.slice(0));
-                    const tr909 = AudioEngine.instruments.get('tr909');
-                    if (tr909) tr909.customSamples.set(sampleId, buffer);
-
-                    // Show track selection to map the sample
-                    this.showTrackMappingPopover(sampleId, file.name);
-
-                } catch (err) {
-                    console.error('Failed to save custom sample', err);
-                    alert('Failed to upload sample: ' + err.message);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        };
-        input.click();
-    },
-
-    showTrackMappingPopover(sampleId, sampleName) {
-        const existing = document.getElementById('add-track-popover-overlay');
-        if (existing) existing.remove();
-
-        const overlay = document.createElement('div');
-        overlay.id = 'add-track-popover-overlay';
-        overlay.className = 'piano-overlay';
-
-        const modal = document.createElement('div');
-        modal.className = 'modal add-track-modal';
-
-        const header = document.createElement('div');
-        header.className = 'modal-header';
-        header.innerHTML = `<span class="modal-title">MAP SAMPLE TO:</span><button class="close-btn">&times;</button>`;
-        header.querySelector('.close-btn').onclick = () => overlay.remove();
-        modal.appendChild(header);
-
-
-        const content = document.createElement('div');
-        content.className = 'modal-body';
-
-        const list = document.createElement('div');
-        list.className = 'add-track-list';
-
-        const allTracks = [
-            { id: 'bd', name: 'BD' }, { id: 'sd', name: 'SD' },
-            { id: 'lt', name: 'LT' }, { id: 'mt', name: 'MT' }, { id: 'ht', name: 'HT' },
-            { id: 'rs', name: 'RS' }, { id: 'cp', name: 'CP' },
-            { id: 'ch', name: 'CH' }, { id: 'oh', name: 'OH' },
-            { id: 'cr', name: 'CR' }, { id: 'rd', name: 'RD' }
-        ];
-
-        allTracks.forEach(t => {
-            const item = document.createElement('div');
-            item.className = 'add-track-item';
-            item.innerHTML = `
-                <div class="track-icon">${this.svgIcon(t.id)}</div>
-                <div class="track-label">${t.name}</div>
-            `;
-            item.onclick = () => {
-                Data.customSampleMap[t.id] = sampleId;
-                Data.saveSettings();
-
-                // Update TR909 engine map
-                const tr909 = AudioEngine.instruments.get('tr909');
-                if (tr909) tr909.customSampleMap[t.id] = sampleId;
-
-                // Ensure track is visible
-                this.add909Track(t.id, 'custom', sampleId);
-
-                overlay.remove();
-                this.render909();
-            };
-            list.appendChild(item);
-        });
-
-        content.appendChild(list);
-        modal.appendChild(content);
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-
-        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
     },
 
     clearPlayhead() {
