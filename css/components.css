@@ -289,8 +289,7 @@
     transform: translateX(100%);
 }
 
-.waveform-switch input:checked+label .icon-saw,
-.waveform-switch input:checked+label .icon-sq,
+.waveform-switch input:checked+label .icon,
 .mode-switch input:checked+label .icon {
     opacity: 1;
     color: #000;
