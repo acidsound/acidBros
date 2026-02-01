@@ -289,10 +289,19 @@
     transform: translateX(100%);
 }
 
-.waveform-switch input:checked+label .icon,
+.waveform-switch input:checked+label .icon-saw,
+.waveform-switch input:checked+label .icon-sq,
 .mode-switch input:checked+label .icon {
     opacity: 1;
-    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+    color: #000;
+    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.5));
+}
+
+.waveform-switch label .icon,
+.mode-switch label .icon {
+    opacity: 0.4;
+    color: #666;
+    transition: all 0.2s ease;
 }
 
 /* Mini Buttons for Steps */
