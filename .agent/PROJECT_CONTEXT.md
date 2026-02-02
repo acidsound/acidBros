@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v127
+- **Current Version**: v128
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture

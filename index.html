@@ -92,7 +92,7 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v127</div>
+          <div class="version-display">v128</div>
           <button id="fileManagerBtn" class="transport-icon-btn" title="File Manager" aria-label="File Manager">
             <span class="icon icon-lg icon-folder"></span>
           </button>
@@ -297,10 +297,13 @@
             <span class="current-voice-label" id="ds-voice-label">BD (Bass Drum)</span>
           </div>
           <div class="header-right">
-            <button class="icon-btn" id="ds-load-preset" title="Load Preset">
+            <button class="header-action-btn icon-only" id="ds-reset-btn" title="Reset to Factory">
+              <span class="icon icon-refresh"></span>
+            </button>
+            <button class="header-action-btn icon-only" id="ds-load-preset" title="Load Preset">
               <span class="icon icon-folder"></span>
             </button>
-            <button class="icon-btn" id="ds-save-preset" title="Save Preset">
+            <button class="header-action-btn icon-only" id="ds-save-preset" title="Save Preset">
               <span class="icon icon-file-save"></span>
             </button>
             <button class="close-btn" id="ds-close-btn">&times;</button>
@@ -314,14 +317,23 @@
             <div class="ds-module" id="ds-osc1">
               <div class="module-header">
                 <span class="module-title">OSC 1 (Main)</span>
-                <label class="toggle-switch"><input type="checkbox" checked><span class="slider round"></span></label>
+                <div class="ds-switch">
+                  <input type="radio" name="ds_sw_osc1" id="ds_sw_osc1_off" value="false">
+                  <label for="ds_sw_osc1_off">OFF</label>
+                  <input type="radio" name="ds_sw_osc1" id="ds_sw_osc1_on" value="true" checked>
+                  <label for="ds_sw_osc1_on">ON</label>
+                  <div class="switch-handle"></div>
+                </div>
               </div>
               <div class="module-controls">
-                <select class="ds-select" data-param="wave">
-                  <option>Tri</option>
-                  <option>Sine</option>
-                  <option>Sqr</option>
-                </select>
+                <div class="ds-radio-group" data-param="wave">
+                  <input type="radio" name="w_osc1" id="w_osc1_tri" value="Tri" checked>
+                  <label for="w_osc1_tri">TRI</label>
+                  <input type="radio" name="w_osc1" id="w_osc1_sin" value="Sine">
+                  <label for="w_osc1_sin">SIN</label>
+                  <input type="radio" name="w_osc1" id="w_osc1_sqr" value="Sqr">
+                  <label for="w_osc1_sqr">SQR</label>
+                </div>
                 <div class="knob-group" id="ds-osc1-knobs"></div>
               </div>
             </div>
@@ -329,14 +341,23 @@
             <div class="ds-module" id="ds-osc2">
               <div class="module-header">
                 <span class="module-title">OSC 2</span>
-                <label class="toggle-switch"><input type="checkbox"><span class="slider round"></span></label>
+                <div class="ds-switch">
+                  <input type="radio" name="ds_sw_osc2" id="ds_sw_osc2_off" value="false" checked>
+                  <label for="ds_sw_osc2_off">OFF</label>
+                  <input type="radio" name="ds_sw_osc2" id="ds_sw_osc2_on" value="true">
+                  <label for="ds_sw_osc2_on">ON</label>
+                  <div class="switch-handle"></div>
+                </div>
               </div>
               <div class="module-controls">
-                <select class="ds-select" data-param="wave">
-                  <option>Tri</option>
-                  <option>Sine</option>
-                  <option>Sqr</option>
-                </select>
+                <div class="ds-radio-group" data-param="wave">
+                  <input type="radio" name="w_osc2" id="w_osc2_tri" value="Tri" checked>
+                  <label for="w_osc2_tri">TRI</label>
+                  <input type="radio" name="w_osc2" id="w_osc2_sin" value="Sine">
+                  <label for="w_osc2_sin">SIN</label>
+                  <input type="radio" name="w_osc2" id="w_osc2_sqr" value="Sqr">
+                  <label for="w_osc2_sqr">SQR</label>
+                </div>
                 <div class="knob-group" id="ds-osc2-knobs"></div>
               </div>
             </div>
@@ -347,14 +368,23 @@
             <div class="ds-module" id="ds-osc3">
               <div class="module-header">
                 <span class="module-title">OSC 3</span>
-                <label class="toggle-switch"><input type="checkbox"><span class="slider round"></span></label>
+                <div class="ds-switch">
+                  <input type="radio" name="ds_sw_osc3" id="ds_sw_osc3_off" value="false" checked>
+                  <label for="ds_sw_osc3_off">OFF</label>
+                  <input type="radio" name="ds_sw_osc3" id="ds_sw_osc3_on" value="true">
+                  <label for="ds_sw_osc3_on">ON</label>
+                  <div class="switch-handle"></div>
+                </div>
               </div>
               <div class="module-controls">
-                <select class="ds-select" data-param="wave">
-                  <option>Tri</option>
-                  <option>Sine</option>
-                  <option>Sqr</option>
-                </select>
+                <div class="ds-radio-group" data-param="wave">
+                  <input type="radio" name="w_osc3" id="w_osc3_tri" value="Tri" checked>
+                  <label for="w_osc3_tri">TRI</label>
+                  <input type="radio" name="w_osc3" id="w_osc3_sin" value="Sine">
+                  <label for="w_osc3_sin">SIN</label>
+                  <input type="radio" name="w_osc3" id="w_osc3_sqr" value="Sqr">
+                  <label for="w_osc3_sqr">SQR</label>
+                </div>
                 <div class="knob-group" id="ds-osc3-knobs"></div>
               </div>
             </div>
@@ -362,24 +392,61 @@
             <div class="ds-module" id="ds-osc4">
               <div class="module-header">
                 <span class="module-title">OSC 4</span>
-                <label class="toggle-switch"><input type="checkbox"><span class="slider round"></span></label>
+                <div class="ds-switch">
+                  <input type="radio" name="ds_sw_osc4" id="ds_sw_osc4_off" value="false" checked>
+                  <label for="ds_sw_osc4_off">OFF</label>
+                  <input type="radio" name="ds_sw_osc4" id="ds_sw_osc4_on" value="true">
+                  <label for="ds_sw_osc4_on">ON</label>
+                  <div class="switch-handle"></div>
+                </div>
               </div>
               <div class="module-controls">
-                <select class="ds-select" data-param="wave">
-                  <option>Tri</option>
-                  <option>Sine</option>
-                  <option>Sqr</option>
-                </select>
+                <div class="ds-radio-group" data-param="wave">
+                  <input type="radio" name="w_osc4" id="w_osc4_tri" value="Tri" checked>
+                  <label for="w_osc4_tri">TRI</label>
+                  <input type="radio" name="w_osc4" id="w_osc4_sin" value="Sine">
+                  <label for="w_osc4_sin">SIN</label>
+                  <input type="radio" name="w_osc4" id="w_osc4_sqr" value="Sqr">
+                  <label for="w_osc4_sqr">SQR</label>
+                </div>
                 <div class="knob-group" id="ds-osc4-knobs"></div>
               </div>
             </div>
-            <!-- MASTER -->
-            <div class="ds-module" id="ds-master">
+
+          </div>
+
+          <!-- Click & Snap Section -->
+          <div class="ds-section-row">
+            <!-- CLICK (for BD attack) -->
+            <div class="ds-module" id="ds-click">
               <div class="module-header">
-                <span class="module-title">MASTER</span>
+                <span class="module-title">CLICK (BD ATK)</span>
+                <div class="ds-switch">
+                  <input type="radio" name="ds_sw_click" id="ds_sw_click_off" value="false" checked>
+                  <label for="ds_sw_click_off">OFF</label>
+                  <input type="radio" name="ds_sw_click" id="ds_sw_click_on" value="true">
+                  <label for="ds_sw_click_on">ON</label>
+                  <div class="switch-handle"></div>
+                </div>
               </div>
               <div class="module-controls">
-                <div class="knob-group" id="ds-master-knobs"></div>
+                <div class="knob-group" id="ds-click-knobs"></div>
+              </div>
+            </div>
+            <!-- SNAP (for RS metallic) -->
+            <div class="ds-module" id="ds-snap">
+              <div class="module-header">
+                <span class="module-title">SNAP (RS)</span>
+                <div class="ds-switch">
+                  <input type="radio" name="ds_sw_snap" id="ds_sw_snap_off" value="false" checked>
+                  <label for="ds_sw_snap_off">OFF</label>
+                  <input type="radio" name="ds_sw_snap" id="ds_sw_snap_on" value="true">
+                  <label for="ds_sw_snap_on">ON</label>
+                  <div class="switch-handle"></div>
+                </div>
+              </div>
+              <div class="module-controls">
+                <div class="knob-group" id="ds-snap-knobs"></div>
               </div>
             </div>
           </div>
@@ -389,14 +456,23 @@
             <div class="ds-module wide-module" id="ds-noise">
               <div class="module-header">
                 <span class="module-title">NOISE & FILTER</span>
-                <label class="toggle-switch"><input type="checkbox" checked><span class="slider round"></span></label>
+                <div class="ds-switch">
+                  <input type="radio" name="ds_sw_noise" id="ds_sw_noise_off" value="false">
+                  <label for="ds_sw_noise_off">OFF</label>
+                  <input type="radio" name="ds_sw_noise" id="ds_sw_noise_on" value="true" checked>
+                  <label for="ds_sw_noise_on">ON</label>
+                  <div class="switch-handle"></div>
+                </div>
               </div>
               <div class="module-controls">
-                <select class="ds-select" data-param="filter_type">
-                  <option>LPF</option>
-                  <option>HPF</option>
-                  <option>BPF</option>
-                </select>
+                <div class="ds-radio-group" data-param="filter_type">
+                  <input type="radio" name="f_noise" id="f_noise_lpf" value="LPF" checked>
+                  <label for="f_noise_lpf">LPF</label>
+                  <input type="radio" name="f_noise" id="f_noise_hpf" value="HPF">
+                  <label for="f_noise_hpf">HPF</label>
+                  <input type="radio" name="f_noise" id="f_noise_bpf" value="BPF">
+                  <label for="f_noise_bpf">BPF</label>
+                </div>
                 <div class="knob-group" id="ds-noise-knobs"></div>
               </div>
             </div>
@@ -407,7 +483,13 @@
           <div class="ds-footer-left">
             <div class="preview-controls">
               <button class="preview-btn" id="ds-preview-btn">▶ PREVIEW</button>
-              <label><input type="checkbox" id="ds-auto-trig"> Auto-Trig</label>
+              <div class="ds-switch" style="width: 70px; margin-left: 10px;">
+                <input type="radio" name="ds_auto_trig" id="ds_at_off" value="false" checked>
+                <label for="ds_at_off">MANUAL</label>
+                <input type="radio" name="ds_auto_trig" id="ds_at_on" value="true">
+                <label for="ds_at_on">AUTO</label>
+                <div class="switch-handle"></div>
+              </div>
             </div>
             <!-- Live Track Knobs (reused from 909 UI) -->
             <div id="ds-live-knobs" class="knob-group-section"
@@ -417,8 +499,7 @@
           </div>
           <div class="apply-controls">
             <span class="current-voice-label" id="ds-voice-label-footer">BASS DRUM (BD)</span>
-            <button class="mini-btn" id="ds-reset-btn" title="Reset to 909 Factory Sound"
-              style="margin-right: 10px;">RESET</button>
+            <!-- Reset moved to header -->
             <button class="apply-btn" id="ds-apply-btn">Apply to Track</button>
           </div>
         </div>

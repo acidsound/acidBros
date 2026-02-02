@@ -149,7 +149,21 @@ export class RotaryKnob {
         this.inputEl.value = this.value;
 
         if (this.tooltip) {
-            this.tooltip.innerText = Math.round(this.value);
+            // Format value based on magnitude for better readability
+            let displayVal;
+            const absVal = Math.abs(this.value);
+            if (absVal < 0.01) {
+                displayVal = this.value.toFixed(3);
+            } else if (absVal < 0.1) {
+                displayVal = this.value.toFixed(3);
+            } else if (absVal < 1) {
+                displayVal = this.value.toFixed(2);
+            } else if (absVal < 10) {
+                displayVal = this.value.toFixed(1);
+            } else {
+                displayVal = Math.round(this.value);
+            }
+            this.tooltip.innerText = displayVal;
         }
 
         this.inputEl.dispatchEvent(new Event('input', { bubbles: true }));

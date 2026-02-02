@@ -1,5 +1,4 @@
 import { DrumVoice } from './tr909/DrumVoice.js';
-import { SynthVoices } from './tr909/SynthVoices.js';
 
 export class TR909 {
     constructor(ctx, output) {

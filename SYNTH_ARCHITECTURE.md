@@ -1,103 +1,65 @@
-# 🎹 AcidBros Synthesis Architecture
+# 🎹 AcidBros Synthesis Architecture (v1.2)
 
 Welcome to the engine room! 🔧
-This document explains how the **TB-303** and **TR-909** are emulated in AcidBros using the Web Audio API. Whether you're a synth nerd or a curious developer, this guide will show you the signal flow behind the acid.
+This document explains the core synthesis architecture of AcidBros, including the **TB-303 Emulation**, **TR-909 Drum Synthesis**, and the new **Unified Drum Engine**.
 
 ---
 
-## 1. TB-303 Bassline Generator
+## 1. Unified Drum Engine (New)
 
-The TB-303 is a subtractive monophonic synthesizer. Its character comes from the interaction between the **Oscillator**, the **Filter**, and the **Accent/Slide** logic.
+AcidBros now powers its drum sounds using the `UnifiedSynth` engine, a modular architecture designed to faithfully recreate the analog characteristics of the TR-909.
+
+### Key Components
+- **DrumVoice**: Base class for all drum modules. Handles parameter smoothing (`setParamTarget`), volume envelopes, and live knob inputs.
+- **SynthVoices**: Collection of specialized voice implementations (`BassDrumVoice`, `SnareDrumVoice`, `HiHatVoice`, etc.) in `js/audio/tr909/`.
+- **AudioEngine**: Manages the Web Audio Context and master mixing.
 
 ### Signal Flow
-
-```mermaid
-graph LR
-    subgraph Voice
-    OSC["Oscillator<br/>(Saw/Square)"] --> FILTER["Lowpass Filter<br/>(Resonant)"]
-    FILTER --> VCA["VCA<br/>(Amp Envelope)"]
-    end
-    
-    subgraph Logic
-    SEQ[Sequencer] -- Pitch/Gate --> OSC
-    SEQ -- Cutoff/Reso/Env --> FILTER
-    SEQ -- Volume --> VCA
-    end
-
-    subgraph Effects
-    VCA --> DELAY[Feedback Delay]
-    DELAY --> OUT[Master Output]
-    VCA --> OUT
-    end
-
-    style OSC fill:#f9f,stroke:#333,stroke-width:2px
-    style FILTER fill:#bbf,stroke:#333,stroke-width:2px
-    style VCA fill:#bfb,stroke:#333,stroke-width:2px
-```
-
-### Key Concepts
-
-#### 🌊 The Oscillator
-We use a standard Web Audio `OscillatorNode`.
-- **Sawtooth**: Rich in harmonics, the classic "buzzy" acid sound.
-- **Square**: Hollow and woody, great for deep basslines.
-
-#### 🎛️ The Filter (The Heart of Acid)
-The filter is a **4-pole Lowpass Filter** (emulated via BiquadFilter).
-- **Cutoff**: Removes high frequencies.
-- **Resonance**: Boosts the frequencies around the cutoff point. In AcidBros, the resonance range is extended to scream!
-- **Envelope Modulation**: The "Env Mod" knob controls how much the envelope moves the cutoff frequency up and down for each note.
-
-#### 🚀 Slide (Legato)
-When **Slide** is active on a step:
-1. The Oscillator **does not stop**.
-2. The frequency **glides** (ramps) to the next note's pitch.
-3. The Filter and Volume envelopes **do not retrigger**, creating a smooth, morphing sound.
-
-#### 💥 Accent
-When **Accent** is active:
-1. **Volume**: Boosted.
-2. **Filter Cutoff**: Opens wider.
-3. **Filter Decay**: Becomes shorter and punchier (the "wow" becomes a "whip").
-
----
-
-## 2. TR-909 Rhythm Composer
-
-The TR-909 is a hybrid beast. It uses **Analog Synthesis** for drums like Kick and Snare, and **Samples** (digital recordings) for Cymbals and Hi-Hats. AcidBros emulates the analog parts using code!
-
-### Drum Architecture
-
 ```mermaid
 graph TD
-    subgraph Kick Drum
-    K_OSC[Triangle Wave] --> K_SHAPER[WaveShaper]
-    K_SHAPER --> K_ENV[Amp Envelope]
-    K_CLICK[Square + Noise] --> K_MIX[Mix]
-    K_ENV --> K_MIX
-    K_MIX --> K_OUT[Master Gain]
-    end
-
-    subgraph Snare Drum
-    S_OSC1[Triangle VCO-1] --> S_MIX[Body Mix]
-    S_OSC2[Triangle VCO-2] --> S_MIX
-    S_NOISE[White Noise] --> S_LPF[LPF Path]
-    S_NOISE --> S_HPF[HPF Path]
-    S_LPF --> S_SNAP[Snappy Mix]
-    S_HPF --> S_SNAP
-    S_MIX --> S_OUT[Output]
-    S_SNAP --> S_OUT
-    end
-
-    subgraph Hi-Hats
-    H_METAL[Metal Noise Buffer] --> H_BPF[Bandpass Filter]
-    H_BPF --> H_HPF[Highpass Filter]
-    H_HPF --> H_VCA[VCA]
-    H_VCA --> H_OUT[Output]
-    end
+    UI[DrumSynth UI] -- Parameters (p1, p2, p3) --> US[UnifiedSynth]
+    SEQ[Sequencer] -- Triggers --> US
+    US --> DV1[Bass Drum]
+    US --> DV2[Snare]
+    US --> DV3[HiHats]
+    DV1 --> MASTER[Master Bus]
+    DV2 --> MASTER
+    DV3 --> MASTER
+    MASTER --> OUT[AudioContext Destination]
 ```
 
+### Parameter Mapping system
+The engine uses a standardized parameter system to map UI controls to synthesis variables:
+- **Knobs (p1, p2, p3)**: Mapped to specific voice parameters (e.g., Tune, Decay, Snappy).
+- **Global toggle**: `enabled` state for muting/unmuting voices.
+- **Micro-toggles**: Specific to voices (e.g., `Osc 1 On/Off`, `Noise On/Off`).
+
 ---
+
+## 2. Drum Synth Editor (UI)
+
+The **Drum Synth Editor** provides a deep-dive interface for sound design, modeled after the TR-909's internal trimmers and front-panel controls.
+
+### Features
+- **Channel Strip Layout**: Horizontal scrolling modules for every drum voice.
+- **TR-909 Style Controls**: Custom rotary knobs with 909 styling (grey body, orange pointer) and toggle switches.
+- **Live Preview**: Adjust parameters in real-time while the sequencer runs or via the preview button.
+- **Preset Management**: Load and save custom drum patches per track.
+- **Compact Param Selectors**: Inline radio buttons for Waveform (`Tri`/`Sin`/`Sqr`) and Filter Type.
+
+### Control Types
+1.  **Rotary Knobs**: 
+    -   `LEVEL`: Master volume for the voice.
+    -   `TUNE`, `ATTACK`, `DECAY`, `TONE`, `SNAPPY`: Synthesis parameters mapped to `p1`, `p2`, `p3`.
+2.  **Switches**:
+    -   `Auto-Trig`: Automatically triggers the sound when parameters change.
+    -   `Voice Enable`: Toggle individual oscillators or noise layers.
+
+---
+
+## 3. TR-909 Rhythm Composer (Models)
+
+The TR-909 is a hybrid beast. It uses **Analog Synthesis** for drums like Kick and Snare, and **Samples** (digital recordings) for Cymbals and Hi-Hats. AcidBros emulates the analog parts using code!
 
 ### 🥁 Bass Drum (Kick) - Deep Dive
 
@@ -112,47 +74,12 @@ Square Click Osc + Bandpass Noise ───────────────�
 
 #### Parameters & Behavior
 
-| Knob | Parameter | Hardware Ref | Implementation |
-|------|-----------|--------------|----------------|
-| **LEVEL** | `P.vol` | Master Volume | Master Gain Node에 직접 적용 (`P.vol * 1.5`) |
-| **TUNE** | `P.p1` | VR2 (Pitch Env Decay) | 피치 스윕의 **감쇠 시간** 조절 (아래 참조) |
-| **ATTACK** | `P.p2` | VR3 (Click Level) | 클릭 컴포넌트의 볼륨 (`0.4` 곱셈) |
-| **DECAY** | `P.p3` | VR4 (Amp Decay) | 메인 바디의 감쇠 시간 (`0.1s ~ 0.9s`) |
-
-#### TUNE 동작 (P.p1) - 핵심 로직
-
-**현재 동작**: TUNE 노브는 **피치 스윕의 감쇠 시간**을 조절합니다.
-
-```javascript
-// 40이 "중립점" - 타이트한 쿵
-if (P.p1 <= 40) {
-    pitchDecay = 0.005 + (P.p1 / 40) * 0.015; // 5ms ~ 20ms (Very tight)
-} else {
-    pitchDecay = 0.02 + ((P.p1 - 40) / 60) * 0.150; // 20ms ~ 170ms
-}
-```
-
-- **TUNE 0-40**: 매우 빠른 피치 스윕 (사실상 스윕 없는 "쿵")
-- **TUNE 40**: 중립 - 클래식한 909 킥 사운드
-- **TUNE 40-100**: 점점 긴 피치 스윕 ("뮤~" 사운드)
-
-#### 고정 값들 (Hardcoded)
-| 항목 | 값 | 비고 |
-|------|-----|------|
-| Base Frequency | 48 Hz | 하드웨어 분석 기반 |
-| Start Pitch | 48 × 6 = 288 Hz | 피치 스윕 시작점 |
-| Oscillator Type | Triangle | 사인보다 풍부한 고조파 |
-| Saturation Amount | 10 | WaveShaper 시그모이드 커브 |
-| Click Osc Frequency | 800 Hz | Square wave |
-| Click Duration | 5-8ms | 매우 짧은 트랜지언트 |
-| Noise Filter | Bandpass @ 2500 Hz | 클릭의 노이즈 컴포넌트 |
-
-#### 🔧 튜닝 포인트 (조정 가능한 부분)
-
-1. **Base Frequency (48Hz)**: 더 깊은 킥을 원하면 45Hz, 펀치감을 원하면 52Hz
-2. **Start Pitch Ratio (×6)**: 더 강한 "어택감"을 원하면 ×8, 부드러운 킥을 원하면 ×4
-3. **WaveShaper Amount (10)**: 더 많은 새츄레이션을 원하면 20-30, 클린하면 5
-4. **Click Level Multiplier (0.4)**: 클릭이 약하면 0.6, 강하면 0.2
+| Knob | Parameter | Implementation |
+|------|-----------|----------------|
+| **LEVEL** | `P.vol` | Master Gain Node (`P.vol * 1.5`) |
+| **TUNE** | `P.p1` | Pitch Sweep Decay Time (5ms ~ 170ms) |
+| **ATTACK** | `P.p2` | Click Component Level |
+| **DECAY** | `P.p3` | Main Body Amp Decay (0.1s ~ 0.9s) |
 
 ---
 
@@ -172,69 +99,64 @@ White Noise → LPF (4-8kHz) → LPF Gain ─┬→ Output
 
 #### Parameters & Behavior
 
-| Knob | Parameter | Hardware Ref | Implementation |
-|------|-----------|--------------|----------------|
-| **LEVEL** | `P.vol` | Master Volume | Body와 Snappy 모두에 적용 |
-| **TUNE** | `P.p1` | VR1 (VCO Pitch) | 베이스 주파수 조절 (`180Hz ~ 240Hz`) |
-| **TONE** | `P.p2` | VR2 (Filter Cutoff) | 듀얼 필터의 컷오프 주파수 |
-| **SNAPPY** | `P.p3` | VR10 (Snappy Level) | 노이즈 컴포넌트의 볼륨 |
-
-#### Dual VCO Structure (서비스 노트 기반)
-
-```javascript
-const f1 = baseFreq;              // 180-240 Hz
-const f2 = baseFreq * 1.62;       // 1:1.62 비율 (하드웨어 분석)
-
-// 20ms Pitch Bend (IC36)
-const bendDepth = 1.5;
-osc1.frequency.setValueAtTime(f1 * bendDepth, now);
-osc1.frequency.exponentialRampToValueAtTime(f1, now + 0.02);
-```
-
-#### Snappy Parallel Filter Paths
-
-| Path | Filter | Frequency Range | 역할 |
-|------|--------|-----------------|------|
-| LPF (IC39b) | Lowpass | 4000 + (TONE × 4000) Hz | "두툼한" 스냅 |
-| HPF (IC39a) | Highpass | 1200 + (TONE × 2000) Hz | "치직거리는" 고역 |
+| Knob | Parameter | Implementation |
+|------|-----------|----------------|
+| **LEVEL** | `P.vol` | Master Volume |
+| **TUNE** | `P.p1` | Base Frequency (`180Hz ~ 240Hz`) |
+| **TONE** | `P.p2` | Filter Cutoff for both LPF/HPF paths |
+| **SNAPPY** | `P.p3` | Noise Component Volume |
 
 ---
 
-### 기타 드럼 요약
+### 👏 Hand Clap (CP)
+- **Signal**: Noise → Bandpass (1200Hz) → Burst Envelope (Sawtooth repeat 4x).
+- **Reverb**: Simulated internal reverb circuit filter.
+- **Controls**: Speed (Repeat rate), Decay (Tail length).
 
-#### 👏 Hand Clap (CP)
-- **노이즈** → **Bandpass (1200Hz)** → **Burst Envelope (4× 8ms)**
-- `P.decay`: 테일 지속 시간
+### 🔔 Rim Shot (RS)
+- **Signal**: 3 cascaded Oscillators (bridged-T simulation) + Triangle Snap.
+- **Snap**: Adds a short, high-pitched decay envelope for the metallic "clack".
 
-#### 🥁 Toms (LT/MT/HT)
-- **3개의 VCO** (Triangle + 2× Sine)
-- 주파수 비율: LT(80/120/160), MT(120/180/240), HT(180/270/360)
-- VCO-3에 스킨 노이즈 추가
-
-#### 🔔 Rim Shot
-- **3개의 사인파** (220, 500, 1000 Hz) + **Triangle Snap** (1800→400Hz)
-- Bridged-T 네트워크 시뮬레이션
+### 🥁 Toms (LT/MT/HT)
+- **Signal**: 3 VCOs (Triangle + 2x Sine) per Tom.
+- **Noise**: Skin noise added to VCO-3.
 
 ---
 
-## 3. Timing & Sequencing
+## 4. TB-303 Bassline Generator
 
-How does it stay in time?
+The TB-303 is a subtractive monophonic synthesizer. Its character comes from the interaction between the **Oscillator**, the **Filter**, and the **Accent/Slide** logic.
 
+### Signal Flow
 ```mermaid
-sequenceDiagram
-    participant UI as Browser UI
-    participant AW as AudioWorklet
-    participant SYN as Synthesizer
+graph LR
+    subgraph Voice
+    OSC["Oscillator<br/>(Saw/Square)"] --> FILTER["Lowpass Filter<br/>(Resonant)"]
+    FILTER --> VCA["VCA<br/>(Amp Envelope)"]
+    end
+    
+    subgraph Logic
+    SEQ[Sequencer] -- Pitch/Gate --> OSC
+    SEQ -- Cutoff/Reso/Env --> FILTER
+    SEQ -- Volume --> VCA
+    end
 
-    Note over UI, AW: Lookahead System
-    UI->>AW: "Start Clock"
-    loop Every 100ms
-        AW->>AW: Calculate Next Tick
-        AW->>SYN: Schedule Note (at exact AudioTime)
-        SYN->>SYN: Play Sound
+    subgraph Effects
+    VCA --> DELAY[Feedback Delay]
+    DELAY --> OUT[Master Output]
+    VCA --> OUT
     end
 ```
+
+### Key Concepts
+- **Oscillator**: Sawtooth (Buzzy) / Square (Hollow).
+- **Filter**: 4-pole Lowpass with Resonance and Envelope Modulation.
+- **Accent**: Boosts volume and opens filter cutoff, shortens decay.
+- **Slide**: Glides pitch and suppresses envelope re-trigger.
+
+---
+
+## 5. Timing & Sequencing
 
 AcidBros uses an **AudioWorklet** (or a fallback scheduler) to look ahead into the future. It tells the Web Audio API: *"Hey, in exactly 0.523 seconds, play a C# note."*
 This ensures rock-solid timing even if the graphics lag or the browser is busy.

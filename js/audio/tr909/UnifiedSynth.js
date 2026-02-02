@@ -1,14 +1,37 @@
 /**
  * UnifiedSynth - A parameterized drum synthesizer.
- * Usage:
- *   const synth = new UnifiedSynth(audioContext, outputNode);
- *   synth.play(params);
+ * Designed to exactly reproduce TR909.js playBD, playSD, playTom, playRim, playCP
+ * when using FACTORY_PRESETS.
+ * 
+ * All time values are in SECONDS, frequencies in HZ.
  */
 export class UnifiedSynth {
     constructor(ctx, output) {
         this.ctx = ctx;
         this.output = output;
         this.noiseBuffer = this._createNoiseBuffer();
+        this.activeNodes = [];  // Track active audio nodes for cleanup
+    }
+
+    // Stop all currently playing sounds (prevents overlap)
+    stopAll() {
+        const now = this.ctx.currentTime;
+        this.activeNodes.forEach(node => {
+            try {
+                if (node.stop) node.stop(now);
+                if (node.gain) node.gain.setValueAtTime(0, now);
+            } catch (e) { /* already stopped */ }
+        });
+        this.activeNodes = [];
+    }
+
+    _trackNode(node) {
+        this.activeNodes.push(node);
+        // Auto-remove after 2 seconds
+        setTimeout(() => {
+            const idx = this.activeNodes.indexOf(node);
+            if (idx > -1) this.activeNodes.splice(idx, 1);
+        }, 2000);
     }
 
     _createNoiseBuffer() {
@@ -23,180 +46,490 @@ export class UnifiedSynth {
 
     /**
      * Play a drum sound with the given parameters.
-     * @param {object} P - Parameters object
-     * @param {number} [P.vol=1] - Master volume (0-1)
-     * @param {object} [P.osc1] - Oscillator 1 config
-     * @param {object} [P.osc2] - Oscillator 2 config
-     * @param {object} [P.osc3] - Oscillator 3 config
-     * @param {object} [P.osc4] - Oscillator 4 config
-     * @param {object} [P.noise] - Noise generator config
-     * @param {object} [P.master] - Master output config
+     * Parameter values are DIRECT (Hz for freq, seconds for decay).
      */
     play(P = {}) {
+        // Stop any previous sounds to prevent overlap
+        this.stopAll();
+
         const now = this.ctx.currentTime;
         const vol = P.vol !== undefined ? P.vol : 1;
 
-        // Master Output Chain
+        // Master Gain (can have its own envelope for Tom-style sounds)
         const masterGain = this.ctx.createGain();
-        const masterVol = (P.master?.master_vol || 80) / 100;
-        masterGain.gain.setValueAtTime(vol * masterVol * 1.5, now);
+        this._trackNode(masterGain);  // Track for cleanup
 
-        const masterHPF = this.ctx.createBiquadFilter();
-        masterHPF.type = 'highpass';
-        masterHPF.frequency.setValueAtTime(P.master?.hpf_cutoff || 20, now);
-        masterHPF.Q.setValueAtTime((P.master?.hpf_res || 0) / 10, now);
+        if (P.masterEnv) {
+            // Tom style: master has the envelope
+            masterGain.gain.setValueAtTime(vol * P.masterEnv.level, now);
+            masterGain.gain.exponentialRampToValueAtTime(0.001, now + P.masterEnv.decay);
+        } else {
+            masterGain.gain.setValueAtTime(vol * 1.5, now);
+        }
 
-        masterGain.connect(masterHPF);
-        masterHPF.connect(this.output);
+        // Optional HPF (for RS metallic character)
+        if (P.masterHPF) {
+            const hpf = this.ctx.createBiquadFilter();
+            hpf.type = 'highpass';
+            hpf.frequency.setValueAtTime(P.masterHPF, now);
+            masterGain.connect(hpf);
+            hpf.connect(this.output);
+        } else {
+            masterGain.connect(this.output);
+        }
 
-        // Process 4 Oscillators
-        ['osc1', 'osc2', 'osc3', 'osc4'].forEach(id => {
+        // Calculate masterDecay for Tom-style sounds
+        const masterDecay = P.masterEnv ? P.masterEnv.decay : 1.5;
+
+        // Process Main Oscillator (osc1)
+        if (P.osc1 && P.osc1.enabled) {
+            this._playMainOsc(P.osc1, now, masterGain, masterDecay);
+        }
+
+        // Process Additional Oscillators (osc2, osc3, osc4) - for SD, Tom, RS
+        ['osc2', 'osc3', 'osc4'].forEach(id => {
             const cfg = P[id];
-            if (!cfg || !cfg.enabled) return;
-            this._playOscillator(cfg, now, masterGain, id === 'osc1');
+            if (cfg && cfg.enabled) {
+                this._playOsc(cfg, now, masterGain, masterDecay);
+            }
         });
 
-        // Process Noise
-        const noiseCfg = P.noise;
-        if (noiseCfg && noiseCfg.enabled) {
-            this._playNoise(noiseCfg, now, masterGain);
+        // Process Click (for BD attack) - Square + Noise burst
+        if (P.click && P.click.enabled) {
+            this._playClick(P.click, now, masterGain);
+        }
+
+        // Process Snap (for RS metallic bite) - Triangle pitch sweep
+        if (P.snap && P.snap.enabled) {
+            this._playSnap(P.snap, now, masterGain);
+        }
+
+        // Process Noise (for SD snappy LPF, CP burst)
+        if (P.noise && P.noise.enabled) {
+            this._playNoise(P.noise, now, masterGain);
+        }
+
+        // Process Noise2 (for SD snappy HPF - parallel path)
+        if (P.noise2 && P.noise2.enabled) {
+            this._playNoise(P.noise2, now, masterGain);
         }
     }
 
-    _playOscillator(cfg, now, destination, allowDrive = false) {
+    // Main oscillator with waveshaper (like BD)
+    _playMainOsc(cfg, now, destination, masterDecay = 1.5) {
         const osc = this.ctx.createOscillator();
-        const g = this.ctx.createGain();
+        const oscGain = this.ctx.createGain();
 
         // Wave type
-        const waveMap = { 'tri': 'triangle', 'sine': 'sine', 'sqr': 'square', 'triangle': 'triangle', 'square': 'square' };
-        osc.type = waveMap[(cfg.wave || 'Tri').toLowerCase()] || 'triangle';
+        osc.type = this._parseWaveType(cfg.wave);
 
-        // Frequency
-        let freq = 55 * Math.pow(2, (cfg.tune || 0) / 12);
-        if (cfg.fine) freq *= Math.pow(2, cfg.fine / 1200);
+        // Frequency: startFreq -> freq over p_decay seconds
+        const freq = cfg.freq || 48;
+        const startFreq = cfg.startFreq || (freq * 6);
+        const pDecay = cfg.p_decay || 0.02;
 
-        // Pitch Envelope
-        const pDecay = (cfg.p_decay || 0) / 100 * 0.4;
-        const pAmt = (cfg.p_amt || 0) / 100 * 500;
-        osc.frequency.setValueAtTime(freq + pAmt, now);
-        if (pDecay > 0) {
-            osc.frequency.exponentialRampToValueAtTime(Math.max(1, freq), now + pDecay);
+        osc.frequency.setValueAtTime(startFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq, now + pDecay);
+
+        const aDecay = cfg.a_decay || 0.5;
+        const level = cfg.level || 1.0;
+
+        if (cfg.staticLevel) {
+            // Tom style: static level, master handles decay
+            oscGain.gain.setValueAtTime(level, now);
+        } else {
+            // BD style: 2ms attack ramp -> decay
+            oscGain.gain.setValueAtTime(0, now);
+            oscGain.gain.linearRampToValueAtTime(level, now + 0.002);
+            oscGain.gain.exponentialRampToValueAtTime(0.001, now + aDecay);
         }
 
-        // Amplitude Envelope
-        const attack = (cfg.a_attack || 0) / 100 * 0.05;
-        const decay = (cfg.a_decay || 50) / 100 * 1.5;
-        const level = (cfg.level !== undefined ? cfg.level : 100) / 100;
-
-        g.gain.setValueAtTime(0.001, now);
-        g.gain.linearRampToValueAtTime(level, now + attack + 0.001);
-        g.gain.exponentialRampToValueAtTime(0.001, now + attack + decay + 0.01);
-
-        // Drive (Osc 1 only)
-        if (allowDrive && cfg.drive > 3) {
+        // Waveshaper (saturation/drive)
+        if (cfg.drive && cfg.drive > 0) {
             const shaper = this.ctx.createWaveShaper();
             shaper.curve = this._makeDistortionCurve(cfg.drive);
             osc.connect(shaper);
-            shaper.connect(g);
+            shaper.connect(oscGain);
         } else {
-            osc.connect(g);
+            osc.connect(oscGain);
         }
 
-        g.connect(destination);
+        oscGain.connect(destination);
         osc.start(now);
-        osc.stop(now + attack + decay + 0.2);
+
+        // Stop time based on staticLevel
+        const stopTime = cfg.staticLevel ? (masterDecay + 0.1) : (aDecay + 0.1);
+        osc.stop(now + stopTime);
     }
 
+    // Additional oscillator (for SD/Tom/RS harmonics)
+    _playOsc(cfg, now, destination, masterDecay = 1.5) {
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+
+        osc.type = this._parseWaveType(cfg.wave);
+
+        // Frequency with optional pitch bend
+        const freq = cfg.freq || 180;
+        const startFreq = cfg.startFreq || freq;
+        const endFreq = cfg.endFreq !== undefined ? cfg.endFreq : freq;
+        const pDecay = cfg.p_decay || 0.02;
+
+        osc.frequency.setValueAtTime(startFreq, now);
+
+        // Pitch decay: either startFreq->freq or freq->endFreq
+        if (startFreq !== freq && pDecay > 0) {
+            // Tom/SD style: pitch sweep down to target
+            osc.frequency.exponentialRampToValueAtTime(freq, now + pDecay);
+        } else if (endFreq !== freq && pDecay > 0) {
+            // RS style: slight pitch decay (freq -> freq * 0.98)
+            osc.frequency.exponentialRampToValueAtTime(endFreq, now + pDecay);
+        }
+
+        // Amplitude handling
+        const level = cfg.level || 1.0;
+        const aDecay = cfg.a_decay || 0.15;
+
+        if (cfg.staticLevel) {
+            // Tom style: static level, no envelope (master handles decay)
+            g.gain.setValueAtTime(level, now);
+        } else {
+            // SD/RS style: individual decay envelope
+            g.gain.setValueAtTime(level, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + aDecay);
+        }
+
+        osc.connect(g);
+        g.connect(destination);
+        osc.start(now);
+
+        // Stop time: staticLevel uses masterDecay, others use aDecay
+        const stopTime = cfg.staticLevel ? (masterDecay + 0.1) : (aDecay + 0.1);
+        osc.stop(now + stopTime);
+    }
+
+    // Click component for BD attack (Square oscillator + filtered noise)
+    _playClick(cfg, now, destination) {
+        const level = cfg.level || 0.2;
+
+        // Square oscillator click
+        const clickOsc = this.ctx.createOscillator();
+        const clickGain = this.ctx.createGain();
+        clickOsc.type = 'square';
+        clickOsc.frequency.setValueAtTime(cfg.freq || 800, now);
+
+        clickGain.gain.setValueAtTime(level, now);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + (cfg.decay || 0.008));
+
+        clickOsc.connect(clickGain);
+        clickGain.connect(destination);
+        clickOsc.start(now);
+        clickOsc.stop(now + 0.02);
+
+        // Noise component of click
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = this.noiseBuffer;
+        const noiseFilter = this.ctx.createBiquadFilter();
+        const noiseGain = this.ctx.createGain();
+
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.setValueAtTime(cfg.filter_freq || 2500, now);
+
+        const noiseLevel = cfg.noise_level !== undefined ? cfg.noise_level : (level * 0.5);
+        noiseGain.gain.setValueAtTime(noiseLevel, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + (cfg.noise_decay || 0.005));
+
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(destination);
+        noise.start(now);
+        noise.stop(now + 0.02);
+    }
+
+    // Snap component for RS (Triangle with fast pitch sweep)
+    _playSnap(cfg, now, destination) {
+        const snap = this.ctx.createOscillator();
+        const snapGain = this.ctx.createGain();
+
+        snap.type = 'triangle';
+        snap.frequency.setValueAtTime(cfg.startFreq || 1800, now);
+        snap.frequency.exponentialRampToValueAtTime(cfg.endFreq || 400, now + 0.01);
+
+        const level = cfg.level || 0.6;
+        snapGain.gain.setValueAtTime(level, now);
+        snapGain.gain.linearRampToValueAtTime(0, now + 0.006);
+
+        snap.connect(snapGain);
+        snapGain.connect(destination);
+        snap.start(now);
+        snap.stop(now + 0.01);
+    }
+
+    // Noise generator with filter (for SD snappy, CP burst)
     _playNoise(cfg, now, destination) {
-        const src = this.ctx.createBufferSource();
-        src.buffer = this.noiseBuffer;
-        src.loop = true;
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = this.noiseBuffer;
+        noise.loop = true;
 
         const filter = this.ctx.createBiquadFilter();
-        const filterMap = { 'lpf': 'lowpass', 'hpf': 'highpass', 'bpf': 'bandpass' };
-        filter.type = filterMap[(cfg.filter_type || 'LPF').toLowerCase()] || 'lowpass';
-        filter.frequency.setValueAtTime(cfg.cutoff || 2000, now);
-        filter.Q.setValueAtTime((cfg.res || 0) / 10, now);
+        filter.type = this._parseFilterType(cfg.filter_type);
+        filter.frequency.setValueAtTime(cfg.cutoff || 4000, now);
+        filter.Q.setValueAtTime(cfg.Q || 1.0, now);
 
         const g = this.ctx.createGain();
-        const attack = (cfg.attack || 0) / 100 * 0.04;
-        const decay = (cfg.decay || 30) / 100 * 1.0;
-        const level = (cfg.level !== undefined ? cfg.level : 50) / 100;
+        const level = cfg.level || 0.5;
+        const decay = cfg.decay || 0.25;
 
-        // Burst mode for Clap
-        const burstCount = parseInt(cfg.burst_count) || 1;
-        const burstRate = (cfg.burst_rate || 8) / 1000;
+        // Burst Mode (for CLAP)
+        const burstCount = cfg.burst_count || 1;
+        const burstInterval = cfg.burst_interval || 0.008;
 
-        g.gain.setValueAtTime(0.001, now);
+        g.gain.setValueAtTime(0, now);
+
         if (burstCount > 1) {
+            // Multi-hit burst (CLAP style)
             for (let i = 0; i < burstCount; i++) {
-                const t = now + i * burstRate;
-                g.gain.linearRampToValueAtTime(level, t + 0.001);
-                g.gain.exponentialRampToValueAtTime(level * 0.1, t + burstRate - 0.001);
+                const t = now + i * burstInterval;
+                g.gain.exponentialRampToValueAtTime(level, t + 0.001);
+                g.gain.exponentialRampToValueAtTime(level * 0.2, t + burstInterval);
             }
+            // Final decay tail
+            g.gain.exponentialRampToValueAtTime(0.001, now + burstCount * burstInterval + decay);
         } else {
-            g.gain.linearRampToValueAtTime(level, now + attack + 0.001);
+            // Single noise burst
+            g.gain.setValueAtTime(level, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + decay);
         }
-        const tailStart = burstCount > 1 ? burstCount * burstRate : attack;
-        g.gain.exponentialRampToValueAtTime(0.001, now + tailStart + decay + 0.01);
 
-        src.connect(filter);
+        noise.connect(filter);
         filter.connect(g);
         g.connect(destination);
-        src.start(now);
-        src.stop(now + tailStart + decay + 0.5);
+
+        noise.start(now);
+        noise.stop(now + (burstCount > 1 ? burstCount * burstInterval : 0) + decay + 0.1);
+    }
+
+    _parseWaveType(wave) {
+        if (!wave) return 'triangle';
+        const w = wave.toLowerCase();
+        if (w === 'tri' || w === 'triangle') return 'triangle';
+        if (w === 'sqr' || w === 'square') return 'square';
+        return 'sine';
+    }
+
+    _parseFilterType(type) {
+        if (!type) return 'bandpass';
+        const t = type.toLowerCase();
+        if (t === 'lpf' || t === 'lowpass') return 'lowpass';
+        if (t === 'hpf' || t === 'highpass') return 'highpass';
+        return 'bandpass';
     }
 
     _makeDistortionCurve(amount) {
-        const k = amount;
-        const samples = 44100;
-        const curve = new Float32Array(samples);
-        for (let i = 0; i < samples; ++i) {
-            const x = i * 2 / samples - 1;
-            curve[i] = (3 + k) * x * 20 * (Math.PI / 180) / (Math.PI + k * Math.abs(x));
+        const k = typeof amount === 'number' ? amount : 10;
+        const n_samples = 44100;
+        const curve = new Float32Array(n_samples);
+        const deg = Math.PI / 180;
+        for (let i = 0; i < n_samples; ++i) {
+            const x = i * 2 / n_samples - 1;
+            curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
         }
         return curve;
     }
 }
 
-// Factory Presets for 909 sounds
+/**
+ * FACTORY_PRESETS - Exact values from TR909.js playBD, playSD, playTom, playRim, playCP
+ * All time values in SECONDS, frequencies in HZ.
+ * These represent default knob positions (p1=40, p2=50, p3=50)
+ */
 export const FACTORY_PRESETS = {
     bd: {
-        osc1: { enabled: true, wave: 'Tri', tune: 0, p_decay: 40, p_amt: 60, a_attack: 0, a_decay: 45, drive: 15, level: 100 },
-        noise: { enabled: true, filter_type: 'BPF', cutoff: 2500, res: 5, attack: 0, decay: 5, level: 20 },
-        master: { hpf_cutoff: 20, master_vol: 80 }
+        // TR909 playBD: Triangle 48Hz, pitch 288Hz->48Hz in 20ms, decay 500ms, drive=10
+        // Click: Square 800Hz 8ms, Noise BPF 2500Hz 5ms
+        osc1: {
+            enabled: true,
+            wave: 'triangle',
+            freq: 48,
+            startFreq: 288,      // 48 * 6
+            p_decay: 0.02,       // 20ms pitch envelope (at p1=40)
+            a_decay: 0.5,        // 500ms amplitude decay (at p3=50: 0.1 + 0.5*0.8)
+            drive: 10,
+            level: 1.0
+        },
+        click: {
+            enabled: true,
+            freq: 800,
+            decay: 0.008,        // 8ms
+            filter_freq: 2500,
+            level: 0.2,          // (p2=50: 0.5 * 0.4)
+            noise_level: 0.1,    // level * 0.5
+            noise_decay: 0.005   // 5ms
+        }
     },
     sd: {
-        osc1: { enabled: true, wave: 'Tri', tune: 0, p_decay: 5, p_amt: 20, a_attack: 0, a_decay: 10, level: 100 },
-        osc2: { enabled: true, wave: 'Tri', tune: 8, p_decay: 5, p_amt: 20, a_attack: 0, a_decay: 10, level: 80 },
-        noise: { enabled: true, filter_type: 'BPF', cutoff: 5000, res: 10, attack: 0, decay: 25, level: 70 },
-        master: { hpf_cutoff: 20, master_vol: 80 }
+        // TR909 playSD: 2 Triangles (1:1.62 ratio), pitch bend 1.5x in 20ms
+        // Body: immediate gain (no ramp), 150ms decay
+        // Noise: parallel LPF (250ms) + HPF (150ms)
+        osc1: {
+            enabled: true,
+            wave: 'triangle',
+            freq: 180,
+            startFreq: 270,      // 180 * 1.5
+            p_decay: 0.02,       // 20ms pitch envelope
+            a_decay: 0.15,       // 150ms body decay
+            level: 1.2,          // P.vol * 1.2
+            noAttack: true       // immediate start, no ramp
+        },
+        osc2: {
+            enabled: true,
+            wave: 'triangle',
+            freq: 292,           // 180 * 1.62
+            startFreq: 438,      // 292 * 1.5
+            p_decay: 0.02,
+            a_decay: 0.15,
+            level: 1.2,
+            noAttack: true
+        },
+        noise: {
+            enabled: true,
+            filter_type: 'lowpass',
+            cutoff: 6000,        // 4000 + (p2=50)*40
+            Q: 1.0,
+            decay: 0.25,         // LPF path: 250ms
+            level: 0.75          // snappyLevel * 1.5 at p3=50
+        },
+        noise2: {
+            enabled: true,
+            filter_type: 'highpass',
+            cutoff: 2200,        // 1200 + (p2=50)*20
+            Q: 1.0,
+            decay: 0.15,         // HPF path: 150ms
+            level: 0.5           // snappyLevel * 1.0 at p3=50
+        }
     },
     tom: {
-        osc1: { enabled: true, wave: 'Tri', tune: 0, p_decay: 10, p_amt: 30, a_attack: 0, a_decay: 40, level: 100 },
-        osc2: { enabled: true, wave: 'Sine', tune: 7, a_attack: 0, a_decay: 30, level: 60 },
-        noise: { enabled: true, filter_type: 'BPF', cutoff: 2000, res: 5, attack: 0, decay: 5, level: 30 },
-        master: { hpf_cutoff: 20, master_vol: 80 }
+        // TR909 playTom (MT): masterEnv has the decay, oscillators have static levels
+        // 3 oscillators (tri + sine + sine), pitch 1.3x in 50ms
+        // Noise only on OSC3 (short 50ms burst)
+        masterEnv: {
+            level: 1.2,          // P.vol * 1.2
+            decay: 0.5           // decayTime at p2=50: 0.1 + 0.5*0.8
+        },
+        osc1: {
+            enabled: true,
+            wave: 'triangle',
+            freq: 120,
+            startFreq: 156,      // 120 * 1.3
+            p_decay: 0.05,       // 50ms pitch envelope
+            level: 1.0,          // static level (no envelope)
+            staticLevel: true
+        },
+        osc2: {
+            enabled: true,
+            wave: 'sine',
+            freq: 180,
+            startFreq: 234,
+            p_decay: 0.05,
+            level: 0.6,
+            staticLevel: true
+        },
+        osc3: {
+            enabled: true,
+            wave: 'sine',
+            freq: 240,
+            startFreq: 312,
+            p_decay: 0.05,
+            level: 0.4,
+            staticLevel: true
+        },
+        noise: {
+            enabled: true,
+            filter_type: 'bandpass',
+            cutoff: 480,         // targetFreq * 2 (highest osc freq)
+            Q: 1.0,
+            decay: 0.05,         // short 50ms burst
+            level: 0.3
+        }
     },
     rs: {
-        osc1: { enabled: true, wave: 'Sine', tune: 12, a_attack: 0, a_decay: 5, level: 50 },
-        osc2: { enabled: true, wave: 'Sine', tune: 24, a_attack: 0, a_decay: 4, level: 40 },
-        osc3: { enabled: true, wave: 'Sine', tune: 36, a_attack: 0, a_decay: 3, level: 30 },
-        osc4: { enabled: true, wave: 'Tri', tune: 48, p_decay: 2, p_amt: 50, a_decay: 2, level: 60 },
-        master: { hpf_cutoff: 400, hpf_res: 5, master_vol: 80 }
+        // TR909 playRim: 3 Sines (220, 500, 1000 Hz)
+        // Each has different decay times (50ms, 40ms, 35ms)
+        // Slight pitch decay (freq * 0.98)
+        // Snap: Triangle 1800Hz->400Hz in 10ms
+        // No separate noise, but HPF at 200Hz handled by snap routing
+        osc1: {
+            enabled: true,
+            wave: 'sine',
+            freq: 220,
+            startFreq: 220,
+            endFreq: 215.6,      // 220 * 0.98
+            p_decay: 0.05,
+            a_decay: 0.05,
+            level: 0.5
+        },
+        osc2: {
+            enabled: true,
+            wave: 'sine',
+            freq: 500,
+            startFreq: 500,
+            endFreq: 490,        // 500 * 0.98
+            p_decay: 0.04,
+            a_decay: 0.04,
+            level: 0.4
+        },
+        osc3: {
+            enabled: true,
+            wave: 'sine',
+            freq: 1000,
+            startFreq: 1000,
+            endFreq: 980,        // 1000 * 0.98
+            p_decay: 0.035,
+            a_decay: 0.035,
+            level: 0.3
+        },
+        snap: {
+            enabled: true,
+            startFreq: 1800,
+            endFreq: 400,
+            level: 0.6
+        },
+        masterHPF: 200           // 200Hz HPF for metallic character
     },
     cp: {
-        noise: { enabled: true, filter_type: 'BPF', cutoff: 1200, res: 10, attack: 0, decay: 40, burst_count: 4, burst_rate: 8, level: 100 },
-        master: { hpf_cutoff: 20, master_vol: 80 }
+        // TR909 playCP: Noise BPF 1200Hz, 4 bursts at 8ms intervals
+        // Duration: 0.2 + decay * 0.6
+        noise: {
+            enabled: true,
+            filter_type: 'bandpass',
+            cutoff: 1200,
+            Q: 1.0,
+            burst_count: 4,
+            burst_interval: 0.008,  // 8ms
+            decay: 0.5,             // 0.2 + 0.5*0.6 at decay=50
+            level: 1.0
+        }
     }
 };
 
 export function getFactoryPreset(trackId) {
-    if (FACTORY_PRESETS[trackId]) return JSON.parse(JSON.stringify(FACTORY_PRESETS[trackId]));
+    if (FACTORY_PRESETS[trackId]) {
+        return JSON.parse(JSON.stringify(FACTORY_PRESETS[trackId]));
+    }
     if (['lt', 'mt', 'ht'].includes(trackId)) {
         const p = JSON.parse(JSON.stringify(FACTORY_PRESETS.tom));
-        if (trackId === 'lt') p.osc1.tune = -12;
-        if (trackId === 'ht') p.osc1.tune = 12;
+        // Adjust frequencies for LT/HT (from original playTom)
+        if (trackId === 'lt') {
+            p.osc1.freq = 80; p.osc1.startFreq = 104;
+            p.osc2.freq = 120; p.osc2.startFreq = 156;
+            p.osc3.freq = 160; p.osc3.startFreq = 208;
+            p.noise.cutoff = 320;
+        } else if (trackId === 'ht') {
+            p.osc1.freq = 180; p.osc1.startFreq = 234;
+            p.osc2.freq = 270; p.osc2.startFreq = 351;
+            p.osc3.freq = 360; p.osc3.startFreq = 468;
+            p.noise.cutoff = 720;
+        }
         return p;
     }
     return JSON.parse(JSON.stringify(FACTORY_PRESETS.bd));
