@@ -145,11 +145,13 @@ Each track has its own 16‑step grid. Active steps glow orange/yellow; inactive
   - **Filled patterns** → Click to clear all drum tracks.
 - **LOCK (🔒)** – Toggle randomization lock. When active (orange), the 909 will be skipped when clicking the global **RANDOMIZE** button.
 
-### Advanced Drum Editor
-Click the **Settings icon** (⚙️) on any drum track to open the full **Drum Synth Editor**.
-- **Deep Editing**: Modify internal parameters like Oscillator Waveforms (Tri/Sin/Sqr) and Filter Types.
-- **Presets**: Save and Load your custom drum patches.
-- **Reset**: Instantly revert to the classic factory TR-909 sound.
+### Advanced Drum Editor (Drum Synth Editor)
+Click the **Settings icon** (⚙️) on any drum track or within the **MANAGE TRACKS** modal to open the full **Drum Synth Editor**.
+
+- **Deep Editing**: Modify internal parameters like 4 independent Oscillators (OSC 1-4), Click, Snap, and Noise/Filter modules to create unique drum sounds.
+- **Presets**: Save and load your custom drum patches.
+- **Classic Reset**: Instantly revert to the original factory TR-909 sound at any time.
+- **Real-time Feedback**: Hear changes immediately while the sequencer is running or via the preview button.
 
 ---
 
