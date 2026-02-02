@@ -48,11 +48,15 @@ export class UnifiedSynth {
      * Play a drum sound with the given parameters.
      * Parameter values are DIRECT (Hz for freq, seconds for decay).
      */
-    play(P = {}) {
-        // Stop any previous sounds to prevent overlap
-        this.stopAll();
+    play(P = {}, time = null) {
+        const now = time || this.ctx.currentTime;
 
-        const now = this.ctx.currentTime;
+        // Only stop all if we are playing "now" (preview/manual)
+        // If it's a scheduled playback, stopping all would kill the previous step's tail.
+        if (!time) {
+            this.stopAll();
+        }
+
         const vol = P.vol !== undefined ? P.vol : 1;
 
         // Master Gain (can have its own envelope for Tom-style sounds)
@@ -137,6 +141,10 @@ export class UnifiedSynth {
         if (cfg.staticLevel) {
             // Tom style: static level, master handles decay
             oscGain.gain.setValueAtTime(level, now);
+        } else if (cfg.noAttack) {
+            // SD style: immediate start, no ramp
+            oscGain.gain.setValueAtTime(level, now);
+            oscGain.gain.exponentialRampToValueAtTime(0.001, now + aDecay);
         } else {
             // BD style: 2ms attack ramp -> decay
             oscGain.gain.setValueAtTime(0, now);
@@ -362,9 +370,9 @@ export const FACTORY_PRESETS = {
             freq: 800,
             decay: 0.008,        // 8ms
             filter_freq: 2500,
-            level: 0.2,          // (p2=50: 0.5 * 0.4)
-            noise_level: 0.1,    // level * 0.5
-            noise_decay: 0.005   // 5ms
+            level: 0.15,         // Reduced from 0.2
+            noise_level: 0.03,   // Reduced from 0.1
+            noise_decay: 0.003   // Reduced from 0.005
         }
     },
     sd: {
@@ -502,12 +510,12 @@ export const FACTORY_PRESETS = {
         noise: {
             enabled: true,
             filter_type: 'bandpass',
-            cutoff: 1200,
-            Q: 1.0,
+            cutoff: 1000,           // Slightly lower freq for warmer clap
+            Q: 0.8,                 // Softer Q
             burst_count: 4,
             burst_interval: 0.008,  // 8ms
-            decay: 0.5,             // 0.2 + 0.5*0.6 at decay=50
-            level: 1.0
+            decay: 0.4,             // 400ms tail
+            level: 1.2              // Slightly higher level
         }
     }
 };

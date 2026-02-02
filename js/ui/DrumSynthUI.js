@@ -177,7 +177,7 @@ export const DrumSynthUI = {
         console.log('DrumSynthUI: Opening for', trackId);
         this.currentTrackId = trackId;
         this.isOpen = true;
-        this.overlay.style.display = 'block';
+        this.overlay.style.display = 'flex';
 
         // Close Manage Tracks modal if open
         const manageOverlay = document.getElementById('manageTracksOverlay');
@@ -271,11 +271,11 @@ export const DrumSynthUI = {
 
                 // Enabled Toggle (ds-switch)
                 const onRadio = modEl.querySelector('.ds-switch input[value="true"]');
-                if (onRadio) {
-                    const enabled = modCfg.enabled !== undefined ? modCfg.enabled : (modId === 'osc1' || modId === 'noise');
+                const offRadio = modEl.querySelector('.ds-switch input[value="false"]');
+                if (onRadio && offRadio) {
+                    const enabled = (preset[modId] && preset[modId].enabled === true);
                     onRadio.checked = enabled;
-                    const offRadio = modEl.querySelector('.ds-switch input[value="false"]');
-                    if (offRadio) offRadio.checked = !enabled;
+                    offRadio.checked = !enabled;
                 }
             }
         });
@@ -356,76 +356,38 @@ export const DrumSynthUI = {
     previewWith909Knobs() {
         if (!this.currentTrackId) return;
 
-        // Get factory preset
-        const preset = getFactoryPreset(this.currentTrackId);
-        if (!preset) return;
+        // 1. Get current UI parameters
+        const uiParams = this.collectParams();
 
-        // Apply UI toggle states (enabled/disabled) from the module checkboxes
-        this._applyUIToggleStates(preset);
+        // 2. Get factory preset for architectural defaults (masterEnv, noise2, etc.)
+        const factory = getFactoryPreset(this.currentTrackId);
 
-        // Collect live knob values
-        const P = { vol: 1 };
+        // 3. Merge: UI params over factory
+        // We use JSON.parse(JSON.stringify) to ensure deep copy
+        const preset = JSON.parse(JSON.stringify({ ...factory, ...uiParams }));
+
+        // 4. Special architectural syncs
+        // SD has noise2 (HPF path) which isn't in UI - sync it with noise1 (LPF path)
+        if (factory.noise2) {
+            preset.noise2 = JSON.parse(JSON.stringify(factory.noise2));
+            preset.noise2.enabled = uiParams.noise.enabled;
+            // Also sync some knobs if they match
+            preset.noise2.decay = uiParams.noise.decay;
+        }
+
+        // 5. Collect live 909 knobs
+        const P = {};
         Object.keys(this.liveKnobs).forEach(id => {
             P[id] = this.liveKnobs[id].value;
         });
 
-        // Apply TR909 knob mappings (same as DrumVoice._applyKnobParams)
+        // 6. Apply 909 knob mappings (TUNE, DECAY, etc.) to the detailed preset
         this._applyKnobParams(preset, P, this.currentTrackId);
 
-        // Apply detailed UI knob values (click, snap, noise settings)
-        this._applyUIKnobValues(preset);
-
-        console.log('DrumSynthUI: Preview with 909 knobs', P, preset);
+        console.log('DrumSynthUI: Preview', preset);
         this.synth.play(preset);
     },
 
-    // Read UI knob values and apply to preset
-    _applyUIKnobValues(preset) {
-        Object.keys(this.knobs).forEach(modId => {
-            const modKnobs = this.knobs[modId];
-            if (!modKnobs || !preset[modId]) return;
-
-            Object.keys(modKnobs).forEach(param => {
-                preset[modId][param] = modKnobs[param].value;
-            });
-        });
-    },
-
-    // Read UI toggle states and apply to preset
-    _applyUIToggleStates(preset) {
-        const modules = ['osc1', 'osc2', 'osc3', 'osc4', 'click', 'snap', 'noise'];
-
-        modules.forEach(modId => {
-            const modEl = document.getElementById(`ds-${modId}`);
-            if (modEl && preset[modId]) {
-                // Radio switch: find the input with value="true"
-                const onRadio = modEl.querySelector(`input[id^="ds_sw_${modId}_on"]`) ||
-                    modEl.querySelector('input[value="true"]');
-                if (onRadio) {
-                    preset[modId].enabled = onRadio.checked;
-                }
-
-                // Also read wave/filter_type radio groups
-                modEl.querySelectorAll('.ds-radio-group').forEach(group => {
-                    const checked = group.querySelector('input:checked');
-                    if (checked && group.dataset.param) {
-                        preset[modId][group.dataset.param] = checked.value;
-                    }
-                });
-            }
-        });
-
-        // Also check noise2 if it exists in preset (shares DS-NOISE switch)
-        if (preset.noise2) {
-            const noiseEl = document.getElementById('ds-noise');
-            if (noiseEl) {
-                const onRadio = noiseEl.querySelector('input[value="true"]');
-                if (onRadio) {
-                    preset.noise2.enabled = onRadio.checked;
-                }
-            }
-        }
-    },
 
 
     // Apply TR909 knob values to preset (mirrors DrumVoice._applyKnobParams)
@@ -453,7 +415,7 @@ export const DrumSynthUI = {
                 if (P.p2 !== undefined && preset.click) {
                     const clickLevel = (P.p2 / 100) * 0.4;
                     preset.click.level = clickLevel;
-                    preset.click.noise_level = clickLevel * 0.5;
+                    preset.click.noise_level = clickLevel * 0.2;
                 }
                 if (P.p3 !== undefined) {
                     preset.osc1.a_decay = 0.1 + (P.p3 / 100) * 0.8;

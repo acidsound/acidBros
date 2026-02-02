@@ -213,6 +213,11 @@
     -webkit-mask-image: url('../assets/icons/song.svg');
 }
 
+.icon-note {
+    mask-image: url('../assets/icons/note.svg');
+    -webkit-mask-image: url('../assets/icons/note.svg');
+}
+
 /* Fallbacks for Data URLs (if any) */
 .icon-file {
     width: 20px;

@@ -56,7 +56,7 @@ export class DrumVoice {
 
         // 2. Custom Synth Patch (from DrumSynth Maker)
         if (params.customSynth && Object.keys(params.customSynth).length > 0) {
-            this._getSynth().play(params.customSynth);
+            this._getSynth().play(params.customSynth, now);
             if (!this.layerSynthAndSample) return;
         }
 
@@ -65,7 +65,7 @@ export class DrumVoice {
             const preset = getFactoryPreset(this.trackId);
             // Merge TR909 knob params into preset
             this._applyKnobParams(preset, params);
-            this._getSynth().play(preset);
+            this._getSynth().play(preset, now);
             return;
         }
 
@@ -97,7 +97,7 @@ export class DrumVoice {
                 if (P.p2 !== undefined && preset.click) {
                     const clickLevel = (P.p2 / 100) * 0.4;
                     preset.click.level = clickLevel;
-                    preset.click.noise_level = clickLevel * 0.5;
+                    preset.click.noise_level = clickLevel * 0.2; // Reduced noise ratio
                 }
                 if (P.p3 !== undefined) {
                     preset.osc1.a_decay = 0.1 + (P.p3 / 100) * 0.8;

@@ -1150,18 +1150,28 @@ body.midi-learn-active .midi-mapped::after {
     z-index: 10000 !important;
 }
 
-.drumsynth-modal {
-    width: 100vw;
-    max-width: none;
-    height: 100vh;
-    border-radius: 0;
-    border: none;
-    background: #e6e2d6;
-    /* 909 Beige */
-    color: #222;
-    display: flex;
-    flex-direction: column;
+@media (max-width: 600px) {
+    #drumSynthOverlay {
+        padding: 0;
+        align-items: stretch;
+        justify-content: stretch;
+    }
+
+    .drumsynth-modal {
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: none !important;
+        max-height: none !important;
+        border: none;
+        border-radius: 0;
+    }
+
+    .drumsynth-body {
+        padding-bottom: env(safe-area-inset-bottom, 20px);
+    }
 }
+
+
 
 .drumsynth-body {
     flex: 1;
@@ -1176,12 +1186,12 @@ body.midi-learn-active .midi-mapped::after {
 /* --- DrumSynth Refined Design (Channel Strip Style) --- */
 
 .drumsynth-modal {
-    width: 100vw;
-    height: 100%;
-    max-width: none;
-    max-height: none;
-    border: none;
-    border-radius: 0;
+    width: 600px;
+    max-width: 95vw;
+    height: auto;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* .ds-header removed to use shared .modal-header */

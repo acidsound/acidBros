@@ -5,34 +5,102 @@ This document explains the core synthesis architecture of AcidBros, including th
 
 ---
 
-## 1. Unified Drum Engine (New)
+## 1. Unified Drum Engine (UnifiedSynth)
 
-AcidBros now powers its drum sounds using the `UnifiedSynth` engine, a modular architecture designed to faithfully recreate the analog characteristics of the TR-909.
+The `UnifiedSynth` is a versatile, multi-component drum synthesizer. Instead of separate classes for each drum, a single engine dynamically assembles the sound based on a **Preset Object**.
 
-### Key Components
-- **DrumVoice**: Base class for all drum modules. Handles parameter smoothing (`setParamTarget`), volume envelopes, and live knob inputs.
-- **SynthVoices**: Collection of specialized voice implementations (`BassDrumVoice`, `SnareDrumVoice`, `HiHatVoice`, etc.) in `js/audio/tr909/`.
-- **AudioEngine**: Manages the Web Audio Context and master mixing.
+### Internal Block Diagram
 
-### Signal Flow
 ```mermaid
 graph TD
-    UI[DrumSynth UI] -- Parameters (p1, p2, p3) --> US[UnifiedSynth]
-    SEQ[Sequencer] -- Triggers --> US
-    US --> DV1[Bass Drum]
-    US --> DV2[Snare]
-    US --> DV3[HiHats]
-    DV1 --> MASTER[Master Bus]
-    DV2 --> MASTER
-    DV3 --> MASTER
-    MASTER --> OUT[AudioContext Destination]
+    %% Inputs & Envelopes
+    PRESET[Preset Object] --> M_ENV[Master Envelope]
+    
+    %% Sound Sources
+    subgraph Sources [Sound Generation Modules]
+        OSC1[Osc 1: Main Body]
+        OSC2[Osc 2: Harmonic]
+        OSC3[Osc 3: Harmonic]
+        OSC4[Osc 4: Harmonic]
+        
+        CLICK_IN[Click Input]
+        SNAP[Snap: Metallic Bite]
+        NOISE_IN[Noise Input]
+    end
+
+    %% Internal Processing
+    OSC1 --> DRIVE[Waveshaper / Drive]
+    
+    subgraph CLICK_MOD [Click Module]
+        C_SQ[Square Osc] --> C_MIX[Mix]
+        C_WNT[Noise Burst] --> C_BPF[BP Filter]
+        C_BPF --> C_MIX
+    end
+    CLICK_IN --> CLICK_MOD
+    
+    subgraph NOISE_MOD [Noise / Filter Module]
+        W_GEN[White Noise] --> N_FLT[Multi-mode Filter<br/>LPF/HPF/BPF]
+    end
+    NOISE_IN --> NOISE_MOD
+
+    %% Summing
+    DRIVE --> SUM(Summing Mixer)
+    OSC2 --> SUM
+    OSC3 --> SUM
+    OSC4 --> SUM
+    C_MIX --> SUM
+    SNAP --> SUM
+    N_FLT --> SUM
+
+    %% Output Stage
+    SUM --> M_GAIN[Master Gain]
+    M_ENV -.-> M_GAIN
+    M_GAIN --> M_HPF{Master HPF?}
+    M_HPF -- Yes --> OUT_HPF[Biquad HPF]
+    M_HPF -- No --> DEST[Output / Speaker]
+    OUT_HPF --> DEST
 ```
 
-### Parameter Mapping system
-The engine uses a standardized parameter system to map UI controls to synthesis variables:
-- **Knobs (p1, p2, p3)**: Mapped to specific voice parameters (e.g., Tune, Decay, Snappy).
-- **Global toggle**: `enabled` state for muting/unmuting voices.
-- **Micro-toggles**: Specific to voices (e.g., `Osc 1 On/Off`, `Noise On/Off`).
+### Component Details
+
+#### 1. Main Oscillator (`osc1`)
+The primary body of the sound (e.g., the "Boom" of a kick).
+- **Envelopes**: Pitch (exponential sweep) and Amplitude (Linear attack + Exponential decay).
+- **Saturation**: Includes an optional `WaveShaper` node for analog-style drive.
+- **Modes**: Support for `staticLevel` (level controlled by Master Env).
+
+#### 2. Additional Oscillators (`osc2`, `osc3`, `osc4`)
+Used for harmonic richness (e.g., the tonal body of a snare or different frequencies in a Tom).
+- Supports frequency sweeps and individual decay envelopes or `staticLevel` mode.
+
+#### 3. Click Component
+Adds a sharp percussive start, specifically for BD attack.
+- **Internal Structure**: A Square wave oscillator and a Bandpass-filtered noise burst are mixed together.
+
+#### 4. Snap Component
+Recreates the metallic "clack" for sounds like Rim Shot.
+- **Structure**: A Triangle wave with an extremely fast downward frequency sweep and a very short linear amplitude decay.
+
+#### 5. Noise / Filter Module (`noise`, `noise2`)
+White noise generators coupled with a dedicated filter section.
+- **Filter**: Dedicated Biquad filter supporting LPF, HPF, or BPF modes. 
+- **Burst Mode**: Supports multi-hit bursts (Clap style) with configurable count and intervals.
+
+#### 6. Output & Master Filter
+- **Master Gain**: Unified amplitude control for all mixed modules.
+- **Master HPF**: A global high-pass filter used to clean up low-end mud in specific sounds (like Rim Shot).
+
+### Parameter Reference (Preset Object)
+
+| Module | Key Parameters |
+| :--- | :--- |
+| `osc1-4` | `freq`, `startFreq`, `p_decay`, `a_decay`, `level`, `wave`, `staticLevel`, `drive` (osc1 only) |
+| `click` | `freq`, `decay`, `filter_freq`, `level`, `noise_level`, `noise_decay` |
+| `snap` | `startFreq`, `endFreq`, `level` |
+| `noise` | `cutoff`, `Q`, `decay`, `level`, `filter_type`, `burst_count`, `burst_interval` |
+| `master` | `masterEnv` {level, decay}, `masterHPF` (Hz) |
+
+---
 
 ---
 
@@ -59,67 +127,69 @@ The **Drum Synth Editor** provides a deep-dive interface for sound design, model
 
 ## 3. TR-909 Rhythm Composer (Models)
 
-The TR-909 is a hybrid beast. It uses **Analog Synthesis** for drums like Kick and Snare, and **Samples** (digital recordings) for Cymbals and Hi-Hats. AcidBros emulates the analog parts using code!
-
-### 🥁 Bass Drum (Kick) - Deep Dive
-
-AcidBros의 909 킥은 순수 신디사이저 방식으로 구현됩니다.
-
-#### Signal Chain
-```
-Triangle Oscillator → WaveShaper (Saturation) → Amp Envelope → Master Gain
-                                                      ↑
-Square Click Osc + Bandpass Noise ─────────────────────→
-```
-
-#### Parameters & Behavior
-
-| Knob | Parameter | Implementation |
-|------|-----------|----------------|
-| **LEVEL** | `P.vol` | Master Gain Node (`P.vol * 1.5`) |
-| **TUNE** | `P.p1` | Pitch Sweep Decay Time (5ms ~ 170ms) |
-| **ATTACK** | `P.p2` | Click Component Level |
-| **DECAY** | `P.p3` | Main Body Amp Decay (0.1s ~ 0.9s) |
+The TR-909 is a hybrid instrument. It uses **Analog Synthesis** (emulated via `UnifiedSynth`) for drums like Kick and Snare, and **Samples** (digital recordings) for Cymbals and Hi-Hats.
 
 ---
 
-### 🐍 Snare Drum - Deep Dive
+### 🥁 Bass Drum (Kick)
+The kick is generated entirely by synthesis, focusing on the relationship between the low-end "boom" and the sharp attack "click".
 
-909 스네어는 두 개의 삼각파 VCO와 병렬 필터링된 노이즈의 조합입니다.
+| Panel Knob | Target UnifiedSynth Parameter | Description |
+| :--- | :--- | :--- |
+| **TUNE** | `osc1.p_decay` | Controls the speed of the downward pitch sweep (5ms to 170ms). |
+| **ATTACK** | `click.level` | Adjusts the volume of the internal Click module (Square + Noise). |
+| **DECAY** | `osc1.a_decay` | Controls the exponential amplitude decay of the main body (up to 0.9s). |
 
-#### Signal Chain
-```
-VCO-1 (Triangle) ─┬→ Body Gain → Output
-VCO-2 (Triangle) ─┘
-                         20ms Pitch Bend ↗
+---
 
-White Noise → LPF (4-8kHz) → LPF Gain ─┬→ Output
-          └→ HPF (1.2-3.2kHz) → HPF Gain ─┘
-```
+### 🐍 Snare Drum
+The snare combines two tonal oscillators for the "body" and two filtered noise paths for the "snappy" wires.
 
-#### Parameters & Behavior
-
-| Knob | Parameter | Implementation |
-|------|-----------|----------------|
-| **LEVEL** | `P.vol` | Master Volume |
-| **TUNE** | `P.p1` | Base Frequency (`180Hz ~ 240Hz`) |
-| **TONE** | `P.p2` | Filter Cutoff for both LPF/HPF paths |
-| **SNAPPY** | `P.p3` | Noise Component Volume |
+| Panel Knob | Target UnifiedSynth Parameter | Description |
+| :--- | :--- | :--- |
+| **TUNE** | `osc1/2.freq` | Shifts the base frequency of the tonal body (180Hz to 240Hz). |
+| **TONE** | `noise/2.cutoff` | Controls the frequency of the LPF and HPF noise paths. |
+| **SNAPPY** | `noise/2.level` | Adjusts the mix balance of the snappy wire (noise) sound. |
 
 ---
 
 ### 👏 Hand Clap (CP)
-- **Signal**: Noise → Bandpass (1200Hz) → Burst Envelope (Sawtooth repeat 4x).
-- **Reverb**: Simulated internal reverb circuit filter.
-- **Controls**: Speed (Repeat rate), Decay (Tail length).
+Simulates the original's noise burst and reverb circuit.
+- **Engine**: Noise module in **Burst Mode**.
+- **Mechanism**: 4 rapid noise hits at 8ms intervals followed by a longer decay tail.
+- **DECAY Mapping**: Mapped to `noise.decay` (0.2s to 0.8s), affecting the length of the final tail.
+
+---
 
 ### 🔔 Rim Shot (RS)
-- **Signal**: 3 cascaded Oscillators (bridged-T simulation) + Triangle Snap.
-- **Snap**: Adds a short, high-pitched decay envelope for the metallic "clack".
+Recreates the metallic "clack" using harmonic oscillators and a Master HPF.
+- **Engine**: 3 Sine oscillators (`osc1, 2, 3`) with specific harmonic ratios.
+- **Bite**: The `snap` module provides a sharp, high-pitched triangle sweep.
+- **Master HPF**: Fixed at 200Hz to remove low-frequency ringing.
+
+---
 
 ### 🥁 Toms (LT/MT/HT)
-- **Signal**: 3 VCOs (Triangle + 2x Sine) per Tom.
-- **Noise**: Skin noise added to VCO-3.
+Toms use a shared architectural preset with varied base frequencies.
+- **Logic**: Uses `masterEnv` for overall decay.
+- **TUNE Mapping**: Shifts the frequency of all 3 oscillators (`osc1, 2, 3`) simultaneously.
+- **DECAY Mapping**: Controls `masterEnv.decay`, which gates all internal oscillators.
+
+---
+
+### 💿 Sample-Based Instruments (CH, OH, CR, RD)
+Hi-Hats and Cymbals use 6-bit 32kHz original samples, processed through a digital playback engine in `DrumVoice`.
+
+#### 1. Hi-Hats (CH / OH)
+- **Source**: `hh01.wav` (CH) and `oh01.wav` (OH).
+- **Tuning**: The `TUNE` knob adjusts the `playbackRate` (0.8x to 1.2x).
+- **Decay**: OH has a dedicated `DECAY` knob controlling the amplitude ramp duration. CH has a fixed short decay.
+- **Choke**: Playing a CH immediately kills any ringing OH.
+
+#### 2. Cymbals (CR / RD)
+- **Source**: `cr01.wav` (Crash) and `rd01.wav` (Ride).
+- **Tuning**: Mapped to `cr_tune` / `rd_tune` providing a wide frequency range (0.6x to 1.6x).
+- **Duration**: Long legacy tails reaching up to 2.5 seconds.
 
 ---
 

@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v128
+- **Current Version**: v129
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -568,3 +568,14 @@ To ensure project health and consistency, relevant documentation MUST be updated
      - Running browser automation tests (browser_subagent).
    - Do **NOT** auto-run these actions even if they seem safe or part of a standard workflow.
    - Present the intended action and wait for the user's "Go ahead" or similar approval.
+### v129: Sample Sync Fix & Architecture Documentation
+- **Sample Sync Fix**: 
+  - Synchronized `UnifiedSynth` with the central `AudioEngine` scheduler by implementing a target time (`time`) parameter.
+  - Resolved the 1-step delay issue on TR-909 sample-based tracks (CR, RD, CH, OH).
+  - Improved `stopAll()` logic to prevent cutting off tails during scheduled playback while maintaining manual preview responsiveness.
+- **Documentation Overhaul**:
+  - Entirely rewrote `SYNTH_ARCHITECTURE.md` to reflect the `UnifiedSynth` engine.
+  - Added detailed Mermaid diagrams for internal signal flow (OSC 1-4, Click, Snap, Noise/Filter).
+  - Defined explicit parameter mappings between UI knobs and internal engine variables for all original TR-909 instruments.
+  - Added technical specs for sample-based Hi-Hats and Cymbals, including choke and tuning logic.
+- **Versioning**: Incremented PWA cache and UI version to v129.
