@@ -1372,7 +1372,8 @@ export const UI = {
             accent: getV(`accent303_${unitId}`) / 100,
             vol: getV(`vol303_${unitId}`) / 100,
             delayTime: getV(`delayTime303_${unitId}`),
-            delayFeedback: getV(`delayFb303_${unitId}`)
+            delayFeedback: getV(`delayFb303_${unitId}`),
+            delayWet: getV(`delayWet303_${unitId}`)
         };
     },
 
@@ -1465,7 +1466,8 @@ export const UI = {
 
         const delayParams = [
             { l: 'TIME', id: `delayTime303_${unitId}`, min: 0, max: 200, v: 0 },
-            { l: 'FEEDBACK', id: `delayFb303_${unitId}`, min: 0, max: 100, v: 0 }
+            { l: 'FEEDBACK', id: `delayFb303_${unitId}`, min: 0, max: 100, v: 0 },
+            { l: 'WET', id: `delayWet303_${unitId}`, min: 0, max: 100, v: 0 }
         ];
         delayParams.forEach(p => {
             new RotaryKnob(delaySection, p.l, p.id, p.min, p.max, p.v);

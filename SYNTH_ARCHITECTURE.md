@@ -32,9 +32,7 @@ graph TD
     OSC1 --> DRIVE[Waveshaper / Drive]
     
     subgraph CLICK_MOD [Click Module]
-        C_SQ[Square Osc] --> C_MIX[Mix]
-        C_WNT[Noise Burst] --> C_BPF[BP Filter]
-        C_BPF --> C_MIX
+        C_SINE[Sweep Impulse] --> C_HPF[HP Filter]
     end
     CLICK_IN --> CLICK_MOD
     
@@ -48,7 +46,7 @@ graph TD
     OSC2 --> SUM
     OSC3 --> SUM
     OSC4 --> SUM
-    C_MIX --> SUM
+    C_HPF --> SUM
     SNAP --> SUM
     N_FLT --> SUM
 
@@ -74,8 +72,8 @@ Used for harmonic richness (e.g., the tonal body of a snare or different frequen
 - Supports frequency sweeps and individual decay envelopes or `staticLevel` mode.
 
 #### 3. Click Component
-Adds a sharp percussive start, specifically for BD attack.
-- **Internal Structure**: A Square wave oscillator and a Bandpass-filtered noise burst are mixed together.
+Adds a sharp percussive transient pulse, specifically for BD attack.
+- **Internal Structure**: A high-frequency sine wave swept down extremely fast (impulse simulation) passed through a High-Pass filter.
 
 #### 4. Snap Component
 Recreates the metallic "clack" for sounds like Rim Shot.
@@ -95,7 +93,7 @@ White noise generators coupled with a dedicated filter section.
 | Module | Key Parameters |
 | :--- | :--- |
 | `osc1-4` | `freq`, `startFreq`, `p_decay`, `a_decay`, `level`, `wave`, `staticLevel`, `drive` (osc1 only) |
-| `click` | `freq`, `decay`, `filter_freq`, `level`, `noise_level`, `noise_decay` |
+| `click` | `startFreq`, `freq`, `decay`, `filter_freq`, `level` |
 | `snap` | `startFreq`, `endFreq`, `level` |
 | `noise` | `cutoff`, `Q`, `decay`, `level`, `filter_type`, `burst_count`, `burst_interval` |
 | `master` | `masterEnv` {level, decay}, `masterHPF` (Hz) |
@@ -132,13 +130,13 @@ The TR-909 is a hybrid instrument. It uses **Analog Synthesis** (emulated via `U
 ---
 
 ### 🥁 Bass Drum (Kick)
-The kick is generated entirely by synthesis, focusing on the relationship between the low-end "boom" and the sharp attack "click".
+The kick is generated entirely by synthesis, modeled accurately after the analog schematic. It uses a sine-shaped core with a subtle asymmetric drive and a high-pass filtered transient pulse for the attack, recreating the authentic 909 punch.
 
 | Panel Knob | Target UnifiedSynth Parameter | Description |
 | :--- | :--- | :--- |
-| **TUNE** | `osc1.p_decay` | Controls the speed of the downward pitch sweep (5ms to 170ms). |
-| **ATTACK** | `click.level` | Adjusts the volume of the internal Click module (Square + Noise). |
-| **DECAY** | `osc1.a_decay` | Controls the exponential amplitude decay of the main body (up to 0.9s). |
+| **TUNE** | `osc1.freq` & `osc1.p_decay` | Changes the fundamental base pitch (40Hz-65Hz) and the speed of the downward pitch sweep (5ms-170ms). |
+| **ATTACK** | `click.level` | Adjusts the volume of the internal Click module (a sharp, High-Pass filtered transient pulse). |
+| **DECAY** | `osc1.a_decay` | Controls the exponential amplitude decay of the main body. Extended up to 2.0s for deep 808-style drops (Colin Fraser Mod). |
 
 ---
 
@@ -213,7 +211,8 @@ graph LR
 
     subgraph Effects
     VCA --> DELAY[Feedback Delay]
-    DELAY --> OUT[Master Output]
+    DELAY --> WET[Wet Gain]
+    WET --> OUT[Master Output]
     VCA --> OUT
     end
 ```

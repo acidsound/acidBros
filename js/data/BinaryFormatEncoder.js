@@ -197,11 +197,11 @@ export class BinaryFormatEncoder {
         };
     }
 
-    // Helper to write TB-303 Settings (11 bytes)
+    // Helper to write TB-303 Settings (12 bytes)
     writeTB303Settings(buffer, offset, settings) {
         const isSquare = settings.waveform === 'square';
         buffer[offset++] = isSquare ? 0x01 : 0x00;
-        buffer[offset++] = 0x09; // Param Count
+        buffer[offset++] = 0x0A; // Param Count (updated from 9 to 10)
 
         const mapVal = (val, max = 127) => Math.max(0, Math.min(max, Math.floor(val)));
         const mapTune = (val) => Math.floor(((val + 1200) / 2400) * 240); // -1200..1200 -> 0..240
@@ -215,6 +215,7 @@ export class BinaryFormatEncoder {
         buffer[offset++] = mapVal(settings.volume);
         buffer[offset++] = mapVal(settings.delayTime);
         buffer[offset++] = mapVal(settings.delayFb);
+        buffer[offset++] = mapVal(settings.delayWet); // Default 50 if missing
 
         return offset;
     }

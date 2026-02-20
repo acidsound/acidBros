@@ -35,7 +35,8 @@ export const Data = {
             accent: 80,
             volume: 70,
             delayTime: 50,
-            delayFb: 30
+            delayFb: 30,
+            delayWet: 50
         };
     },
 
@@ -289,7 +290,8 @@ export const Data = {
             accent: `accent303_${suffix}`,
             volume: `vol303_${suffix}`,
             delayTime: `delayTime303_${suffix}`,
-            delayFb: `delayFb303_${suffix}`
+            delayFb: `delayFb303_${suffix}`,
+            delayWet: `delayWet303_${suffix}`
         };
 
         for (const [key, knobId] of Object.entries(knobMap)) {
@@ -361,7 +363,8 @@ export const Data = {
             accent: `accent303_${suffix}-input`,
             volume: `vol303_${suffix}-input`,
             delayTime: `delayTime303_${suffix}-input`,
-            delayFb: `delayFb303_${suffix}-input`
+            delayFb: `delayFb303_${suffix}-input`,
+            delayWet: `delayWet303_${suffix}-input`
         };
 
         for (const [key, inputId] of Object.entries(knobMap)) {
@@ -580,7 +583,8 @@ export const Data = {
             'accent303_1-input': 'accent',
             'vol303_1-input': 'volume',
             'delayTime303_1-input': 'delayTime',
-            'delayFb303_1-input': 'delayFb'
+            'delayFb303_1-input': 'delayFb',
+            'delayWet303_1-input': 'delayWet'
         };
 
         for (const [knobId, settingKey] of Object.entries(tb303_1_map)) {
@@ -599,7 +603,8 @@ export const Data = {
             'accent303_2-input': 'accent',
             'vol303_2-input': 'volume',
             'delayTime303_2-input': 'delayTime',
-            'delayFb303_2-input': 'delayFb'
+            'delayFb303_2-input': 'delayFb',
+            'delayWet303_2-input': 'delayWet'
         };
 
         for (const [knobId, settingKey] of Object.entries(tb303_2_map)) {

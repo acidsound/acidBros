@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v132
+- **Current Version**: v133
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -16,10 +16,10 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - Lookahead: 100ms for scheduling
 - **Signal Chain**: `Instruments → Master Compressor → Analyser → Output`
 - **Instruments**:
-  - `TB303.js`: Two independent TB-303 units with delay effect
+  - `TB303.js`: Two independent TB-303 units with resonant ZDF filter and Send/Return Wet Delay effect
   - `TR909.js`: Full TR-909 implementation using modular `DrumVoice` architecture
     - `DrumVoice.js`: Hybrid Synth+Sample engine
-    - `SynthVoices.js`: Modular synthesis algorithms (BD, SD, Toms, Rim, CP)
+    - `UnifiedSynth.js`: Core analog-modeling engine featuring accurate BD drive and click sweeps, noise bursts, etc.
 
 ### UI System
 - **Location**: `js/ui/UI.js`

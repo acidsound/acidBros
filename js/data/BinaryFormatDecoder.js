@@ -130,7 +130,8 @@ export class BinaryFormatDecoder {
                         accent: 80,
                         volume: 70,
                         delayTime: 50,
-                        delayFb: 30
+                        delayFb: 30,
+                        delayWet: 50
                     }
                 },
                 tb303_2: {
@@ -146,7 +147,8 @@ export class BinaryFormatDecoder {
                         accent: 80,
                         volume: 70,
                         delayTime: 50,
-                        delayFb: 30
+                        delayFb: 30,
+                        delayWet: 50
                     }
                 },
                 tr909: {
@@ -272,6 +274,7 @@ export class BinaryFormatDecoder {
             volume: 70,
             delayTime: 50,
             delayFb: 30,
+            delayWet: 50,
             bytesRead: 0
         };
 
@@ -287,7 +290,7 @@ export class BinaryFormatDecoder {
         }
 
         const paramCount = buffer[pos++];
-        const paramKeys = ['tune', 'cutoff', 'reso', 'env', 'decay', 'accent', 'volume', 'delayTime', 'delayFb'];
+        const paramKeys = ['tune', 'cutoff', 'reso', 'env', 'decay', 'accent', 'volume', 'delayTime', 'delayFb', 'delayWet'];
 
         for (let i = 0; i < paramCount && pos < endOffset; i++) {
             const val = buffer[pos++];

@@ -181,6 +181,7 @@ export class TB303 {
             // Calculate Tempo-Synced Delay Time
             const pDelayTime = (typeof params.delayTime === 'number') ? params.delayTime : 50;
             const pFeedback = (typeof params.delayFeedback === 'number') ? params.delayFeedback : 40;
+            const pWet = (typeof params.delayWet === 'number') ? params.delayWet : 50;
 
             const secondsPerBeat = 60.0 / tempo;
             const wholeNote = secondsPerBeat * 4;
@@ -194,8 +195,8 @@ export class TB303 {
             // Feedback: 0-100 -> 0.0 to 0.95
             const dFeed = (pFeedback / 100) * 0.95;
 
-            // Wet Level Logic
-            const wetLevel = (pDelayTime < 1) ? 0 : 0.5;
+            // Wet Level: 0-100 -> 0.0 to 1.0 (Standard send amount)
+            const wetLevel = pWet / 100;
 
             // Final Safety Check before applying
             if (Number.isFinite(dTime) && Number.isFinite(dFeed) && Number.isFinite(wetLevel)) {

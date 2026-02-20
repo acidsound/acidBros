@@ -216,42 +216,32 @@ export class UnifiedSynth {
         osc.stop(now + stopTime);
     }
 
-    // Click component for BD attack (Square oscillator + filtered noise)
+    // Click component for BD attack (Transient Pulse)
     _playClick(cfg, now, destination) {
         const level = cfg.level || 0.2;
 
-        // Square oscillator click
         const clickOsc = this.ctx.createOscillator();
         const clickGain = this.ctx.createGain();
-        clickOsc.type = 'square';
-        clickOsc.frequency.setValueAtTime(cfg.freq || 800, now);
+        const clickFilter = this.ctx.createBiquadFilter();
+
+        // High frequency sine swept down extremely fast to simulate an impulse
+        clickOsc.type = 'sine';
+        clickOsc.frequency.setValueAtTime(cfg.startFreq || 2000, now);
+        clickOsc.frequency.exponentialRampToValueAtTime(cfg.freq || 100, now + 0.002);
 
         clickGain.gain.setValueAtTime(level, now);
-        clickGain.gain.exponentialRampToValueAtTime(0.001, now + (cfg.decay || 0.008));
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + (cfg.decay || 0.005));
+
+        // High-pass filter to remove low-end thud from the click itself
+        clickFilter.type = 'highpass';
+        clickFilter.frequency.setValueAtTime(cfg.filter_freq || 2000, now);
 
         clickOsc.connect(clickGain);
-        clickGain.connect(destination);
+        clickGain.connect(clickFilter);
+        clickFilter.connect(destination);
+
         clickOsc.start(now);
-        clickOsc.stop(now + 0.02);
-
-        // Noise component of click
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = this.noiseBuffer;
-        const noiseFilter = this.ctx.createBiquadFilter();
-        const noiseGain = this.ctx.createGain();
-
-        noiseFilter.type = 'bandpass';
-        noiseFilter.frequency.setValueAtTime(cfg.filter_freq || 2500, now);
-
-        const noiseLevel = cfg.noise_level !== undefined ? cfg.noise_level : (level * 0.5);
-        noiseGain.gain.setValueAtTime(noiseLevel, now);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + (cfg.noise_decay || 0.005));
-
-        noise.connect(noiseFilter);
-        noiseFilter.connect(noiseGain);
-        noiseGain.connect(destination);
-        noise.start(now);
-        noise.stop(now + 0.02);
+        clickOsc.stop(now + 0.01);
     }
 
     // Snap component for RS (Triangle with fast pitch sweep)
@@ -353,26 +343,25 @@ export class UnifiedSynth {
  */
 export const FACTORY_PRESETS = {
     bd: {
-        // TR909 playBD: Triangle 48Hz, pitch 288Hz->48Hz in 20ms, decay 500ms, drive=10
-        // Click: Square 800Hz 8ms, Noise BPF 2500Hz 5ms
+        // TR909 playBD (Schematic updated): Sine ~53Hz, pitch ~265Hz->53Hz in 55ms (Tune ~54)
+        // Click: Sine sweep impulse through 2000Hz HPF
         osc1: {
             enabled: true,
-            wave: 'triangle',
-            freq: 48,
-            startFreq: 288,      // 48 * 6
-            p_decay: 0.02,       // 20ms pitch envelope (at p1=40)
-            a_decay: 0.5,        // 500ms amplitude decay (at p3=50: 0.1 + 0.5*0.8)
-            drive: 10,
-            level: 1.0
+            wave: 'sine',
+            freq: 53.5,          // 40 + (54 / 100) * 25
+            startFreq: 267.5,    // freq * 5
+            p_decay: 0.055,      // 0.02 + ((54 - 40) / 60) * 0.150 = 0.055
+            a_decay: 0.5,        // 500ms amplitude decay (at p3=50)
+            drive: 4,            // Increased drive for harmonics and loudness
+            level: 1.5           // Boosted base level
         },
         click: {
             enabled: true,
-            freq: 800,
-            decay: 0.008,        // 8ms
-            filter_freq: 2500,
-            level: 0.15,         // Reduced from 0.2
-            noise_level: 0.03,   // Reduced from 0.1
-            noise_decay: 0.003   // Reduced from 0.005
+            startFreq: 2000,
+            freq: 100,
+            decay: 0.005,        // 5ms
+            filter_freq: 2000,
+            level: 0.4           // Boosted base click level
         }
     },
     sd: {

@@ -84,8 +84,14 @@ export class DrumVoice {
 
         switch (this.trackId) {
             case 'bd':
-                // p1 = TUNE (pitch decay), p2 = ATTACK (click level), p3 = DECAY
+                // p1 = TUNE (base freq + pitch decay), p2 = ATTACK (click level), p3 = DECAY (extended)
                 if (P.p1 !== undefined) {
+                    // TUNE adjusts both the base pitch and the sweep depth
+                    // 0 = Low pitch (40Hz), 100 = High pitch (65Hz)
+                    const baseFreq = 40 + (P.p1 / 100) * 25;
+                    preset.osc1.freq = baseFreq;
+                    preset.osc1.startFreq = baseFreq * 5; // maintain 5x sweep ratio
+
                     let pitchDecay;
                     if (P.p1 <= 40) {
                         pitchDecay = 0.005 + (P.p1 / 40) * 0.015;
@@ -95,12 +101,12 @@ export class DrumVoice {
                     preset.osc1.p_decay = pitchDecay;
                 }
                 if (P.p2 !== undefined && preset.click) {
-                    const clickLevel = (P.p2 / 100) * 0.4;
-                    preset.click.level = clickLevel;
-                    preset.click.noise_level = clickLevel * 0.2; // Reduced noise ratio
+                    // Maximum click level is 0.5 for a sharp punch
+                    preset.click.level = (P.p2 / 100) * 0.5;
                 }
                 if (P.p3 !== undefined) {
-                    preset.osc1.a_decay = 0.1 + (P.p3 / 100) * 0.8;
+                    // Extended Decay Mod: 0.1s to 2.0s
+                    preset.osc1.a_decay = 0.1 + (P.p3 / 100) * 1.9;
                 }
                 break;
 
