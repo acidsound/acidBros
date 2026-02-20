@@ -84,6 +84,7 @@ AcidBros features **two independent TB‑303 units** (Unit 1 & 2). Each unit off
 #### DELAY Section
 - **TIME** – Delay time as percentage of tempo (0-200%, tempo-synced).
 - **FEEDBACK** – Delay feedback amount (0-100%).
+- **WET** – Delay wet/dry mix amount (0-100%).
 
 *Double‑tap any knob to reset to its default value.*
 
@@ -105,14 +106,15 @@ Click any note display to open the advanced note editor:
 
 - **Step Navigation (< >)** – Move between steps with wrap-around.
 - **Step Indicator** – Shows current step number (01-16).
-- **Piano Keys** – Click to select pitch (C to B with sharps/flats).
+- **View Toggle (🎹/⬛)** – Switch between the piano keyboard layout and the step layout.
+- **Piano Keys / Steps** – Click to select pitch (C to B with sharps/flats).
 - **Octave Controls (DN/UP)** – Select octave (1, 2, or 3).
 - **Modifiers**:
   - **AC** – Accent toggle (red when active).
   - **SL** – Slide toggle (green when active).
-- **Preview Sound** – Checkbox to hear notes before committing.
+- **Preview (🔊)** – Toggle to hear notes before committing.
 - **GATE OFF (REST)** – Mute the step while keeping note value.
-- **Close (×)** – Close the editor.
+- **Close** – Close the editor by clicking outside the popover.
 
 *Pressing a piano key automatically advances to the next step for fast pattern entry.*
 
