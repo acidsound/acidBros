@@ -152,7 +152,9 @@ export class RotaryKnob {
             // Format value based on magnitude for better readability
             let displayVal;
             const absVal = Math.abs(this.value);
-            if (absVal < 0.01) {
+            if (absVal === 0) {
+                displayVal = "0";
+            } else if (absVal < 0.01) {
                 displayVal = this.value.toFixed(3);
             } else if (absVal < 0.1) {
                 displayVal = this.value.toFixed(3);
