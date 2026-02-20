@@ -11,10 +11,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px solid rgba(0, 0, 0, 0.3);
-    border-top: 1px solid rgba(255, 255, 255, 0.3);
-    padding-bottom: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     user-select: none;
 }
 
@@ -64,6 +61,8 @@
     overflow: hidden;
     opacity: 1;
     transition: max-height 0.2s ease, opacity 0.2s ease, padding 0.2s ease, margin 0.2s ease;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .machine.collapsed .sequencer-303 {
@@ -157,6 +156,267 @@
     margin-top: 2px;
 }
 
+/* --- Note Editor (Piano UI) --- */
+.note-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: #222;
+    border-radius: 4px;
+    border: 2px solid #111;
+    box-shadow: inset 0 20px 50px rgba(0, 0, 0, 0.9);
+    margin-bottom: 4px;
+    box-sizing: border-box;
+    width: 100%;
+    position: relative;
+}
+
+.machine.collapsed .note-editor {
+    display: none !important;
+}
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.editor-header .nav-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.editor-header .step-indicator {
+    color: #ff3333;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 14px;
+    min-width: 25px;
+    text-align: center;
+    text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+}
+
+/* Base button style for editor controls */
+.editor-btn {
+    background: linear-gradient(to bottom, #444, #222);
+    border: 1px solid #111;
+    border-radius: 2px;
+    color: #aaa;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 0 6px;
+    cursor: pointer;
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    box-sizing: border-box;
+    touch-action: manipulation;
+}
+
+.editor-btn:active {
+    transform: translateY(2px);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.editor-btn.active {
+    background: linear-gradient(to bottom, #ff9900, #cc7700);
+    color: white;
+    border-color: #aa5500;
+    box-shadow: 0 0 5px rgba(255, 153, 0, 0.5);
+}
+
+.editor-btn.accent-btn.active {
+    background: linear-gradient(to bottom, #ff5555, #cc0000);
+    border-color: #900;
+}
+
+.editor-btn.slide-btn.active {
+    background: linear-gradient(to bottom, #81c784, #2e7d32);
+    border-color: #1b5e20;
+}
+
+.editor-btn .icon {
+    width: 18px;
+    height: 18px;
+}
+
+.editor-header .close-editor-btn {
+    color: #888;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.1s;
+}
+
+.editor-header .close-editor-btn:active {
+    color: #fff;
+    transform: scale(0.9);
+}
+
+/* Single line control row */
+.editor-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px 12px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    border: 1px solid #111;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.control-label {
+    font-size: 9px;
+    color: #888;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.octave-selector,
+.modifier-selector {
+    display: flex;
+    background: #111;
+    border-radius: 4px;
+    padding: 3px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.octave-btn,
+.mod-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #666;
+    padding: 10px 0;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    font-weight: bold;
+}
+
+.octave-btn:active,
+.mod-btn:active {
+    color: #999;
+}
+
+.octave-btn.active,
+.mod-btn.active {
+    background: #444;
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Piano container and keys */
+.piano-container {
+    position: relative;
+    height: 110px;
+    overflow: hidden;
+    background: #000;
+    border-radius: 2px;
+    border: 1px solid #111;
+}
+
+.piano-keys-wrapper {
+    display: flex;
+    height: 100%;
+    position: relative;
+    width: 100%;
+    --total-white-keys: 21;
+    /* 3 octaves */
+}
+
+.piano-key {
+    flex: 1;
+    background: var(--key-white);
+    border: 1px solid #000;
+    border-radius: 0 0 4px 4px;
+    position: relative;
+    cursor: pointer;
+    z-index: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    color: rgba(0, 0, 0, 0.4);
+    box-shadow: var(--key-shadow);
+    transition: all 0.05s;
+}
+
+.piano-key.black {
+    background: var(--key-black);
+    height: 60%;
+    width: calc((100% / var(--total-white-keys)) * 0.7);
+    left: calc((var(--white-index) * (100% / var(--total-white-keys))) - ((100% / var(--total-white-keys)) * 0.35));
+    position: absolute;
+    z-index: 2;
+    border-radius: 0 0 3px 3px;
+    color: rgba(255, 255, 255, 0.4);
+    box-shadow: var(--key-black-shadow);
+    border: 1px solid #000;
+}
+
+.piano-key:active {
+    background: var(--key-white-active);
+    box-shadow: var(--key-shadow-active);
+    transform: translateY(2px);
+}
+
+.piano-key.black:active {
+    background: var(--key-black-active);
+    box-shadow: var(--key-black-shadow-active);
+    transform: translateY(1px);
+}
+
+.piano-key.active {
+    background: #ffcc00 !important;
+    /* Design guide accent color */
+    color: #000;
+    box-shadow: 0 0 15px rgba(255, 204, 0, 0.6);
+}
+
+/* Responsive Logic */
+@media (max-width: 600px) and (orientation: portrait) {
+    .piano-keys-wrapper {
+        --total-white-keys: 7;
+        /* Override for single octave */
+    }
+
+    /* Hide octaves 2 and 3 and show single octave keys wider */
+    .piano-key:nth-child(n+13) {
+        display: none !important;
+    }
+}
+
+@media (min-width: 601px) {
+
+    /* Hide octave selectors in landscape/desktop as 3 octaves are visible */
+    .octave-selector-group {
+        display: none !important;
+    }
+}
+
 /* 303 Waveform Styles */
 .waveform-control {
     display: flex;
@@ -180,7 +440,7 @@
 .switch-label {
     font-size: 8px;
     font-weight: bold;
-    color: #AAA;
+    color: #555;
 }
 
 .clear-303-btn {

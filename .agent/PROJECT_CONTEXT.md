@@ -20,6 +20,11 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - `TR909.js`: Full TR-909 implementation using modular `DrumVoice` architecture
     - `DrumVoice.js`: Hybrid Synth+Sample engine
     - `UnifiedSynth.js`: Core analog-modeling engine featuring accurate BD drive and click sweeps, noise bursts, etc.
+- **Lifecycle Safety (v134-dev)**:
+  - TB-303 voices now explicitly disconnect ended `osc/filter/gain` nodes.
+  - `TB303FilterProcessor` self-terminates (`return false`) when its upstream source is gone.
+  - Delay `AudioParam` automation is only updated on value changes to prevent long-session event queue growth.
+  - `UnifiedSynth` now disconnects expired nodes (`masterGain`, HPF, per-voice chains) and TR-909 stop propagation clears active synth state.
 
 ### UI System
 - **Location**: `js/ui/UI.js`
@@ -603,3 +608,16 @@ To ensure project health and consistency, relevant documentation MUST be updated
 - **Exponential Slide**: Implemented exponential pitch slides (`exponentialRampToValueAtTime`) replacing linear slides for a more natural, analog-feeling glide.
 - **Envelope & Accent Refinement**: Adjusted amplitude envelopes and accent scaling logic to match the hardware response more closely.
 - **Documentation**: Updated `SYNTH_ARCHITECTURE.md` to detail the new ZDF filter and slide logic.
+
+### v134-dev: Audio Timing Drift / Dropout Stability Fix
+- **Issue Signature**: Long playback sessions could gradually drift in timing and eventually drop audio output without visible UI or console errors.
+- **Root Cause Pattern**: Web Audio graph/resource accumulation from non-disconnected nodes and repeatedly scheduled automation events.
+- **TB-303 Fixes**:
+  - Added explicit voice teardown (`osc/filter/gain` disconnect on `onended`).
+  - Prevented delay automation queue bloat by applying `delayTime/feedback/wet` updates only when values change and canceling future events before re-scheduling.
+- **TB-303 Filter Worklet Fixes**:
+  - `TB303FilterProcessor` now terminates orphan processors when input bus is detached (`return false`).
+  - Added additional finite-value guards (`g`, output sample checks) to avoid unstable DSP state propagation.
+- **TR-909 / UnifiedSynth Fixes**:
+  - Replaced passive expiry tracking with actual disconnect callbacks for expired nodes.
+  - Added `DrumVoice.stop()` and `TR909.stop()` propagation so transport stop clears active synth chains immediately.

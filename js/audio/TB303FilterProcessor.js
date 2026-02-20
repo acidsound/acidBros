@@ -27,24 +27,30 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
     }
 
     process(inputs, outputs, parameters) {
-        if (inputs.length === 0 || outputs.length === 0) return true;
+        if (outputs.length === 0) return false;
+
+        const outputBus = outputs[0];
+        if (!outputBus || outputBus.length === 0) return false;
 
         const inputBus = inputs[0];
-        const outputBus = outputs[0];
-        if (inputBus.length === 0 || outputBus.length === 0) return true;
+        if (!inputBus || inputBus.length === 0) {
+            // No upstream source is connected anymore; allow the processor to terminate.
+            this.s1 = this.s2 = this.s3 = this.s4 = 0;
+            const out0 = outputBus[0];
+            const out1 = outputBus.length > 1 ? outputBus[1] : null;
+            if (out0) out0.fill(0);
+            if (out1) out1.fill(0);
+            return false;
+        }
 
-        // Ensure we always read mono/stereo properly
         const inputChannel = inputBus[0];
-
-        // Output channel 0
+        if (!inputChannel) return false;
         const outputChannel0 = outputBus[0];
-        // Output channel 1 (if stereo destination)
         const outputChannel1 = outputBus.length > 1 ? outputBus[1] : null;
 
         const cutoffParam = parameters['cutoff'];
         const resonanceParam = parameters['resonance'];
 
-        // Optimization: Check rate once
         const isCutoffARate = cutoffParam.length > 1;
         const isResonanceARate = resonanceParam.length > 1;
 
@@ -52,18 +58,30 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
         const sampleRate = globalThis.sampleRate || 44100;
 
         for (let i = 0; i < frames; i++) {
-            const cutoff = isCutoffARate ? cutoffParam[i] : cutoffParam[0];
-            const resonance = isResonanceARate ? resonanceParam[i] : resonanceParam[0];
+            // Clamp parameters to safe ranges
+            let cutoff = isCutoffARate ? cutoffParam[i] : cutoffParam[0];
+            let resonance = isResonanceARate ? resonanceParam[i] : resonanceParam[0];
+
+            cutoff = Math.max(20.0, Math.min(cutoff, sampleRate * 0.45));
+            resonance = Math.max(0.0, Math.min(resonance, 0.99)); // Avoid total self-oscillation crash
 
             const g = Math.tan(Math.PI * cutoff / sampleRate);
+            if (!Number.isFinite(g)) {
+                outputChannel0[i] = 0;
+                if (outputChannel1 !== null) outputChannel1[i] = 0;
+                continue;
+            }
             const G = g / (1.0 + g);
             const K = resonance * 4.0;
 
             const x = inputChannel[i];
 
-            // ZDF Topology
+            // ZDF Topology with non-linear feedback (soft clipping)
             const S = (G * G * G * this.s1 + G * G * this.s2 + G * this.s3 + this.s4) / (1.0 + g);
-            const u = (x - K * S) / (1.0 + K * G * G * G * G);
+
+            // Apply soft clipping to feedback path to prevent explosion
+            // u = x - K * tanh(S)
+            const u = (x - K * Math.tanh(S)) / (1.0 + K * G * G * G * G);
 
             // Stage 1
             const v1 = (u - this.s1) * G;
@@ -85,9 +103,16 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
             const y4 = v4 + this.s4;
             this.s4 = y4 + v4;
 
-            outputChannel0[i] = y4;
+            // NaN Safety check
+            if (!Number.isFinite(y4)) {
+                this.s1 = this.s2 = this.s3 = this.s4 = 0;
+                outputChannel0[i] = 0;
+            } else {
+                outputChannel0[i] = y4;
+            }
+
             if (outputChannel1 !== null) {
-                outputChannel1[i] = y4;
+                outputChannel1[i] = outputChannel0[i];
             }
         }
 

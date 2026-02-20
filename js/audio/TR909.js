@@ -170,5 +170,12 @@ export class TR909 {
             }
         }
     }
-}
 
+    stop(time) {
+        for (const voice of this.voices.values()) {
+            if (voice.stop) {
+                voice.stop(time);
+            }
+        }
+    }
+}

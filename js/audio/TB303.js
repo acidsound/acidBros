@@ -3,6 +3,7 @@ export class TB303 {
         this.ctx = ctx;
         this.output = output;
         this.activeState = null; // { osc, filter, gain, freq }
+        this.lastDelaySettings = null;
 
         // Delay Effect
         this.delayNode = this.ctx.createDelay(6.0); // Max delay 6s
@@ -21,6 +22,64 @@ export class TB303 {
         this.delayNode.delayTime.value = 0.3;
         this.feedbackGain.gain.value = 0.4;
         this.wetGain.gain.value = 0; // Start muted
+    }
+
+    _cleanupState(state) {
+        if (!state || state.cleaned) return;
+        state.cleaned = true;
+
+        try { if (state.osc) state.osc.onended = null; } catch (e) { }
+        try { if (state.osc) state.osc.disconnect(); } catch (e) { }
+        try { if (state.filter) state.filter.disconnect(); } catch (e) { }
+        try { if (state.gain) state.gain.disconnect(); } catch (e) { }
+
+        if (this.activeState === state) {
+            this.activeState = null;
+        }
+    }
+
+    _applyDelayParams(time, params, tempo) {
+        if (!this.delayNode || !this.feedbackGain || !this.wetGain) return;
+        if (!params) return;
+
+        if (!Number.isFinite(time) || !Number.isFinite(tempo) || tempo <= 0) {
+            return;
+        }
+
+        const pDelayTime = (typeof params.delayTime === 'number') ? params.delayTime : 50;
+        const pFeedback = (typeof params.delayFeedback === 'number') ? params.delayFeedback : 40;
+        const pWet = (typeof params.delayWet === 'number') ? params.delayWet : 50;
+
+        const secondsPerBeat = 60.0 / tempo;
+        const wholeNote = secondsPerBeat * 4;
+
+        // Clamp and map UI ranges to safe DSP values.
+        const dTime = Math.min(Math.max((pDelayTime / 100) * wholeNote, 0.01), 6.0);
+        const dFeed = (pFeedback / 100) * 0.95;
+        const wetLevel = pWet / 100;
+
+        if (!Number.isFinite(dTime) || !Number.isFinite(dFeed) || !Number.isFinite(wetLevel)) {
+            return;
+        }
+
+        const prev = this.lastDelaySettings;
+        const hasChanged = !prev ||
+            Math.abs(prev.dTime - dTime) > 1e-4 ||
+            Math.abs(prev.dFeed - dFeed) > 1e-4 ||
+            Math.abs(prev.wetLevel - wetLevel) > 1e-4;
+
+        if (!hasChanged) return;
+
+        this.lastDelaySettings = { dTime, dFeed, wetLevel };
+
+        // Prevent long-running AudioParam automation queue growth.
+        this.delayNode.delayTime.cancelScheduledValues(time);
+        this.feedbackGain.gain.cancelScheduledValues(time);
+        this.wetGain.gain.cancelScheduledValues(time);
+
+        this.delayNode.delayTime.setTargetAtTime(dTime, time, 0.05);
+        this.feedbackGain.gain.setTargetAtTime(dFeed, time, 0.02);
+        this.wetGain.gain.setTargetAtTime(wetLevel, time, 0.02);
     }
 
     noteToFreq(note, octave) {
@@ -76,10 +135,7 @@ export class TB303 {
             // Update Volume (Accent might change)
             const targetVol = (P.vol * 0.7) * (step.accent ? 1.2 : 0.8);
             active.gain.gain.cancelScheduledValues(time);
-            active.gain.gain.linearRampToValueAtTime(targetVol, time + 0.1);
-
-            // Extend Oscillator life
-            active.osc.stop(time + 2.0); // Extend safety stop
+            active.gain.gain.linearRampToValueAtTime(Math.max(0.001, targetVol), time + 0.1);
 
             // If this step is NOT a slide start for the NEXT step, we need to gate off eventually?
             // But here we are AT the slide step. If THIS step also has slide=true, we keep holding.
@@ -87,6 +143,9 @@ export class TB303 {
             if (!step.slide) {
                 const gateTime = (60 / tempo) * 0.5;
                 active.gain.gain.setTargetAtTime(0, time + gateTime, 0.02);
+                try {
+                    active.osc.stop(time + gateTime + 0.2);
+                } catch (e) { }
             }
 
         } else {
@@ -142,8 +201,8 @@ export class TB303 {
             // Amp Envelope
             const peakVol = (P.vol * 0.7) * (step.accent ? 1.2 : 0.8);
             gain.gain.setValueAtTime(0, time);
-            gain.gain.linearRampToValueAtTime(peakVol, time + 0.005);
-            gain.gain.setTargetAtTime(0, time + 0.01, decay);
+            gain.gain.linearRampToValueAtTime(Math.max(0.001, peakVol), time + 0.005);
+            gain.gain.setTargetAtTime(0, time + 0.01, Math.max(0.001, decay));
 
             osc.connect(filter);
             filter.connect(gain);
@@ -162,49 +221,19 @@ export class TB303 {
                 gain.gain.setTargetAtTime(0, time + gateTime, 0.02);
                 osc.stop(time + gateTime + 0.2);
             } else {
-                // Slide Start: Sustain (Don't gate off immediately)
-                osc.stop(time + 2.0); // Safety stop long enough for next step
+                // Slide Start: Sustain (Don't gate off immediately).
+                // Oscillator will be stopped by a later non-slide gate, retrigger, or global stop.
             }
-
-            this.activeState = { osc, filter, gain, freq };
+            const state = { osc, filter, gain, freq, cleaned: false };
+            osc.onended = () => {
+                this._cleanupState(state);
+            };
+            this.activeState = state;
         }
     }
 
     processStep(time, stepIndex, seqData, params, tempo) {
-        // Update Delay Params
-        if (this.delayNode && this.feedbackGain && this.wetGain) {
-            // Validate Time and Tempo
-            if (!Number.isFinite(time) || !Number.isFinite(tempo) || tempo <= 0) {
-                return;
-            }
-
-            // Calculate Tempo-Synced Delay Time
-            const pDelayTime = (typeof params.delayTime === 'number') ? params.delayTime : 50;
-            const pFeedback = (typeof params.delayFeedback === 'number') ? params.delayFeedback : 40;
-            const pWet = (typeof params.delayWet === 'number') ? params.delayWet : 50;
-
-            const secondsPerBeat = 60.0 / tempo;
-            const wholeNote = secondsPerBeat * 4;
-
-            // Calculate target delay time
-            let dTime = (pDelayTime / 100) * wholeNote;
-
-            // Clamp to max buffer size (6.0s) and min safe value
-            dTime = Math.min(Math.max(dTime, 0.01), 6.0);
-
-            // Feedback: 0-100 -> 0.0 to 0.95
-            const dFeed = (pFeedback / 100) * 0.95;
-
-            // Wet Level: 0-100 -> 0.0 to 1.0 (Standard send amount)
-            const wetLevel = pWet / 100;
-
-            // Final Safety Check before applying
-            if (Number.isFinite(dTime) && Number.isFinite(dFeed) && Number.isFinite(wetLevel)) {
-                this.delayNode.delayTime.setTargetAtTime(dTime, time, 0.05);
-                this.feedbackGain.gain.setTargetAtTime(dFeed, time, 0.02);
-                this.wetGain.gain.setTargetAtTime(wetLevel, time, 0.02);
-            }
-        }
+        this._applyDelayParams(time, params, tempo);
 
         const step = seqData[stepIndex];
         const prevStepIndex = (stepIndex === 0) ? 15 : stepIndex - 1;
@@ -218,24 +247,29 @@ export class TB303 {
     }
 
     kill(time) {
-        if (this.activeState && this.activeState.osc) {
+        const state = this.activeState;
+        if (state && state.osc) {
+            const stopAt = Number.isFinite(time) ? Math.max(time, this.ctx.currentTime) : this.ctx.currentTime;
             try {
-                this.activeState.osc.stop(time);
-                this.activeState.gain.gain.cancelScheduledValues(time);
-                this.activeState.gain.gain.setValueAtTime(0, time);
+                state.gain.gain.cancelScheduledValues(stopAt);
+                state.gain.gain.setValueAtTime(0, stopAt);
             } catch (e) { }
-            this.activeState = null;
+            try {
+                state.osc.stop(stopAt + 0.005);
+            } catch (e) { }
         }
     }
 
     stop(time) {
-        this.kill(time);
+        const stopAt = Number.isFinite(time) ? time : this.ctx.currentTime;
+        this.kill(stopAt);
         if (this.feedbackGain && this.wetGain) {
-            this.feedbackGain.gain.cancelScheduledValues(time);
-            this.feedbackGain.gain.setValueAtTime(0, time);
+            this.feedbackGain.gain.cancelScheduledValues(stopAt);
+            this.feedbackGain.gain.setValueAtTime(0, stopAt);
 
-            this.wetGain.gain.cancelScheduledValues(time);
-            this.wetGain.gain.setValueAtTime(0, time);
+            this.wetGain.gain.cancelScheduledValues(stopAt);
+            this.wetGain.gain.setValueAtTime(0, stopAt);
         }
+        this.lastDelaySettings = null;
     }
 }

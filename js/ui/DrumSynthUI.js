@@ -153,11 +153,11 @@ export const DrumSynthUI = {
         console.log('DrumSynthUI: Opening for', trackId);
         this.currentTrackId = trackId;
         this.isOpen = true;
-        this.overlay.style.display = 'flex';
+        this.overlay.classList.remove('hidden');
 
         // Close Manage Tracks modal if open
         const manageOverlay = document.getElementById('manageTracksOverlay');
-        if (manageOverlay) manageOverlay.style.display = 'none';
+        if (manageOverlay) manageOverlay.classList.add('hidden');
 
         // Update labels
         const trackDef = UI.allTracks?.find(t => t.id === trackId);
@@ -182,7 +182,7 @@ export const DrumSynthUI = {
 
         const knobDefs = this.TR909_KNOBS[trackId] || [];
         if (knobDefs.length === 0) {
-            container.innerHTML = '<span style="color:#888; font-size:12px;">No 909 knobs for this drum</span>';
+            container.innerHTML = '<span class="empty-msg">No 909 knobs for this drum</span>';
             return;
         }
 
@@ -197,7 +197,7 @@ export const DrumSynthUI = {
 
     close() {
         this.isOpen = false;
-        this.overlay.style.display = 'none';
+        this.overlay.classList.add('hidden');
         this.currentTrackId = null;
     },
 

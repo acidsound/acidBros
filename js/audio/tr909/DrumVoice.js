@@ -75,6 +75,12 @@ export class DrumVoice {
         }
     }
 
+    stop() {
+        if (this.synth) {
+            this.synth.stopAll();
+        }
+    }
+
     // Apply TR909 knob values (p1, p2, p3) to preset
     _applyKnobParams(preset, P) {
         if (!this.trackId) return;

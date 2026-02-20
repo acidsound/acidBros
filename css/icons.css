@@ -218,6 +218,21 @@
     -webkit-mask-image: url('../assets/icons/note.svg');
 }
 
+.icon-piano {
+    mask-image: url('../assets/icons/piano.svg');
+    -webkit-mask-image: url('../assets/icons/piano.svg');
+}
+
+.icon-step {
+    mask-image: url('../assets/icons/step.svg');
+    -webkit-mask-image: url('../assets/icons/step.svg');
+}
+
+.icon-speaker {
+    mask-image: url('../assets/icons/speaker.svg');
+    -webkit-mask-image: url('../assets/icons/speaker.svg');
+}
+
 /* Fallbacks for Data URLs (if any) */
 .icon-file {
     width: 20px;

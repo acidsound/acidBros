@@ -16,6 +16,8 @@ export const UI = {
     init() {
         this.init303Knobs(1);
         this.init303Knobs(2);
+        this.init303Piano(1);
+        this.init303Piano(2);
         this.render303Grid(1);
         this.render303Grid(2);
         this.render909();
@@ -394,15 +396,12 @@ export const UI = {
         const btn = document.getElementById(btnId);
         if (!btn) return;
 
-        if (isLocked) {
-            btn.classList.add('locked');
-            btn.querySelector('.icon-unlocked').style.display = 'none';
-            btn.querySelector('.icon-locked').style.display = 'block';
-        } else {
-            btn.classList.remove('locked');
-            btn.querySelector('.icon-unlocked').style.display = 'block';
-            btn.querySelector('.icon-locked').style.display = 'none';
-        }
+        const unlockedIcon = btn.querySelector('.icon-unlocked');
+        const lockedIcon = btn.querySelector('.icon-locked');
+
+        if (unlockedIcon) unlockedIcon.classList.toggle('hidden', isLocked);
+        if (lockedIcon) lockedIcon.classList.toggle('hidden', !isLocked);
+        btn.classList.toggle('locked', isLocked);
     },
 
     showToast(message) {
@@ -473,11 +472,11 @@ export const UI = {
         if (fileBtn) {
             fileBtn.onclick = () => {
                 const overlay = document.getElementById('fileManagerOverlay');
-                if (overlay.style.display === 'none') {
+                if (overlay.classList.contains('hidden')) {
                     this.renderFileList();
-                    overlay.style.display = 'flex';
+                    overlay.classList.remove('hidden');
                 } else {
-                    overlay.style.display = 'none';
+                    overlay.classList.add('hidden');
                 }
             };
         }
@@ -534,12 +533,12 @@ export const UI = {
         const songContainer = document.getElementById('song-controls-container');
 
         if (Data.mode === 'pattern') {
-            if (patContainer) patContainer.style.display = 'block';
-            if (songContainer) songContainer.style.display = 'none';
+            if (patContainer) patContainer.classList.remove('hidden');
+            if (songContainer) songContainer.classList.add('hidden');
             this.updatePatternButtonsState();
         } else {
-            if (patContainer) patContainer.style.display = 'none';
-            if (songContainer) songContainer.style.display = 'block';
+            if (patContainer) patContainer.classList.add('hidden');
+            if (songContainer) songContainer.classList.remove('hidden');
             this.updateSongButtonsState();
             this.updateSongTimeline();
         }
@@ -585,12 +584,12 @@ export const UI = {
         // Close on overlay click
         overlay.onclick = (e) => {
             if (e.target === overlay) {
-                overlay.style.display = 'none';
+                overlay.classList.add('hidden');
             }
         };
 
         document.getElementById('fileCloseBtn').onclick = () => {
-            overlay.style.display = 'none';
+            overlay.classList.add('hidden');
         };
 
         document.getElementById('fileNewBtn').onclick = () => {
@@ -659,7 +658,7 @@ export const UI = {
         const tabContents = document.querySelectorAll('.settings-tab-content');
 
         btn.onclick = () => {
-            overlay.style.display = 'flex';
+            overlay.classList.remove('hidden');
             this.renderMidiMappings();
             this.renderMidiDevices();
             // Sync checkbox with current setting
@@ -682,7 +681,7 @@ export const UI = {
         }
 
         const closeSettings = () => {
-            overlay.style.display = 'none';
+            overlay.classList.add('hidden');
             MidiManager.disableLearnMode();
             document.body.classList.remove('midi-learn-active');
         };
@@ -700,7 +699,7 @@ export const UI = {
                 tabBtns.forEach(b => b.classList.remove('active'));
                 tabContents.forEach(c => {
                     c.classList.remove('active');
-                    c.style.display = 'none';
+                    c.classList.add('hidden');
                 });
 
                 // Activate clicked
@@ -708,7 +707,7 @@ export const UI = {
                 const tabId = tabBtn.dataset.tab;
                 const content = document.getElementById(`tab-${tabId}`);
                 content.classList.add('active');
-                content.style.display = 'block';
+                content.classList.remove('hidden');
             };
         });
 
@@ -748,7 +747,7 @@ export const UI = {
             if (!document.body.classList.contains('midi-learn-active')) return;
 
             // If overlay is open, don't intercept
-            if (overlay.style.display !== 'none') return;
+            if (!overlay.classList.contains('hidden')) return;
 
             // Find valid target by data-midi-mappable attribute
             const target = e.target.closest('[data-midi-mappable]');
@@ -848,7 +847,7 @@ export const UI = {
                 this.hideLearnModeBanner();
                 learnBtn.innerText = 'Start MIDI Learn';
             } else {
-                overlay.style.display = 'none';
+                overlay.classList.add('hidden');
                 document.body.classList.add('midi-learn-active');
                 this.showLearnModeBanner();
                 this.showToast('Select a control to map...');
@@ -912,14 +911,14 @@ export const UI = {
     showLearnModeBanner() {
         const banner = document.getElementById('learnModeExitBanner');
         if (banner) {
-            banner.style.display = 'block';
+            banner.classList.remove('hidden');
         }
     },
 
     hideLearnModeBanner() {
         const banner = document.getElementById('learnModeExitBanner');
         if (banner) {
-            banner.style.display = 'none';
+            banner.classList.add('hidden');
         }
     },
 
@@ -935,12 +934,8 @@ export const UI = {
 
         if (files.length === 0) {
             const emptyMsg = document.createElement('div');
-            emptyMsg.className = 'empty-file-list';
+            emptyMsg.className = 'empty-msg';
             emptyMsg.innerText = 'No saved files';
-            emptyMsg.style.padding = '20px';
-            emptyMsg.style.textAlign = 'center';
-            emptyMsg.style.color = '#666';
-            emptyMsg.style.fontStyle = 'italic';
             list.appendChild(emptyMsg);
             return;
         }
@@ -1436,6 +1431,210 @@ export const UI = {
         this.renderModeControls(); // Refresh mode controls (buttons, timeline)
     },
 
+    init303Piano(unitId) {
+        const toggleBtn = document.getElementById(`pianoToggle303_${unitId}`);
+        const sequencer = document.getElementById(`grid303_${unitId}`);
+        const noteEditor = document.getElementById(`noteEditor303_${unitId}`);
+        const prevBtn = noteEditor.querySelector('.prev-btn');
+        const nextBtn = noteEditor.querySelector('.next-btn');
+        const stepInd = noteEditor.querySelector('.step-indicator');
+        const previewBtn = noteEditor.querySelector('.preview-toggle-btn');
+        const restBtn = noteEditor.querySelector('.rest-btn');
+        const octBtns = noteEditor.querySelectorAll('.octave-btn');
+        const modBtns = noteEditor.querySelectorAll('.mod-btn');
+        const pianoKeysWrapper = document.getElementById(`pianoKeys303_${unitId}`);
+
+        let currentStepIndex = 0;
+        let previewEnabled = true;
+
+        const updateEditorState = () => {
+            const seq = Data.getSequence(`tb303_${unitId}`);
+            if (!seq || seq.length === 0) return;
+            const step = seq[currentStepIndex];
+
+            stepInd.innerText = (currentStepIndex + 1).toString().padStart(2, '0');
+
+            // Update Control Buttons UI
+            octBtns.forEach(b => {
+                const bVal = parseInt(b.dataset.val);
+                b.classList.toggle('active', step.octave === bVal);
+            });
+            modBtns.forEach(b => {
+                if (b.classList.contains('accent-btn')) {
+                    b.classList.toggle('active', step.accent);
+                } else if (b.classList.contains('slide-btn')) {
+                    b.classList.toggle('active', step.slide);
+                }
+            });
+            restBtn.classList.toggle('active', !step.active);
+
+            // Update Piano Keys UI
+            const allKeys = pianoKeysWrapper.querySelectorAll('.piano-key');
+            allKeys.forEach(k => {
+                const isNoteMatch = k.dataset.note === step.note;
+                const isOctMatch = parseInt(k.dataset.oct) === step.octave;
+                k.classList.toggle('active', isNoteMatch && isOctMatch && step.active);
+            });
+
+            // Re-render sequence grid immediately
+            this.render303Grid(unitId);
+        };
+
+        const goNext = () => {
+            currentStepIndex = (currentStepIndex + 1) % 16;
+            updateEditorState();
+        };
+
+        const goPrev = () => {
+            currentStepIndex = (currentStepIndex - 1 + 16) % 16;
+            updateEditorState();
+        };
+
+        const playPreview = async (step) => {
+            if (!previewEnabled) return;
+            if (!AudioEngine.ctx) await AudioEngine.init();
+            if (AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') await AudioEngine.ctx.resume();
+
+            if (!AudioEngine.ctx) return;
+
+            const instId = `tb303_${unitId}`;
+            const params = this.getParams(instId);
+            AudioEngine.voice303(AudioEngine.ctx.currentTime, step, params, unitId);
+        };
+
+        // Pointerdown for fast interactions (连打 / Mash mapping)
+        const bindFastEvent = (el, handler) => {
+            el.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                handler(e);
+            });
+        };
+
+        bindFastEvent(toggleBtn, () => {
+            const isEditing = !noteEditor.classList.contains('hidden');
+            if (isEditing) {
+                noteEditor.classList.add('hidden');
+                sequencer.classList.remove('hidden');
+            } else {
+                noteEditor.classList.remove('hidden');
+                sequencer.classList.add('hidden');
+                updateEditorState();
+            }
+
+            // Toggle icon visual
+            const iconSpan = toggleBtn.querySelector('.icon');
+            if (isEditing) {
+                // Switching back to Sequencer mode (so show Piano icon for access)
+                iconSpan.classList.remove('icon-step');
+                iconSpan.classList.add('icon-piano');
+            } else {
+                // Switching to Piano mode (so show Step icon to go back)
+                iconSpan.classList.remove('icon-piano');
+                iconSpan.classList.add('icon-step');
+                updateEditorState();
+            }
+        });
+
+        bindFastEvent(prevBtn, goPrev);
+        bindFastEvent(nextBtn, goNext);
+
+        bindFastEvent(previewBtn, () => {
+            previewEnabled = !previewEnabled;
+            previewBtn.classList.toggle('active', previewEnabled);
+        });
+
+        bindFastEvent(restBtn, () => {
+            const seq = Data.getSequence(`tb303_${unitId}`);
+            seq[currentStepIndex].active = false;
+            goNext();
+        });
+
+        octBtns.forEach(btn => {
+            bindFastEvent(btn, () => {
+                const seq = Data.getSequence(`tb303_${unitId}`);
+                const targetOct = parseInt(btn.dataset.val);
+                // Toggle target -> normal(2)
+                seq[currentStepIndex].octave = seq[currentStepIndex].octave === targetOct ? 2 : targetOct;
+                updateEditorState();
+            });
+        });
+
+        modBtns.forEach(btn => {
+            bindFastEvent(btn, () => {
+                const seq = Data.getSequence(`tb303_${unitId}`);
+                const isAcc = btn.classList.contains('accent-btn');
+                if (isAcc) {
+                    seq[currentStepIndex].accent = !seq[currentStepIndex].accent;
+                } else {
+                    seq[currentStepIndex].slide = !seq[currentStepIndex].slide;
+                }
+                updateEditorState();
+            });
+        });
+
+        // Initialize Piano Keys
+        const keys = [
+            { n: 'C', type: 'white' }, { n: 'C#', type: 'black' },
+            { n: 'D', type: 'white' }, { n: 'D#', type: 'black' },
+            { n: 'E', type: 'white' }, { n: 'F', type: 'white' },
+            { n: 'F#', type: 'black' }, { n: 'G', type: 'white' },
+            { n: 'G#', type: 'black' }, { n: 'A', type: 'white' },
+            { n: 'A#', type: 'black' }, { n: 'B', type: 'white' }
+        ];
+
+        // For responsiveness, render 3 octaves but CSS hides the overflow on mobile, or we render 3 octaves tightly.
+        // Actually, CSS width percentage is best if we assume 3 octaves = 36 keys.
+        // Wait, the user said 1 octave on mobile portrait, 3 octaves on landscape.
+        // If we generate 3 octaves (36 keys) and use min-width / flex to show horizontal scroll, or just change width%.
+        // Let's generate 3 octaves.
+        const totalOctaves = 3;
+        const totalWhiteKeys = 7 * totalOctaves;
+        let whiteIndex = 0;
+
+        for (let oct = 1; oct <= totalOctaves; oct++) {
+            keys.forEach(k => {
+                const div = document.createElement('div');
+                div.className = `piano-key ${k.type}`;
+                div.dataset.note = k.n;
+                div.dataset.oct = oct;
+
+                if (k.type === 'white') {
+                    div.style.setProperty('--white-index', whiteIndex);
+                    whiteIndex++;
+                } else {
+                    // Position black keys based on the previous white key index
+                    div.style.setProperty('--white-index', whiteIndex);
+                }
+
+                bindFastEvent(div, () => {
+                    const seq = Data.getSequence(`tb303_${unitId}`);
+                    const step = seq[currentStepIndex];
+                    step.note = k.n;
+                    step.active = true;
+                    // If desktop (3 octaves clicked), override tb303 octave setting
+                    const octaveGroup = noteEditor.querySelector('.octave-selector-group');
+                    const is3OctaveMode = octaveGroup && getComputedStyle(octaveGroup).display === 'none';
+                    if (is3OctaveMode) {
+                        step.octave = oct; // 1 = Dn, 2 = Normal, 3 = Up
+                    }
+
+                    if (previewEnabled) playPreview(step);
+                    goNext();
+                });
+
+                pianoKeysWrapper.appendChild(div);
+            });
+        }
+
+        // Save the external setStep function for Note Editor
+        this[`openNoteEditor303_${unitId}`] = (stepIndex) => {
+            currentStepIndex = stepIndex;
+            noteEditor.classList.remove('hidden');
+            sequencer.classList.add('hidden');
+            updateEditorState();
+        };
+    },
+
     init303Knobs(unitId) {
         const container = document.getElementById(`knobs303_${unitId}`);
         container.innerHTML = '';
@@ -1495,10 +1694,7 @@ export const UI = {
             const noteDisplay = document.createElement('div');
             noteDisplay.className = 'note-display';
             noteDisplay.innerText = step.note;
-            noteDisplay.onclick = (e) => {
-                e.stopPropagation();
-                this.showNotePopover(e.clientX, e.clientY, step, unitId);
-            };
+            // Removed noteDisplay.onclick to prevent opening editor on step click
 
             const octCtrls = document.createElement('div');
             octCtrls.className = 'step-ctrls'; // Reuse step-ctrls for layout
@@ -1547,302 +1743,6 @@ export const UI = {
             el.appendChild(led); el.appendChild(noteDisplay); el.appendChild(octCtrls); el.appendChild(ctrls);
             grid.appendChild(el);
         });
-    },
-
-    showNotePopover(x, y, step, unitId) {
-        // Remove existing popover if any
-        const existing = document.getElementById('piano-popover-overlay');
-        if (existing) existing.remove();
-
-        // Find index of current step
-        const seq = Data.getSequence(`tb303_${unitId}`);
-        let currentIndex = seq.indexOf(step);
-
-        // Create Overlay
-        const overlay = document.createElement('div');
-        overlay.id = 'piano-popover-overlay';
-        overlay.className = 'piano-overlay';
-
-        // Editor Container
-        const editor = document.createElement('div');
-        editor.className = 'note-editor';
-
-        // --- Header ---
-        const header = document.createElement('div');
-        header.className = 'editor-header';
-
-        const nav = document.createElement('div');
-        nav.className = 'step-nav';
-
-        const prevBtn = document.createElement('button');
-        prevBtn.innerText = '<';
-
-        const stepDisplay = document.createElement('div');
-        stepDisplay.className = 'step-indicator';
-
-        const nextBtn = document.createElement('button');
-        nextBtn.innerText = '>';
-
-        nav.appendChild(prevBtn);
-        nav.appendChild(stepDisplay);
-        nav.appendChild(nextBtn);
-
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'close-btn';
-        closeBtn.innerHTML = '&times;';
-
-        header.appendChild(nav);
-        header.appendChild(closeBtn);
-        editor.appendChild(header);
-
-        // --- Controls ---
-        const controls = document.createElement('div');
-        controls.className = 'editor-controls';
-
-        // Row 1: Octave & Toggles
-        const row1 = document.createElement('div');
-        row1.className = 'control-row';
-
-        // Octave Group
-        const octGroup = document.createElement('div');
-        octGroup.className = 'control-group';
-        const octLabel = document.createElement('div');
-        octLabel.className = 'control-label';
-        octLabel.innerText = 'Octave';
-
-        const octSel = document.createElement('div');
-        octSel.className = 'octave-selector';
-        const octBtns = [];
-
-        const mkOctBtn = (lbl, targetOct) => {
-            const b = document.createElement('button');
-            b.className = 'octave-btn';
-            b.innerText = lbl;
-            b.onclick = () => {
-                const s = getCurrentStep();
-                // Toggle logic: if already on target, go to 2 (neutral), else go to target
-                const newVal = s.octave === targetOct ? 2 : targetOct;
-                updateStep({ octave: newVal });
-            };
-            octBtns.push({ val: targetOct, el: b });
-            octSel.appendChild(b);
-        };
-
-        mkOctBtn('DN', 1);
-        mkOctBtn('UP', 3);
-
-        octGroup.appendChild(octLabel);
-        octGroup.appendChild(octSel);
-
-        // Toggles Group
-        const toggleGroup = document.createElement('div');
-        toggleGroup.className = 'control-group';
-        const toggleLabel = document.createElement('div');
-        toggleLabel.className = 'control-label';
-        toggleLabel.innerText = 'Modifiers';
-
-        const toggleRow = document.createElement('div');
-        toggleRow.className = 'toggle-row';
-
-        const accBtn = document.createElement('div');
-        accBtn.className = 'toggle-btn accent';
-        accBtn.innerHTML = '<span>AC</span>';
-        accBtn.onclick = () => updateStep({ accent: !getCurrentStep().accent });
-
-        const slideBtn = document.createElement('div');
-        slideBtn.className = 'toggle-btn slide';
-        slideBtn.innerHTML = '<span>SL</span>';
-        slideBtn.onclick = () => updateStep({ slide: !getCurrentStep().slide });
-
-        toggleRow.appendChild(accBtn);
-        toggleRow.appendChild(slideBtn);
-        toggleGroup.appendChild(toggleLabel);
-        toggleGroup.appendChild(toggleRow);
-
-        row1.appendChild(octGroup);
-        row1.appendChild(toggleGroup);
-
-        // Row 2: Preview Toggle
-        const row2 = document.createElement('div');
-        const previewDiv = document.createElement('div');
-        previewDiv.className = 'preview-toggle';
-        const previewCheck = document.createElement('input');
-        previewCheck.type = 'checkbox';
-        previewCheck.className = 'preview-checkbox';
-        previewCheck.checked = true;
-        const previewLabel = document.createElement('span');
-        previewLabel.innerText = 'Preview Sound';
-        previewDiv.appendChild(previewCheck);
-        previewDiv.appendChild(previewLabel);
-        previewDiv.onclick = (e) => {
-            if (e.target !== previewCheck) previewCheck.checked = !previewCheck.checked;
-        };
-        row2.appendChild(previewDiv);
-
-        controls.appendChild(row1);
-        controls.appendChild(row2);
-        editor.appendChild(controls);
-
-        // --- Mute Button ---
-        const muteBtn = document.createElement('button');
-        muteBtn.className = 'mute-btn';
-        muteBtn.innerText = 'GATE OFF (REST)';
-        muteBtn.onclick = () => {
-            updateStep({ active: false });
-            // User requested: "Input gate off state... note exists".
-            // We keep the note value but set active false.
-            // Usually we don't auto-advance on mute unless requested, but for pattern entry it's faster.
-            // Let's auto-advance to keep flow.
-            nextStep();
-        };
-        editor.appendChild(muteBtn);
-
-        // --- Piano Roll ---
-        const pianoContainer = document.createElement('div');
-        pianoContainer.className = 'piano-container';
-
-        const keys = [
-            { n: 'C', type: 'white' },
-            { n: 'C#', type: 'black' },
-            { n: 'D', type: 'white' },
-            { n: 'D#', type: 'black' },
-            { n: 'E', type: 'white' },
-            { n: 'F', type: 'white' },
-            { n: 'F#', type: 'black' },
-            { n: 'G', type: 'white' },
-            { n: 'G#', type: 'black' },
-            { n: 'A', type: 'white' },
-            { n: 'A#', type: 'black' },
-            { n: 'B', type: 'white' }
-        ];
-
-        // Helper to position keys
-        const whiteKeys = keys.filter(k => k.type === 'white');
-        const whiteWidth = 100 / whiteKeys.length;
-        let whiteCount = 0;
-
-        keys.forEach((k) => {
-            const keyDiv = document.createElement('div');
-            keyDiv.className = `piano-key-new ${k.type}`;
-            keyDiv.innerText = k.n;
-
-            if (k.type === 'white') {
-                keyDiv.style.width = `${whiteWidth}%`;
-                keyDiv.style.left = `${whiteCount * whiteWidth}%`;
-                whiteCount++;
-            } else {
-                keyDiv.style.width = `${whiteWidth * 0.7}%`;
-                // Position black key centered on the line between current white count-1 and count
-                // Actually, C# is between C (0) and D (1). So at 1 * width - half black width
-                keyDiv.style.left = `${(whiteCount * whiteWidth) - (whiteWidth * 0.35)}%`;
-            }
-
-            keyDiv.onclick = (e) => {
-                e.stopPropagation();
-                const s = getCurrentStep();
-                // Set note and ensure gate is ON
-                updateStep({ note: k.n, active: true });
-                if (previewCheck.checked) {
-                    playPreview(s);
-                }
-                nextStep();
-            };
-            pianoContainer.appendChild(keyDiv);
-        });
-
-        editor.appendChild(pianoContainer);
-        overlay.appendChild(editor);
-        document.body.appendChild(overlay);
-
-        // --- Logic ---
-        const getCurrentStep = () => {
-            // Re-fetch sequence in case it changed (though popover usually blocks interaction)
-            const s = Data.getSequence(`tb303_${unitId}`);
-            return s[currentIndex];
-        };
-
-        const updateUI = () => {
-            const s = getCurrentStep();
-            stepDisplay.innerText = (currentIndex + 1).toString().padStart(2, '0');
-
-            // Octave
-            octBtns.forEach(b => {
-                if (b.val === s.octave) b.el.classList.add('active');
-                else b.el.classList.remove('active');
-            });
-
-            // Toggles
-            if (s.accent) accBtn.classList.add('active'); else accBtn.classList.remove('active');
-            if (s.slide) slideBtn.classList.add('active'); else slideBtn.classList.remove('active');
-
-            // Mute
-            if (!s.active) muteBtn.classList.add('active'); else muteBtn.classList.remove('active');
-
-            // Keys
-            document.querySelectorAll('.piano-key-new').forEach(el => {
-                // Highlight key if it matches note
-                if (el.innerText === s.note) {
-                    el.classList.add('active');
-                    // If gate is OFF (s.active is false), add disabled style
-                    if (!s.active) el.classList.add('disabled');
-                    else el.classList.remove('disabled');
-                } else {
-                    el.classList.remove('active', 'disabled');
-                }
-            });
-
-            // Update Main Grid Background
-            this.render303Grid(unitId);
-        };
-
-        const updateStep = (changes) => {
-            const s = getCurrentStep();
-            Object.assign(s, changes);
-            updateUI();
-        };
-
-        const nextStep = () => {
-            currentIndex = (currentIndex + 1) % 16;
-            updateUI();
-        };
-
-        const prevStep = () => {
-            currentIndex = (currentIndex - 1 + 16) % 16;
-            updateUI();
-        };
-
-        const playPreview = (step) => {
-            if (!AudioEngine.ctx) AudioEngine.init();
-            const now = AudioEngine.ctx.currentTime;
-            // Get params but maybe slightly modified for preview?
-            // Actually using current params is best for "Preview"
-            const params = UI.get303Params(unitId);
-
-            // We need to trigger a voice. 
-            // Note: voice303 uses 'active303' state which might interfere with playback if running.
-            // But usually preview is done while stopped or it just overrides.
-            AudioEngine.voice303(now, step, params, unitId);
-
-            // Schedule a kill shortly after to make it a "preview" blip
-            // Calculate duration based on decay or fixed?
-            // Fixed short duration for preview is usually better.
-            const duration = 0.2;
-
-            // We need to manually stop it because voice303 expects the scheduler to handle length
-            // or it sustains if slide is on.
-            // For preview, we force stop.
-            setTimeout(() => {
-                AudioEngine.kill303(unitId, AudioEngine.ctx.currentTime);
-            }, duration * 1000);
-        };
-
-        // Bind Events
-        prevBtn.onclick = prevStep;
-        nextBtn.onclick = nextStep;
-        closeBtn.onclick = () => overlay.remove();
-        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-
-        updateUI();
     },
 
     allTracks: [
@@ -2170,7 +2070,7 @@ export const UI = {
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
 
-        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.add('hidden'); };
     },
 
     add909Track(id, source = 'factory', sampleId = null) {

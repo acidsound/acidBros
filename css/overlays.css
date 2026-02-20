@@ -35,6 +35,14 @@
     font-family: 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
 }
 
+.empty-msg {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    font-size: 12px;
+}
+
 .note-editor,
 .file-manager-popover,
 .add-track-modal,
@@ -797,268 +805,6 @@
     }
 }
 
-/* --- Note Editor Specific --- */
-.note-editor {
-    width: 90%;
-    max-width: 400px;
-}
-
-.editor-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 15px;
-    background: #333;
-    border-bottom: 1px solid #444;
-}
-
-.step-nav {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.step-nav button {
-    background: linear-gradient(to bottom, #444, #333);
-    border: 1px solid #222;
-    color: #ddd;
-    width: 36px;
-    height: 36px;
-    border-radius: 4px;
-    cursor: pointer;
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
-    font-weight: bold;
-}
-
-.step-nav button:active {
-    transform: translateY(1px);
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-.editor-controls {
-    padding: 15px;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 15px;
-    background: #2a2a2a;
-}
-
-.control-row {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-}
-
-.ds-section-row {
-    display: flex;
-    flex-direction: row;
-    gap: 4px;
-    padding: 0 4px;
-}
-
-.control-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    flex: 1;
-}
-
-.control-label {
-    font-size: 10px;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: bold;
-}
-
-.octave-selector {
-    display: flex;
-    background: #111;
-    border-radius: 4px;
-    padding: 3px;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-.octave-btn {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: #666;
-    padding: 10px 0;
-    font-size: 12px;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.2s;
-    font-weight: bold;
-}
-
-.octave-btn:active {
-    color: #999;
-}
-
-.octave-btn.active {
-    background: #444;
-    color: #fff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-.toggle-row {
-    display: flex;
-    gap: 10px;
-}
-
-.toggle-btn {
-    flex: 1;
-    padding: 12px;
-    background: linear-gradient(to bottom, #3a3a3a, #2a2a2a);
-    border: 1px solid #111;
-    color: #888;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: all 0.1s;
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
-    font-size: 12px;
-}
-
-.toggle-btn:active {
-    transform: translateY(1px);
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-.toggle-btn.active {
-    color: white;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.toggle-btn.accent.active {
-    background: linear-gradient(to bottom, #e53935, #b71c1c);
-    box-shadow: 0 0 10px #e53935;
-}
-
-.toggle-btn.slide.active {
-    background: linear-gradient(to bottom, #43a047, #2e7d32);
-    box-shadow: 0 0 10px #43a047;
-}
-
-.preview-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 5px;
-    font-size: 12px;
-    color: #aaa;
-    cursor: pointer;
-    user-select: none;
-}
-
-.preview-checkbox {
-    width: 18px;
-    height: 18px;
-    accent-color: #d85c2e;
-    cursor: pointer;
-}
-
-.piano-container {
-    position: relative;
-    height: 160px;
-    background: #1a1a1a;
-    border-top: 1px solid #444;
-    margin-top: auto;
-    padding: 0 10px;
-}
-
-.piano-key-new {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    border: 1px solid #7a6332;
-    border-top: none;
-    border-radius: 0 0 4px 4px;
-    cursor: pointer;
-    box-shadow: var(--key-shadow);
-    transition: all 0.05s;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding-bottom: 10px;
-    font-size: 10px;
-    font-weight: bold;
-    color: #444;
-}
-
-.piano-key-new.active.disabled {
-    background: #555 !important;
-    color: #888 !important;
-    box-shadow: inset 0 0 10px #333 !important;
-    border-color: #444 !important;
-}
-
-.piano-key-new:active {
-    transform: translateY(3px);
-    box-shadow: var(--key-shadow-active);
-}
-
-.piano-key-new.white {
-    background: var(--key-white);
-    z-index: 1;
-}
-
-.piano-key-new.white.active {
-    background: var(--key-white-active);
-    border-color: #c4a45a;
-    color: #222;
-    box-shadow: 0 0 15px #d8b760;
-}
-
-.piano-key-new.black {
-    background: var(--key-black);
-    z-index: 2;
-    height: 60%;
-    border: 1px solid #000;
-    border-bottom: 1px solid #111;
-    color: #ccc;
-    box-shadow: var(--key-black-shadow);
-}
-
-.piano-key-new.black.active {
-    background: var(--key-black-active);
-    border-color: #000;
-    color: #999;
-    box-shadow: var(--key-black-shadow-active);
-}
-
-.mute-btn {
-    width: 100%;
-    padding: 15px;
-    background: #222;
-    color: #888;
-    border: none;
-    border-top: 1px solid #444;
-    cursor: pointer;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    transition: background 0.2s;
-    font-size: 12px;
-}
-
-.mute-btn:active {
-    background: #333;
-    color: #fff;
-}
-
-.mute-btn.active {
-    background: #333;
-    color: #d85c2e;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
 /* --- MIDI Learn Mode Banner --- */
 .learn-mode-exit-banner {
     position: fixed;
@@ -1171,7 +917,6 @@ body.midi-learn-active .midi-mapped::after {
 /* --- Responsive Overlays --- */
 @media (max-width: 600px) {
 
-    .note-editor,
     .file-manager-popover,
     .add-track-modal,
     .settings-popover {
@@ -1180,26 +925,6 @@ body.midi-learn-active .midi-mapped::after {
 
     .settings-sidebar {
         width: 100px;
-    }
-
-    .piano-container {
-        flex-grow: 0;
-        height: 140px;
-    }
-
-    .editor-controls {
-        gap: 10px;
-        padding: 10px;
-    }
-
-    .toggle-btn {
-        padding: 10px;
-        font-size: 12px;
-    }
-
-    .octave-btn {
-        padding: 10px 0;
-        font-size: 12px;
     }
 }
 

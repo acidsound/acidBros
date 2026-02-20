@@ -81,7 +81,7 @@
 <body>
   <div class="rack">
     <!-- Learn Mode Exit Banner (Moved inside rack) -->
-    <div id="learnModeExitBanner" class="learn-mode-exit-banner" style="display: none;">
+    <div id="learnModeExitBanner" class="learn-mode-exit-banner hidden">
       <div class="learn-mode-banner-content">
         <span class="learn-mode-banner-text">🎯 MIDI Learn Mode Active - Click any control to map</span>
         <button id="exitLearnModeBtn" class="exit-learn-mode-btn">Exit Learn Mode</button>
@@ -213,7 +213,7 @@
         </div>
 
         <!-- Song Mode Controls -->
-        <div id="song-controls-container" style="display: none;">
+        <div id="song-controls-container" class="hidden">
           <div class="pattern-select-row">
             <button class="pat-btn song-pat-btn" id="song-pat-btn-0" data-pattern="0" data-midi-mappable="button"
               title="Click to select and add to song">P1</button>
@@ -254,7 +254,7 @@
     </div>
 
     <!-- File Manager Overlay & Popover -->
-    <div id="fileManagerOverlay" class="file-manager-overlay" style="display: none;">
+    <div id="fileManagerOverlay" class="file-manager-overlay hidden">
       <div id="fileManagerPopover" class="file-manager-popover">
         <div class="file-manager-header">
           <h3 class="modal-title">FILE MANAGER</h3>
@@ -284,12 +284,12 @@
         <div class="file-list-container">
           <div id="fileList" class="file-list"></div>
         </div>
-        <input type="file" id="fileImportInput" accept=".json" style="display: none;">
+        <input type="file" id="fileImportInput" accept=".json" class="hidden">
       </div>
     </div>
 
     <!-- DRUM SYNTH EDITOR OVERLAY -->
-    <div id="drumSynthOverlay" class="overlay" style="display: none;">
+    <div id="drumSynthOverlay" class="overlay hidden">
       <div class="modal drumsynth-modal">
         <div class="modal-header">
           <div class="header-left">
@@ -503,7 +503,7 @@
     </div>
 
     <!-- Settings Overlay -->
-    <div id="settingsOverlay" class="file-manager-overlay" style="display: none;">
+    <div id="settingsOverlay" class="file-manager-overlay hidden">
       <div id="settingsPopover" class="file-manager-popover settings-popover">
         <div class="file-manager-header">
           <h3 class="modal-title">SETTINGS</h3>
@@ -537,7 +537,7 @@
             </div>
 
             <!-- MIDI Tab -->
-            <div id="tab-midi" class="settings-tab-content" style="display: none;">
+            <div id="tab-midi" class="settings-tab-content hidden">
               <!-- MIDI Devices Section -->
               <div class="tab-section">
                 <div class="tab-header">
@@ -576,6 +576,9 @@
       <div class="machine-header">
         <h2>TB-303 <small>UNIT 1</small></h2>
         <div class="waveform-control">
+          <button id="pianoToggle303_1" class="header-clear-btn piano-toggle-btn" title="Toggle Note Editor">
+            <span class="icon icon-sm icon-piano"></span>
+          </button>
           <div class="waveform-switch-group">
             <div class="switch-label">WAVEFORM</div>
             <div class="waveform-switch" id="waveform-switch-1" data-midi-mappable="waveform-toggle" data-unit="1">
@@ -591,12 +594,49 @@
           </button>
           <button id="lock303_1" class="header-lock-btn" title="Lock Randomization">
             <span class="icon icon-sm icon-unlocked" id="lock-icon-303-1-unlocked"></span>
-            <span class="icon icon-sm icon-locked" id="lock-icon-303-1-locked" style="display: none;"></span>
+            <span class="icon icon-sm icon-locked hidden" id="lock-icon-303-1-locked"></span>
           </button>
         </div>
       </div>
       <div class="knob-group" id="knobs303_1"></div>
       <div id="grid303_1" class="sequencer-303"></div>
+
+      <!-- Note Editor (Piano UI) Unit 1 -->
+      <div id="noteEditor303_1" class="note-editor hidden">
+        <div class="editor-header">
+          <div class="nav-group">
+            <button class="editor-btn prev-btn" title="Previous Step">&lt;</button>
+            <div class="step-indicator">01</div>
+            <button class="editor-btn next-btn" title="Next Step">&gt;</button>
+          </div>
+          <div class="nav-group">
+            <button class="editor-btn preview-toggle-btn active" title="Toggle Preview Sound">
+              <span class="icon icon-sm icon-speaker"></span>
+            </button>
+          </div>
+        </div>
+        <div class="editor-controls">
+          <div class="control-group octave-selector-group">
+            <span class="control-label">Oct</span>
+            <div class="octave-selector">
+              <button class="editor-btn octave-btn" data-val="1">dn</button>
+              <button class="editor-btn octave-btn" data-val="3">up</button>
+            </div>
+          </div>
+          <div class="control-group modifier-group">
+            <span class="control-label">Mod</span>
+            <button class="editor-btn mod-btn accent-btn">AC</button>
+            <button class="editor-btn mod-btn slide-btn">SL</button>
+          </div>
+          <div class="control-group rest-group">
+            <span class="control-label">Note</span>
+            <button class="editor-btn rest-btn">Off</button>
+          </div>
+        </div>
+        <div class="piano-container">
+          <div class="piano-keys-wrapper" id="pianoKeys303_1"></div>
+        </div>
+      </div>
     </div>
 
     <!-- TB-303 Unit 2 -->
@@ -604,6 +644,9 @@
       <div class="machine-header">
         <h2>TB-303 <small>UNIT 2</small></h2>
         <div class="waveform-control">
+          <button id="pianoToggle303_2" class="header-clear-btn piano-toggle-btn" title="Toggle Note Editor">
+            <span class="icon icon-sm icon-piano"></span>
+          </button>
           <div class="waveform-switch-group">
             <div class="switch-label">WAVEFORM</div>
             <div class="waveform-switch" id="waveform-switch-2" data-midi-mappable="waveform-toggle" data-unit="2">
@@ -619,12 +662,49 @@
           </button>
           <button id="lock303_2" class="header-lock-btn" title="Lock Randomization">
             <span class="icon icon-sm icon-unlocked" id="lock-icon-303-2-unlocked"></span>
-            <span class="icon icon-sm icon-locked" id="lock-icon-303-2-locked" style="display: none;"></span>
+            <span class="icon icon-sm icon-locked hidden" id="lock-icon-303-2-locked"></span>
           </button>
         </div>
       </div>
       <div class="knob-group" id="knobs303_2"></div>
       <div id="grid303_2" class="sequencer-303"></div>
+
+      <!-- Note Editor (Piano UI) Unit 2 -->
+      <div id="noteEditor303_2" class="note-editor hidden">
+        <div class="editor-header">
+          <div class="nav-group">
+            <button class="editor-btn prev-btn" title="Previous Step">&lt;</button>
+            <div class="step-indicator">01</div>
+            <button class="editor-btn next-btn" title="Next Step">&gt;</button>
+          </div>
+          <div class="nav-group">
+            <button class="editor-btn preview-toggle-btn active" title="Toggle Preview Sound">
+              <span class="icon icon-sm icon-speaker"></span>
+            </button>
+          </div>
+        </div>
+        <div class="editor-controls">
+          <div class="control-group octave-selector-group">
+            <span class="control-label">Oct</span>
+            <div class="octave-selector">
+              <button class="editor-btn octave-btn" data-val="1">dn</button>
+              <button class="editor-btn octave-btn" data-val="3">up</button>
+            </div>
+          </div>
+          <div class="control-group modifier-group">
+            <span class="control-label">Mod</span>
+            <button class="editor-btn mod-btn accent-btn">AC</button>
+            <button class="editor-btn mod-btn slide-btn">SL</button>
+          </div>
+          <div class="control-group rest-group">
+            <span class="control-label">Note</span>
+            <button class="editor-btn rest-btn">Off</button>
+          </div>
+        </div>
+        <div class="piano-container">
+          <div class="piano-keys-wrapper" id="pianoKeys303_2"></div>
+        </div>
+      </div>
     </div>
 
     <!-- TR-909 -->
@@ -636,7 +716,7 @@
         </button>
         <button id="lock909" class="header-lock-btn" title="Lock Randomization">
           <span class="icon icon-sm icon-unlocked" id="lock-icon-909-unlocked"></span>
-          <span class="icon icon-sm icon-locked" id="lock-icon-909-locked" style="display: none;"></span>
+          <span class="icon icon-sm icon-locked hidden" id="lock-icon-909-locked"></span>
         </button>
       </div>
       <div id="tracks909"></div>
@@ -644,10 +724,10 @@
   </div>
 
   <!-- Audio Resume Overlay (iOS Safari background resume) -->
-  <div id="audioResumeOverlay" class="audio-resume-overlay" style="display: none;">
+  <div id="audioResumeOverlay" class="audio-resume-overlay hidden">
     <div class="audio-resume-content">
       <div class="audio-resume-icon">
-        <span class="icon icon-play" style="width: 80px; height: 80px;"></span>
+        <span class="icon icon-play icon-xl"></span>
       </div>
       <div class="audio-resume-text">Tap to Resume</div>
       <div class="audio-resume-subtext">Audio was paused in background</div>

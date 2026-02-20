@@ -13,25 +13,50 @@ export class UnifiedSynth {
         this.activeNodes = [];  // Track active audio nodes for cleanup
     }
 
+    _disconnectNode(node) {
+        if (!node) return;
+        try {
+            node.disconnect();
+        } catch (e) { }
+    }
+
+    _trackNode(node, duration = 2.0, onExpire = null) {
+        const safeDuration = Number.isFinite(duration) ? Math.max(0, duration) : 0;
+        const expiry = this.ctx.currentTime + safeDuration;
+        this.activeNodes.push({ node, expiry, onExpire });
+    }
+
+    _cleanupNodes() {
+        const now = this.ctx.currentTime;
+        const keep = [];
+        for (const item of this.activeNodes) {
+            if (item.expiry > now) {
+                keep.push(item);
+                continue;
+            }
+            try {
+                if (item.onExpire) item.onExpire();
+                else this._disconnectNode(item.node);
+            } catch (e) { }
+        }
+        this.activeNodes = keep;
+    }
+
     // Stop all currently playing sounds (prevents overlap)
     stopAll() {
         const now = this.ctx.currentTime;
-        this.activeNodes.forEach(node => {
+        this.activeNodes.forEach(item => {
+            const node = item.node;
             try {
                 if (node.stop) node.stop(now);
                 if (node.gain) node.gain.setValueAtTime(0, now);
             } catch (e) { /* already stopped */ }
+            try {
+                if (item.onExpire) item.onExpire();
+                else this._disconnectNode(node);
+            } catch (e) { }
         });
         this.activeNodes = [];
-    }
-
-    _trackNode(node) {
-        this.activeNodes.push(node);
-        // Auto-remove after 2 seconds
-        setTimeout(() => {
-            const idx = this.activeNodes.indexOf(node);
-            if (idx > -1) this.activeNodes.splice(idx, 1);
-        }, 2000);
     }
 
     _createNoiseBuffer() {
@@ -44,12 +69,53 @@ export class UnifiedSynth {
         return buffer;
     }
 
+    _estimateVoiceDuration(P = {}) {
+        let maxDuration = 0.2;
+        const masterDecay = P.masterEnv ? Math.max(0.001, P.masterEnv.decay || 0.5) : 1.5;
+
+        const updateOscDuration = (osc) => {
+            if (!osc || !osc.enabled) return;
+            const oscDecay = osc.staticLevel ? masterDecay : Math.max(0.001, osc.a_decay || 0.5);
+            maxDuration = Math.max(maxDuration, oscDecay + 0.2);
+        };
+
+        updateOscDuration(P.osc1);
+        updateOscDuration(P.osc2);
+        updateOscDuration(P.osc3);
+        updateOscDuration(P.osc4);
+
+        if (P.click && P.click.enabled) {
+            maxDuration = Math.max(maxDuration, Math.max(0.001, P.click.decay || 0.005) + 0.05);
+        }
+
+        if (P.snap && P.snap.enabled) {
+            maxDuration = Math.max(maxDuration, 0.06);
+        }
+
+        const updateNoiseDuration = (noiseCfg) => {
+            if (!noiseCfg || !noiseCfg.enabled) return;
+            const decay = Math.max(0.001, noiseCfg.decay || 0.25);
+            const burstCount = noiseCfg.burst_count || 1;
+            const burstInterval = noiseCfg.burst_interval || 0.008;
+            const burstLength = burstCount > 1 ? burstCount * burstInterval : 0;
+            maxDuration = Math.max(maxDuration, burstLength + decay + 0.2);
+        };
+
+        updateNoiseDuration(P.noise);
+        updateNoiseDuration(P.noise2);
+
+        return maxDuration;
+    }
+
     /**
      * Play a drum sound with the given parameters.
      * Parameter values are DIRECT (Hz for freq, seconds for decay).
      */
     play(P = {}, time = null) {
         const now = time || this.ctx.currentTime;
+
+        // Cleanup expired nodes before starting a new one
+        this._cleanupNodes();
 
         // Only stop all if we are playing "now" (preview/manual)
         // If it's a scheduled playback, stopping all would kill the previous step's tail.
@@ -58,15 +124,18 @@ export class UnifiedSynth {
         }
 
         const vol = P.vol !== undefined ? P.vol : 1;
+        const voiceDuration = this._estimateVoiceDuration(P);
 
         // Master Gain (can have its own envelope for Tom-style sounds)
         const masterGain = this.ctx.createGain();
-        this._trackNode(masterGain);  // Track for cleanup
+        let outputNode = masterGain;
+        const releaseNodes = [masterGain];
 
         if (P.masterEnv) {
             // Tom style: master has the envelope
+            const decay = Math.max(0.001, P.masterEnv.decay || 0.5);
             masterGain.gain.setValueAtTime(vol * P.masterEnv.level, now);
-            masterGain.gain.exponentialRampToValueAtTime(0.001, now + P.masterEnv.decay);
+            masterGain.gain.exponentialRampToValueAtTime(0.001, now + decay);
         } else {
             masterGain.gain.setValueAtTime(vol * 1.5, now);
         }
@@ -77,13 +146,17 @@ export class UnifiedSynth {
             hpf.type = 'highpass';
             hpf.frequency.setValueAtTime(P.masterHPF, now);
             masterGain.connect(hpf);
-            hpf.connect(this.output);
-        } else {
-            masterGain.connect(this.output);
+            outputNode = hpf;
+            releaseNodes.push(hpf);
         }
 
+        outputNode.connect(this.output);
+        this._trackNode(outputNode, voiceDuration + 0.5, () => {
+            releaseNodes.forEach(node => this._disconnectNode(node));
+        });
+
         // Calculate masterDecay for Tom-style sounds
-        const masterDecay = P.masterEnv ? P.masterEnv.decay : 1.5;
+        const masterDecay = P.masterEnv ? Math.max(0.001, P.masterEnv.decay || 0.5) : 1.5;
 
         // Process Main Oscillator (osc1)
         if (P.osc1 && P.osc1.enabled) {
@@ -123,6 +196,7 @@ export class UnifiedSynth {
     _playMainOsc(cfg, now, destination, masterDecay = 1.5) {
         const osc = this.ctx.createOscillator();
         const oscGain = this.ctx.createGain();
+        let shaper = null;
 
         // Wave type
         osc.type = this._parseWaveType(cfg.wave);
@@ -144,17 +218,17 @@ export class UnifiedSynth {
         } else if (cfg.noAttack) {
             // SD style: immediate start, no ramp
             oscGain.gain.setValueAtTime(level, now);
-            oscGain.gain.exponentialRampToValueAtTime(0.001, now + aDecay);
+            oscGain.gain.exponentialRampToValueAtTime(0.001, now + Math.max(0.001, aDecay));
         } else {
             // BD style: 2ms attack ramp -> decay
             oscGain.gain.setValueAtTime(0, now);
             oscGain.gain.linearRampToValueAtTime(level, now + 0.002);
-            oscGain.gain.exponentialRampToValueAtTime(0.001, now + aDecay);
+            oscGain.gain.exponentialRampToValueAtTime(0.001, now + Math.max(0.001, aDecay));
         }
 
         // Waveshaper (saturation/drive)
         if (cfg.drive && cfg.drive > 0) {
-            const shaper = this.ctx.createWaveShaper();
+            shaper = this.ctx.createWaveShaper();
             shaper.curve = this._makeDistortionCurve(cfg.drive);
             osc.connect(shaper);
             shaper.connect(oscGain);
@@ -166,8 +240,13 @@ export class UnifiedSynth {
         osc.start(now);
 
         // Stop time based on staticLevel
-        const stopTime = cfg.staticLevel ? (masterDecay + 0.1) : (aDecay + 0.1);
-        osc.stop(now + stopTime);
+        const stopTime = cfg.staticLevel ? masterDecay : aDecay;
+        osc.stop(now + stopTime + 0.1);
+        this._trackNode(osc, stopTime + 0.5, () => {
+            this._disconnectNode(osc);
+            this._disconnectNode(shaper);
+            this._disconnectNode(oscGain);
+        });
     }
 
     // Additional oscillator (for SD/Tom/RS harmonics)
@@ -204,7 +283,7 @@ export class UnifiedSynth {
         } else {
             // SD/RS style: individual decay envelope
             g.gain.setValueAtTime(level, now);
-            g.gain.exponentialRampToValueAtTime(0.001, now + aDecay);
+            g.gain.exponentialRampToValueAtTime(0.001, now + Math.max(0.001, aDecay));
         }
 
         osc.connect(g);
@@ -212,8 +291,12 @@ export class UnifiedSynth {
         osc.start(now);
 
         // Stop time: staticLevel uses masterDecay, others use aDecay
-        const stopTime = cfg.staticLevel ? (masterDecay + 0.1) : (aDecay + 0.1);
-        osc.stop(now + stopTime);
+        const stopTime = cfg.staticLevel ? masterDecay : aDecay;
+        osc.stop(now + stopTime + 0.1);
+        this._trackNode(osc, stopTime + 0.5, () => {
+            this._disconnectNode(osc);
+            this._disconnectNode(g);
+        });
     }
 
     // Click component for BD attack (Transient Pulse)
@@ -230,7 +313,7 @@ export class UnifiedSynth {
         clickOsc.frequency.exponentialRampToValueAtTime(cfg.freq || 100, now + 0.002);
 
         clickGain.gain.setValueAtTime(level, now);
-        clickGain.gain.exponentialRampToValueAtTime(0.001, now + (cfg.decay || 0.005));
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + Math.max(0.001, cfg.decay || 0.005));
 
         // High-pass filter to remove low-end thud from the click itself
         clickFilter.type = 'highpass';
@@ -241,7 +324,13 @@ export class UnifiedSynth {
         clickFilter.connect(destination);
 
         clickOsc.start(now);
-        clickOsc.stop(now + 0.01);
+        const stopTime = 0.01;
+        clickOsc.stop(now + stopTime);
+        this._trackNode(clickOsc, stopTime + 0.5, () => {
+            this._disconnectNode(clickOsc);
+            this._disconnectNode(clickGain);
+            this._disconnectNode(clickFilter);
+        });
     }
 
     // Snap component for RS (Triangle with fast pitch sweep)
@@ -260,7 +349,12 @@ export class UnifiedSynth {
         snap.connect(snapGain);
         snapGain.connect(destination);
         snap.start(now);
-        snap.stop(now + 0.01);
+        const stopTime = 0.01;
+        snap.stop(now + stopTime);
+        this._trackNode(snap, stopTime + 0.5, () => {
+            this._disconnectNode(snap);
+            this._disconnectNode(snapGain);
+        });
     }
 
     // Noise generator with filter (for SD snappy, CP burst)
@@ -276,7 +370,7 @@ export class UnifiedSynth {
 
         const g = this.ctx.createGain();
         const level = cfg.level || 0.5;
-        const decay = cfg.decay || 0.25;
+        const decay = Math.max(0.001, cfg.decay || 0.25);
 
         // Burst Mode (for CLAP)
         const burstCount = cfg.burst_count || 1;
@@ -292,11 +386,11 @@ export class UnifiedSynth {
                 g.gain.exponentialRampToValueAtTime(level * 0.2, t + burstInterval);
             }
             // Final decay tail
-            g.gain.exponentialRampToValueAtTime(0.001, now + burstCount * burstInterval + decay);
+            g.gain.exponentialRampToValueAtTime(0.001, now + burstCount * burstInterval + Math.max(0.001, decay));
         } else {
             // Single noise burst
             g.gain.setValueAtTime(level, now);
-            g.gain.exponentialRampToValueAtTime(0.001, now + decay);
+            g.gain.exponentialRampToValueAtTime(0.001, now + Math.max(0.001, decay));
         }
 
         noise.connect(filter);
@@ -304,7 +398,13 @@ export class UnifiedSynth {
         g.connect(destination);
 
         noise.start(now);
-        noise.stop(now + (burstCount > 1 ? burstCount * burstInterval : 0) + decay + 0.1);
+        const stopTime = (burstCount > 1 ? burstCount * burstInterval : 0) + decay;
+        noise.stop(now + stopTime + 0.1);
+        this._trackNode(noise, stopTime + 0.5, () => {
+            this._disconnectNode(noise);
+            this._disconnectNode(filter);
+            this._disconnectNode(g);
+        });
     }
 
     _parseWaveType(wave) {
