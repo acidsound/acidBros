@@ -103,11 +103,6 @@ export const DrumSynthUI = {
 
     liveKnobs: {},  // TR909-style knobs
 
-    isAutoTrigEnabled() {
-        const el = document.querySelector('input[name="ds_auto_trig"][value="true"]');
-        return el && el.checked;
-    },
-
     init() {
         console.log('DrumSynthUI: Initializing...');
         this.overlay = document.getElementById('drumSynthOverlay');
@@ -117,7 +112,16 @@ export const DrumSynthUI = {
         document.getElementById('ds-close-btn').onclick = () => this.close();
         document.getElementById('ds-reset-btn').onclick = () => this.resetToFactory();
         document.getElementById('ds-apply-btn').onclick = () => this.apply();
-        document.getElementById('ds-preview-btn').onclick = () => this.preview();
+
+        // Arcade Preview Button - Use pointerdown for immediate tactile playback
+        const previewBtn = document.getElementById('ds-preview-btn');
+        if (previewBtn) {
+            previewBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); // Prevent default touch behavior
+                this.preview();
+                // CSS :active pseudo-class handles the animation now.
+            });
+        }
 
         // Build knobs dynamically (like TB-303)
         this.buildKnobs();
@@ -141,34 +145,6 @@ export const DrumSynthUI = {
                 const step = def.step || 1;
                 const knob = new RotaryKnob(container, def.label, knobId, def.min, def.max, def.def, step, 'small');
                 this.knobs[modId][def.id] = knob;
-
-                // Auto-trig on change
-                const inputEl = document.getElementById(`${knobId}-input`);
-                if (inputEl) {
-                    inputEl.addEventListener('input', () => {
-                        if (this.isAutoTrigEnabled()) {
-                            this.preview();
-                        }
-                    });
-                }
-            });
-        });
-
-        // Setup radio group change listeners
-        document.querySelectorAll('#drumSynthOverlay .ds-radio-group input').forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (this.isAutoTrigEnabled()) {
-                    this.preview();
-                }
-            });
-        });
-
-        // Setup switch change listeners
-        document.querySelectorAll('#drumSynthOverlay .ds-switch input').forEach(checkbox => {
-            checkbox.addEventListener('change', () => {
-                if (this.isAutoTrigEnabled()) {
-                    this.preview();
-                }
             });
         });
     },
@@ -215,15 +191,7 @@ export const DrumSynthUI = {
             const knob = new RotaryKnob(container, def.label, knobId, def.min, def.max, def.def, 1, 'small');
             this.liveKnobs[def.id] = knob;
 
-            // Auto-trig on change
-            const inputEl = document.getElementById(`${knobId}-input`);
-            if (inputEl) {
-                inputEl.addEventListener('input', () => {
-                    if (this.isAutoTrigEnabled()) {
-                        this.preview();
-                    }
-                });
-            }
+            // Auto-trig removed - manual preview only via Arcade button
         });
     },
 

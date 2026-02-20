@@ -75,19 +75,22 @@
 
 .step-303 {
     box-sizing: border-box;
-    background: linear-gradient(to bottom, #ccc, #aaa);
-    border: 1px solid #000;
-    padding: 4px 2px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    border-radius: 2px;
-    min-height: 55px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 2px 2px rgba(0, 0, 0, 0.5);
+    border-radius: 3px;
+    min-height: 70px;
+    /* Made slightly taller to accommodate physical feel */
     position: relative;
+    border: 1px solid #7a6332;
+    margin-bottom: 4px;
+    /* Space for the 3D shadow */
+    transition: all 0.1s ease;
+    background: #e6e2d6;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2), inset 0 1px 0 white;
 }
 
-/* Beat grouping for 303: match 909 colors */
+/* Beat grouping for 303: matches 909 step grouping colors */
 .sequencer-303 .step-303:nth-child(-n+4),
 .sequencer-303 .step-303:nth-child(n+9):nth-child(-n+12) {
     background: linear-gradient(to bottom, #f0f0f0, #dcdcdc);
@@ -98,9 +101,17 @@
     background: linear-gradient(to bottom, #ffccaa, #ffaa88);
 }
 
+/* Active State (Pressed down - applies to both groups) */
+.sequencer-303 .step-303:active {
+    box-shadow: var(--key-shadow-active);
+    transform: translateY(3px);
+    background: var(--key-white-active);
+}
+
 .sequencer-303 .step-303.current {
-    background: linear-gradient(to bottom, #ffeb3b, #fbc02d) !important;
-    box-shadow: 0 0 5px #ff3333, inset 0 0 10px rgba(255, 255, 255, 0.5);
+    /* For current, we keep the physical appearance but glow the border heavily */
+    border-color: #ffeb3b;
+    box-shadow: 0 0 10px #ff3333, inset 0 0 10px rgba(255, 255, 255, 0.6), var(--key-shadow);
     z-index: 10;
 }
 
@@ -417,21 +428,25 @@
     align-items: center;
     gap: 6px;
     padding: 8px 12px;
-    background: #333;
-    border: 1px solid #444;
-    border-radius: 4px;
-    color: #888;
+    background: linear-gradient(to bottom, #d85c2e 0%, #a33e1c 100%);
+    /* Retro red plastic */
+    border: 1px solid #7a2910;
+    border-radius: 3px;
+    color: #fff;
     font-size: 11px;
     font-weight: bold;
     letter-spacing: 1px;
     cursor: pointer;
-    transition: all 0.2s;
+    box-shadow: 0 4px 0 #7a2910, 0 5px 5px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    transition: all 0.1s;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
 }
 
 .manage-909-track-btn:active {
-    background: #444;
-    border-color: #ffcc00;
-    color: #ffcc00;
+    background: linear-gradient(to bottom, #c44a20 0%, #873010 100%);
+    box-shadow: 0 1px 0 #7a2910, 0 2px 2px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.6);
+    transform: translateY(3px);
+    color: #ffdcb0;
 }
 
 .header-clear-btn,

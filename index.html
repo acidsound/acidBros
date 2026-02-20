@@ -92,7 +92,7 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v129</div>
+          <div class="version-display">v131</div>
           <button id="fileManagerBtn" class="transport-icon-btn" title="File Manager" aria-label="File Manager">
             <span class="icon icon-lg icon-folder"></span>
           </button>
@@ -417,35 +417,37 @@
 
           <!-- Click & Snap Section -->
           <div class="ds-section-row">
-            <!-- CLICK (for BD attack) -->
+            <!-- Click Module -->
             <div class="ds-module" id="ds-click">
               <div class="module-header">
-                <span class="module-title">CLICK (BD ATK)</span>
+                <span class="module-title">CLICK</span>
                 <div class="ds-switch">
-                  <input type="radio" name="ds_sw_click" id="ds_sw_click_off" value="false" checked>
+                  <input type="radio" name="ds_sw_click" id="ds_sw_click_off" value="false">
                   <label for="ds_sw_click_off">OFF</label>
-                  <input type="radio" name="ds_sw_click" id="ds_sw_click_on" value="true">
+                  <input type="radio" name="ds_sw_click" id="ds_sw_click_on" value="true" checked>
                   <label for="ds_sw_click_on">ON</label>
                   <div class="switch-handle"></div>
                 </div>
               </div>
               <div class="module-controls">
+                <div class="ds-radio-group" data-param="spacer"></div>
                 <div class="knob-group" id="ds-click-knobs"></div>
               </div>
             </div>
-            <!-- SNAP (for RS metallic) -->
+            <!-- Snap Module -->
             <div class="ds-module" id="ds-snap">
               <div class="module-header">
-                <span class="module-title">SNAP (RS)</span>
+                <span class="module-title">SNAP</span>
                 <div class="ds-switch">
-                  <input type="radio" name="ds_sw_snap" id="ds_sw_snap_off" value="false" checked>
+                  <input type="radio" name="ds_sw_snap" id="ds_sw_snap_off" value="false">
                   <label for="ds_sw_snap_off">OFF</label>
-                  <input type="radio" name="ds_sw_snap" id="ds_sw_snap_on" value="true">
+                  <input type="radio" name="ds_sw_snap" id="ds_sw_snap_on" value="true" checked>
                   <label for="ds_sw_snap_on">ON</label>
                   <div class="switch-handle"></div>
                 </div>
               </div>
               <div class="module-controls">
+                <div class="ds-radio-group" data-param="spacer"></div>
                 <div class="knob-group" id="ds-snap-knobs"></div>
               </div>
             </div>
@@ -480,29 +482,21 @@
         </div>
 
         <div class="ds-footer">
-          <div class="ds-footer-left">
-            <div class="preview-controls">
-              <button class="preview-btn" id="ds-preview-btn">
-                <span class="icon icon-note" style="margin-right:4px; vertical-align:middle;"></span>PREVIEW
-              </button>
-              <div class="ds-switch" style="width: 70px; margin-left: 10px;">
-                <input type="radio" name="ds_auto_trig" id="ds_at_off" value="false" checked>
-                <label for="ds_at_off">MANUAL</label>
-                <input type="radio" name="ds_auto_trig" id="ds_at_on" value="true">
-                <label for="ds_at_on">AUTO</label>
-                <div class="switch-handle"></div>
-              </div>
-            </div>
+          <div class="ds-footer-left ds-footer-flex-row">
             <!-- Live Track Knobs (reused from 909 UI) -->
-            <div id="ds-live-knobs" class="knob-group-section"
-              style="margin-top:0; border:none; background:none; padding:0;">
+            <div id="ds-live-knobs" class="knob-group-section ds-live-knobs-clean">
               <!-- Dynamically populated -->
+            </div>
+
+            <div class="preview-controls-right ds-preview-controls-clean">
+              <span class="ds-play-label">Play</span>
+              <button class="preview-btn arcade-button" id="ds-preview-btn" title="Preview Drum Sound">
+              </button>
             </div>
           </div>
           <div class="apply-controls">
             <span class="current-voice-label" id="ds-voice-label-footer">BASS DRUM (BD)</span>
-            <!-- Reset moved to header -->
-            <button class="apply-btn" id="ds-apply-btn">Apply to Track</button>
+            <button class="apply-btn" id="ds-apply-btn">APPLY</button>
           </div>
         </div>
       </div>

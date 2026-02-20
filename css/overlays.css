@@ -40,10 +40,13 @@
 .add-track-modal,
 .settings-popover,
 .drumsynth-modal {
-    background: #222;
-    border: 1px solid #444;
+    background: linear-gradient(180deg, #1f1f1f 0%, #151515 100%);
+    /* Textured dark plastic */
+    border: 2px solid #3a3a3a;
+    border-right-color: #111;
+    border-bottom-color: #111;
     border-radius: 8px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -322,15 +325,24 @@
     grid-column: 1 / span 2;
 }
 
-.add-track-item {
-    background: #222;
-    padding: 12px 15px;
+.add-track-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    margin-bottom: 4px;
+    width: 100%;
+}
+
+.add-track-item {
+    background: #222;
+    padding: 12px 10px 12px 10px;
+    /* Reduced left padding */
+    display: flex;
+    align-items: center;
+    gap: 0.2em;
     cursor: pointer;
     transition: all 0.15s;
     user-select: none;
+    width: 100%;
 }
 
 .add-track-item:active:not(.locked) {
@@ -378,6 +390,33 @@
 
 .add-track-item.active .track-check {
     color: #ffcc00;
+}
+
+/* Edit button (cog) on the right side of each synth track row */
+.track-edit-btn-side {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 0;
+    color: #888;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    /* Gap from the label */
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.track-edit-btn-side:active {
+    color: #ffcc00;
+    border-color: #ffcc00;
+}
+
+.track-edit-btn-side svg {
+    width: 14px;
+    height: 14px;
 }
 
 .modal-footer {
@@ -429,6 +468,17 @@
     background: #333;
     color: #ffcc00;
     border-left: 3px solid #ffcc00;
+}
+
+.file-manager-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    /* Explicitly allow vertical panning in touch emulators (Chrome DevTools fix) */
+    overscroll-behavior-y: contain;
+    color: #ddd;
 }
 
 .settings-content {
@@ -799,6 +849,13 @@
     align-items: center;
 }
 
+.ds-section-row {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    padding: 0 4px;
+}
+
 .control-group {
     display: flex;
     flex-direction: column;
@@ -920,12 +977,12 @@
     position: absolute;
     top: 0;
     height: 100%;
-    border: 1px solid #888;
+    border: 1px solid #7a6332;
     border-top: none;
     border-radius: 0 0 4px 4px;
     cursor: pointer;
-    box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.1), 2px 2px 5px rgba(0, 0, 0, 0.3);
-    transition: background 0.05s;
+    box-shadow: var(--key-shadow);
+    transition: all 0.05s;
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -943,36 +1000,37 @@
 }
 
 .piano-key-new:active {
-    transform: translateY(2px);
-    box-shadow: inset 0 -2px 5px rgba(0, 0, 0, 0.2);
+    transform: translateY(3px);
+    box-shadow: var(--key-shadow-active);
 }
 
 .piano-key-new.white {
-    background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+    background: var(--key-white);
     z-index: 1;
 }
 
 .piano-key-new.white.active {
-    background: #d85c2e;
-    border-color: #a33;
-    color: white;
-    box-shadow: 0 0 15px #d85c2e;
+    background: var(--key-white-active);
+    border-color: #c4a45a;
+    color: #222;
+    box-shadow: 0 0 15px #d8b760;
 }
 
 .piano-key-new.black {
-    background: linear-gradient(to bottom, #333 0%, #000 100%);
+    background: var(--key-black);
     z-index: 2;
     height: 60%;
     border: 1px solid #000;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #111;
     color: #ccc;
+    box-shadow: var(--key-black-shadow);
 }
 
 .piano-key-new.black.active {
-    background: #d85c2e;
-    border-color: #fff;
-    color: white;
-    box-shadow: 0 0 15px #d85c2e;
+    background: var(--key-black-active);
+    border-color: #000;
+    color: #999;
+    box-shadow: var(--key-black-shadow-active);
 }
 
 .mute-btn {
@@ -1194,167 +1252,145 @@ body.midi-learn-active .midi-mapped::after {
     flex-direction: column;
 }
 
-/* .ds-header removed to use shared .modal-header */
-
-
-
 /* Module Container - Horizontal Strip */
 .ds-module {
     background: #2a2a2a;
-    /* Slightly lighter */
-    border-bottom: none;
+    border: 1px solid #1a1a1a;
+    border-radius: 4px;
     padding: 0;
-    margin: 0;
+    margin: 4px;
+    /* Tighter margin */
     display: flex;
     flex-direction: column;
-    transition: background 0.2s;
-}
-
-.ds-module:hover {
-    background: #252525;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .ds-module .module-header {
-    padding: 2px 10px;
+    padding: 4px 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: transparent;
-    border: none;
+    background: linear-gradient(to bottom, #222, #1a1a1a);
+    border-bottom: 1px solid #111;
+    border-radius: 4px 4px 0 0;
 }
 
 .ds-module .module-title {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     letter-spacing: 1px;
-    color: #666;
-    /* Default dimmed */
-    transition: color 0.2s;
+    color: #888;
 }
 
 /* Color Coding for Modules (References) */
-#ds-osc1 .module-title,
-#ds-osc1 .knob-placeholder::after {
+#ds-osc1 .module-title {
     color: #ff77a8;
-    border-color: #ff77a8;
 }
 
-#ds-osc2 .module-title,
-#ds-osc2 .knob-placeholder::after {
+#ds-osc2 .module-title {
     color: #29adff;
-    border-color: #29adff;
 }
 
-#ds-osc3 .module-title,
-#ds-osc3 .knob-placeholder::after {
+#ds-osc3 .module-title {
     color: #ffcc00;
-    border-color: #ffcc00;
 }
 
-#ds-osc4 .module-title,
-#ds-osc4 .knob-placeholder::after {
+#ds-osc4 .module-title {
     color: #00e756;
-    border-color: #00e756;
 }
 
-#ds-click .module-title,
-#ds-click .knob-placeholder::after {
+#ds-click .module-title {
     color: #bd93f9;
-    border-color: #bd93f9;
 }
 
-#ds-snap .module-title,
-#ds-snap .knob-placeholder::after {
+#ds-snap .module-title {
     color: #8be9fd;
-    border-color: #8be9fd;
 }
 
-#ds-noise .module-title,
-#ds-noise .knob-placeholder::after {
+#ds-noise .module-title {
     color: #ff5555;
-    border-color: #ff5555;
 }
 
 .ds-module .module-controls {
     display: flex;
-    flex-wrap: nowrap;
-    /* Critical: No wrapping */
-    overflow-x: auto;
-    /* Scroll horizontally if needed */
-    padding: 20px 10px 5px 10px;
-    /* Top padding for Tooltips */
-    gap: 10px;
+    flex-wrap: wrap;
+    /* Allow wrapping for tighter dense packing */
+    padding: 10px;
+    gap: 8px;
+    /* Tighter gap */
     align-items: center;
-    scrollbar-width: none;
-    /* Firefox */
-}
-
-.ds-module .module-controls::-webkit-scrollbar {
-    display: none;
-    /* Chrome/Safari */
 }
 
 .ds-module .ds-select {
-    background: #2a2a2a;
+    background: #1a1a1a;
     color: #eee;
-    border: 1px solid #444;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 11px;
-    height: 24px;
-    align-self: flex-start;
-    margin-top: 8px;
+    border: 1px solid #000;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 10px;
+    height: 22px;
 }
 
 .ds-module .knob-group {
     display: flex;
-    flex-wrap: nowrap;
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+    /* Tighter knob spacing */
 }
 
-/* Knob Styling Overrides for Dark Theme */
 /* Knob Styling Overrides for Dark Theme */
 .drumsynth-modal .knob-wrapper .knob-label {
-    color: #888 !important;
+    color: #999 !important;
     font-size: 9px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
-/* 909 Style Knobs Override (Simplified) */
 .drumsynth-modal .knob-wrapper {
-    width: 34px;
-    position: relative;
+    width: 32px;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-/* Explicitly remove wrapper pseudo-elements as requested */
-.drumsynth-modal .knob-wrapper::before,
-.drumsynth-modal .knob-wrapper::after {
-    content: none !important;
-    display: none !important;
-}
-
+/* Unify with 303 base knob style */
 .drumsynth-modal .rotary-knob {
-    width: 30px;
-    height: 30px;
-    /* Use centered radial gradient suitable for rotation */
-    background: radial-gradient(circle closest-side, #444, #222);
-    border: 1px solid #111;
-    box-shadow: none;
-    /* Avoid rotating shadow artifacts */
-    z-index: 1;
+    width: 28px;
+    height: 28px;
+    background: var(--knob-body);
+    /* Inherit from base.css */
+    border: 1px solid #000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    /* Subtle, centered drop shadow */
+    border-radius: 50%;
     position: relative;
     margin: 0;
 }
 
+/* User's requested realistic highlight reflection */
 .drumsynth-modal .rotary-knob::after {
-    background: #d85c2e;
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 55%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 50%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* The actual indicator line now uses a ::before pseudo element or is handled by RotaryKnob JS */
+.drumsynth-modal .rotary-knob::before {
+    content: '';
+    position: absolute;
+    background: var(--knob-indicator);
     width: 2px;
-    height: 10px;
-    top: 4px;
+    height: 8px;
+    top: 3px;
     left: calc(50% - 1px);
+    border-radius: 1px;
 }
 
 /* Header Layout */
@@ -1404,19 +1440,62 @@ body.midi-learn-active .midi-mapped::after {
 .ds-footer {
     background: #333;
     border-top: 1px solid #444;
-    padding: 15px 20px;
+    padding: 10px 15px;
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    /* Allows stacking if viewport is too narrow */
+    gap: 10px;
     align-items: center;
     justify-content: space-between;
+    box-sizing: border-box;
+    /* Explicitly allow tooltips to overflow upwards */
+    overflow: visible !important;
+    flex-shrink: 0;
+    /* Ensures the footer height is preserved and not squished by central content */
 }
 
 .ds-footer-left {
     display: flex;
     flex-direction: column;
+    /* Fallback */
     gap: 10px;
     width: 100%;
+    overflow: visible;
+}
+
+.ds-footer-flex-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ds-live-knobs-clean {
+    margin-top: 0;
+    border: none;
+    background: none;
+    padding: 0;
+    flex: 1;
+    /* Allow it to take up available space instead of overflowing */
+    min-width: 0;
+    /* Important for flex items to shrink below their content size if needed */
+    overflow: visible;
+}
+
+.ds-preview-controls-clean {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-shrink: 0;
+    /* Prevent the button from squishing */
+}
+
+.ds-play-label {
+    font-size: 8px;
+    font-weight: bold;
+    color: #888;
+    text-transform: uppercase;
 }
 
 .preview-controls {
@@ -1429,6 +1508,8 @@ body.midi-learn-active .midi-mapped::after {
 .ds-radio-group {
     display: grid;
     grid-template-columns: min-content auto;
+    width: 2.2em;
+    /* Lock radio group width to match spacer */
     gap: 2px 4px;
     margin-right: 12px;
     background: transparent;
@@ -1518,27 +1599,47 @@ body.midi-learn-active .midi-mapped::after {
     gap: 10px;
 }
 
-/* Preview button */
-.preview-btn {
-    background: #444;
-    color: #ddd;
-    border: 1px solid #555;
-    padding: 8px 16px;
-    border-radius: 4px;
+/* Arcade/Joystick Push Button Style for Preview */
+.preview-btn.arcade-button {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ff5555, #cc0000);
+    border: none;
+    box-shadow:
+        0 6px 0 #8b0000,
+        0 8px 6px rgba(0, 0, 0, 0.6),
+        inset 0 2px 2px rgba(255, 255, 255, 0.4),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
     cursor: pointer;
-    font-weight: bold;
-    font-size: 12px;
-    text-transform: uppercase;
-    transition: all 0.2s;
+    position: relative;
+    outline: none;
+    transition: transform 0.05s ease, box-shadow 0.05s ease;
 }
 
-.preview-btn:hover {
-    background: #555;
-    color: #fff;
+/* Base ring/bezel beneath the button */
+.preview-btn.arcade-button::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -8px;
+    /* Extend for 3D depth */
+    border-radius: 50%;
+    background: linear-gradient(to bottom, #444, #111);
+    z-index: -1;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.8);
+    border: 1px solid #000;
 }
 
-.preview-btn:active {
-    background: #666;
+.preview-btn.arcade-button:active {
+    margin-top: 6px;
+    box-shadow:
+        0 3px 0 #8b0000,
+        0 8px 6px rgba(0, 0, 0, 0.6),
+        inset 0 2px 2px rgba(255, 255, 255, 0.4),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* DS Switch (Waveform Style) */

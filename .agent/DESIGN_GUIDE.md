@@ -25,25 +25,26 @@ This document defines the visual and interaction design standards for the acidBr
 
 ## 2. Colors
 
-### Core Palette
+### Core Palette (Retro Synth Aesthetic)
 | Name | Variable | Hex | Usage |
 | :--- | :--- | :--- | :--- |
 | Background Main | `--bg-main` | `#111` | Page background |
-| Rack Background | `--rack-bg` | `#222` | Machine panels |
-| Accent Gold | - | `#ffcc00` | Active states, highlights, buttons |
-| Accent Gold Hover | - | `#ffdb4d` | Hover states |
+| 303 Panel (Retro Gold) | `--panel-303` | `linear-gradient(#dcb670, #b89450)` | TB-303 chassis |
+| 909 Panel (Vintage White) | `--panel-909` | `#e6e2d6` | TR-909 chassis |
+| Piano Key White | `--key-white` | `linear-gradient(#fde4a9, #d8bb78)` | Sequencer Steps (White keys) |
+| Piano Key Black | `--key-black` | `linear-gradient(#333, #111)` | Sequencer Steps (Black keys) |
+| Hardware Plastic | - | `#1f1f1f` to `#151515` | Modal backgrounds |
+| Accent Gold / Active | - | `#ffcc00` | Highlights, active text |
 | Text Primary | - | `#ddd` | Main text |
-| Text Secondary | - | `#888` | Labels, section headers |
 | Border Dark | - | `#333`, `#444` | Dividers, modal borders |
-| Active Content BG | - | `rgba(255, 204, 0, 0.05)` | Selected items |
 
-### State Colors
-| State | Color | Application |
+### State Colors & Textures
+| State | Styling Approach | Application |
 | :--- | :--- | :--- |
-| Active/Selected | `#ffcc00` | Borders, text, checkmarks |
-| Inactive | `#444` | Default state |
+| Active/Pressed | `translateY(3px)` + tighter inner & drop shadow | Physical buttons, synth keys |
+| Physical Button | Rich gradient (`#d85c2e` to `#a33e1c`), `0 4px 0` bottom shadow | Manage drum track button, toggles |
+| Modal Surface | Textured dark plastic gradient (`#1f1f1f` to `#151515`) | Overlays, note editors |
 | Locked/Disabled | `opacity: 0.5` | Non-interactive elements |
-| Error/Alert | `#ff5555` | Destructive actions |
 
 ---
 

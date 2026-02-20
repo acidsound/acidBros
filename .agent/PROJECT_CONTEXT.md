@@ -579,3 +579,20 @@ To ensure project health and consistency, relevant documentation MUST be updated
   - Defined explicit parameter mappings between UI knobs and internal engine variables for all original TR-909 instruments.
   - Added technical specs for sample-based Hi-Hats and Cymbals, including choke and tuning logic.
 - **Versioning**: Incremented PWA cache and UI version to v129.
+
+### v131: Detailed UI Refinements & Cymbal Aesthetics
+- **Physical Cymbal Icons**: Redesigned SVG vectors for CH, OH, and CR to accurately depict physical cymbal shapes (stacked ellipses, gaps for open hi-hats, 25-degree angles for crash).
+- **Track Menu Refinement**: Restructured the Add Track modal. Moved inline styles to class objects (`.add-track-row`, `.track-edit-btn-side`) and ordered DOM elements logically (Check -> Icon -> Label -> Setting).
+- **Module Standardization**: Stripped redundant wrappers from `Noise`, `Click`, and `Snap` modules so they share the exact same simple tree structure (`ds-module` > `module-controls` > `knob-group`) as OSC 1-4.
+- **Scroll & Overflow Fixes**: 
+  - Resolved Chrome Emulator blocking touch by making `UI.js` touchmove listener passive and scoped to dragging context.
+  - Allowed `ds-footer` to overflow vertically so negative-margin knob tooltips are never clipped.
+  - Eliminated arbitrary `translateY` animations via JS on the Arcade button, handing it purely to CSS `:active` rules for zero color-flash.
+
+### v130: Retro Synth Aesthetics
+- **Visual Overhaul**: Redesigned core UI components to mimic physical, retro hardware (inspired by Sankei TCR-3000).
+- **Sequencer Keys**: Transformed the TB-303 and overlay piano step buttons into tactile hardware keys with aged plastic textures (warm gold/yellow for white keys, textured black for black keys).
+- **Material Textures**: 
+  - Updated the Manage Drum Track button to resemble a physical red console button.
+  - Applied textured dark plastic gradients and significant drop shadows to modal overlays (Editor, Add Track, File Manager).
+- **Design Guidelines**: Formally documented the new color palette and physical styling approaches in `.agent/DESIGN_GUIDE.md`.

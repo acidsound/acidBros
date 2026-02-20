@@ -1,11 +1,16 @@
 :root {
-    --bg-main: #111;
-    --rack-bg: #222;
-    --panel-303: linear-gradient(180deg, #c8c8c8 0%, #a8a8a8 100%);
-    --panel-909: #e6e2d6;
-    --knob-body: linear-gradient(135deg, #ddd 0%, #999 100%);
-    --knob-top: #ccc;
-    --knob-indicator: #333;
+    --bg-main: #2b323a;
+    /* Blue-gray contrast */
+    --rack-bg: #39414b;
+    --panel-303: linear-gradient(180deg, #dcb670 0%, #b89450 100%);
+    /* Retro warm gold/yellow plastic */
+    --panel-909: linear-gradient(180deg, #dcb670 0%, #b89450 100%);
+    /* Unified 909 aesthetic */
+    --knob-body: linear-gradient(135deg, #222 0%, #0a0a0a 100%);
+    /* Unified dark plastic knob body */
+    --knob-top: #333;
+    --knob-indicator: #fff;
+    /* White indicator on black knobs */
     --switch-bg: #222;
     --switch-handle: #ddd;
     --led-on: #ff3333;
@@ -16,6 +21,16 @@
     --btn-grey-active: linear-gradient(to bottom, #ccc, #eee);
     --shadow-inset: inset 1px 1px 2px rgba(0, 0, 0, 0.6), inset -1px -1px 2px rgba(255, 255, 255, 0.1);
     --shadow-out: 1px 1px 3px rgba(0, 0, 0, 0.5);
+
+    /* New Piano Key Variables for Retro Look */
+    --key-white: linear-gradient(to bottom, #fde4a9 0%, #d8bb78 100%);
+    --key-white-active: linear-gradient(to bottom, #d8bb78 0%, #c4a45a 100%);
+    --key-black: linear-gradient(to bottom, #333 0%, #111 100%);
+    --key-black-active: linear-gradient(to bottom, #111 0%, #000 100%);
+    --key-shadow: 0 4px 0 #8b7542, 0 5px 5px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    --key-shadow-active: 0 1px 0 #8b7542, 0 2px 2px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.4);
+    --key-black-shadow: 0 3px 0 #000, 0 4px 4px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    --key-black-shadow-active: 0 1px 0 #000, 0 2px 2px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
 * {

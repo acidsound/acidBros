@@ -283,21 +283,25 @@ export const UI = {
             activeHalf = null;
         });
 
-        // Touch support
-        ribbonController.addEventListener('touchstart', (e) => {
-            startDrag(e.touches[0].clientX);
-            e.preventDefault();
-        });
-
-        document.addEventListener('touchmove', (e) => {
+        // Touch support - scoped listeners to avoid blocking Chrome touch emulation scrolling
+        const onTouchMove = (e) => {
             if (isDragging) {
                 updateSwing(e.touches[0].clientX);
             }
-        }, { passive: false });
-
-        document.addEventListener('touchend', () => {
+        };
+        const onTouchEnd = () => {
             isDragging = false;
             activeHalf = null;
+            document.removeEventListener('touchmove', onTouchMove);
+            document.removeEventListener('touchend', onTouchEnd);
+        };
+
+        ribbonController.addEventListener('touchstart', (e) => {
+            startDrag(e.touches[0].clientX);
+            e.preventDefault();
+            // Only attach during active drag, and as passive (no preventDefault needed)
+            document.addEventListener('touchmove', onTouchMove, { passive: true });
+            document.addEventListener('touchend', onTouchEnd);
         });
 
         // Double-click/tap to reset to 50%
@@ -2078,24 +2082,19 @@ export const UI = {
             ids.forEach(id => {
                 const track = allTracks.find(t => t.id === id);
 
-                // Wrapper for row (Item + Edit Btn)
+                // Wrapper for row (Item container)
                 const row = document.createElement('div');
                 row.className = 'add-track-row';
-                row.style.display = 'flex';
-                row.style.alignItems = 'center';
-                row.style.gap = '8px';
-                row.style.marginBottom = '4px';
 
                 // Main Toggle Item
                 const item = document.createElement('div');
                 item.className = 'add-track-item' + (selectedIds.includes(id) ? ' active' : '');
-                item.style.flex = '1'; // Take remaining space
                 if (id === 'bd') item.classList.add('locked');
 
                 item.innerHTML = `
+                    <div class="track-check">${selectedIds.includes(id) ? '●' : '○'}</div>
                     <div class="track-icon">${this.svgIcon(id)}</div>
                     <div class="track-label">${track.name}</div>
-                    <div class="track-check">${selectedIds.includes(id) ? '●' : '○'}</div>
                 `;
 
                 item.onclick = () => {
@@ -2111,30 +2110,22 @@ export const UI = {
                     }
                 };
 
-                row.appendChild(item);
-
-                // Edit Button (Sibling)
+                // Edit Button (Now inside item)
                 if (synthIds.includes(id)) {
                     const editBtn = document.createElement('button');
-                    editBtn.innerText = '⚙️'; // Using Gear icon for 'Edit/Setup'
-                    editBtn.className = 'track-edit-btn-side'; // New class
+                    editBtn.innerHTML = this.svgIcon('cog');
+                    editBtn.className = 'track-edit-btn-side';
                     editBtn.title = 'Edit Drum Synth';
-                    // Inline styles for quick layout (can move to CSS later)
-                    editBtn.style.background = 'none';
-                    editBtn.style.border = '1px solid #444';
-                    editBtn.style.color = '#888';
-                    editBtn.style.padding = '8px 12px';
-                    editBtn.style.cursor = 'pointer';
-                    editBtn.style.borderRadius = '4px';
-                    editBtn.style.fontSize = '14px';
 
-                    editBtn.onclick = () => {
+                    editBtn.onclick = (e) => {
+                        e.stopPropagation(); // Don't trigger the track selection
                         DrumSynthUI.open(id);
                     };
 
-                    row.appendChild(editBtn);
+                    item.appendChild(editBtn);
                 }
 
+                row.appendChild(item);
                 list.appendChild(row);
             });
         };
@@ -2152,7 +2143,7 @@ export const UI = {
         footer.className = 'modal-footer';
         const applyBtn = document.createElement('button');
         applyBtn.className = 'apply-btn';
-        applyBtn.innerText = 'APPLY CHANGES';
+        applyBtn.innerText = 'APPLY';
         applyBtn.onclick = () => {
             // Sort selectedIds according to standard 909 order
             const order = ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp', 'ch', 'oh', 'cr', 'rd'];
