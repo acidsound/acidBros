@@ -9,6 +9,13 @@ import { DrumSynthUI } from './DrumSynthUI.js';
 export const UI = {
     isInitialized: false,
 
+    bindFastEvent(el, handler) {
+        el.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            handler(e);
+        });
+    },
+
     svgIcon(id) {
         return `<span class="icon icon-${id}"></span>`;
     },
@@ -33,9 +40,9 @@ export const UI = {
             };
         }
 
-        document.getElementById('playBtn').onclick = () => AudioEngine.play();
-        document.getElementById('stopBtn').onclick = () => AudioEngine.stop();
-        document.getElementById('randomBtn').onclick = () => Data.randomize();
+        this.bindFastEvent(document.getElementById('playBtn'), () => AudioEngine.play());
+        this.bindFastEvent(document.getElementById('stopBtn'), () => AudioEngine.stop());
+        this.bindFastEvent(document.getElementById('randomBtn'), () => Data.randomize());
 
         // Mark UI as initialized
         this.isInitialized = true;
@@ -51,7 +58,7 @@ export const UI = {
             });
             this.pendingInitCallbacks = [];
         }
-        document.getElementById('clearBtn').onclick = () => {
+        this.bindFastEvent(document.getElementById('clearBtn'), () => {
             if (Data.mode === 'song') {
                 Data.clearSong();
             } else {
@@ -71,10 +78,10 @@ export const UI = {
                 Object.keys(s9).forEach(k => s9[k].fill(0));
                 this.renderAll();
             }
-        };
+        });
 
         // Clear/Randomize all 909 tracks
-        document.getElementById('clear909Btn').onclick = () => {
+        this.bindFastEvent(document.getElementById('clear909Btn'), () => {
             const s9 = Data.getSequence('tr909');
             if (!s9) return;
 
@@ -95,10 +102,10 @@ export const UI = {
             }
             this.update909Grid();
             this.update909ClearButtons();
-        };
+        });
 
         // Clear/Randomize TB-303 Unit 1
-        document.getElementById('clear303_1').onclick = () => {
+        this.bindFastEvent(document.getElementById('clear303_1'), () => {
             const s1 = Data.getSequence('tb303_1');
             if (!s1) return;
 
@@ -124,10 +131,10 @@ export const UI = {
             }
             this.render303Grid(1);
             this.update303ClearButtons();
-        };
+        });
 
         // Clear/Randomize TB-303 Unit 2
-        document.getElementById('clear303_2').onclick = () => {
+        this.bindFastEvent(document.getElementById('clear303_2'), () => {
             const s2 = Data.getSequence('tb303_2');
             if (!s2) return;
 
@@ -153,21 +160,21 @@ export const UI = {
             }
             this.render303Grid(2);
             this.update303ClearButtons();
-        };
+        });
 
         // Unit Locks
-        document.getElementById('lock303_1').onclick = () => {
+        this.bindFastEvent(document.getElementById('lock303_1'), () => {
             const isLocked = Data.toggleUnitLock('tb303_1');
             this.updateLockUI('tb303_1', isLocked);
-        };
-        document.getElementById('lock303_2').onclick = () => {
+        });
+        this.bindFastEvent(document.getElementById('lock303_2'), () => {
             const isLocked = Data.toggleUnitLock('tb303_2');
             this.updateLockUI('tb303_2', isLocked);
-        };
-        document.getElementById('lock909').onclick = () => {
+        });
+        this.bindFastEvent(document.getElementById('lock909'), () => {
             const isLocked = Data.toggleUnitLock('tr909');
             this.updateLockUI('tr909', isLocked);
-        };
+        });
 
         // Tempo Knob - Initialize with default value, will update after data import
         new RotaryKnob(document.getElementById('tempo-knob-container'), null, 'tempo', 60, 200, 125, 1, 'large');
@@ -486,10 +493,10 @@ export const UI = {
         if (patContainer) {
             // Pattern Select Buttons
             patContainer.querySelectorAll('.pat-btn').forEach(btn => {
-                btn.onclick = () => {
+                this.bindFastEvent(btn, () => {
                     const id = parseInt(btn.dataset.pattern);
                     Data.selectPattern(id);
-                };
+                });
             });
 
             // Copy/Paste
@@ -515,12 +522,12 @@ export const UI = {
         if (songContainer) {
             // Song Pattern Add Buttons
             songContainer.querySelectorAll('.song-pat-btn').forEach(btn => {
-                btn.onclick = () => {
+                this.bindFastEvent(btn, () => {
                     const id = parseInt(btn.dataset.pattern);
                     Data.selectPattern(id);
                     Data.addToSong(id);
                     this.renderModeControls(); // Update timeline
-                };
+                });
             });
         }
     },
@@ -1045,9 +1052,7 @@ export const UI = {
 
         if (Data.song.length === 0) {
             const emptyMsg = document.createElement('div');
-            emptyMsg.style.color = '#666';
-            emptyMsg.style.fontSize = '0.9em';
-            emptyMsg.style.fontStyle = 'italic';
+            emptyMsg.className = 'song-empty-msg';
             emptyMsg.innerText = 'Click pattern buttons above to build your song...';
             container.appendChild(emptyMsg);
             return;
@@ -1683,11 +1688,11 @@ export const UI = {
         seq.forEach((step, i) => {
             const el = document.createElement('div');
             el.className = `step-303 ${step.active ? 'active' : ''}`;
-            el.onclick = () => {
+            this.bindFastEvent(el, () => {
                 step.active = !step.active;
                 this.render303Grid(unitId);
                 this.update303ClearButtons();
-            };
+            });
 
             const led = document.createElement('div'); led.className = 'led';
 
@@ -1825,11 +1830,11 @@ export const UI = {
             if (s9) {
                 for (let i = 0; i < 16; i++) {
                     const s = document.createElement('div'); s.className = 'step-909';
-                    s.onclick = () => {
+                    this.bindFastEvent(s, () => {
                         s9[t.id][i] = s9[t.id][i] ? 0 : 1;
                         s.classList.toggle('active');
                         this.update909ClearButtons();
-                    }
+                    });
                     seqDiv.appendChild(s);
                 }
             }

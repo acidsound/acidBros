@@ -454,6 +454,15 @@
     max-height: 200px;
 }
 
+.song-empty-msg {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #666;
+    font-size: 0.9em;
+    font-style: italic;
+    padding: 10px 0;
+}
+
 @media (min-width: 700px) {
     .song-timeline {
         grid-template-columns: repeat(16, 38px);
