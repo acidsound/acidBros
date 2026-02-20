@@ -1665,14 +1665,14 @@ export const UI = {
         const synthParams = [
             { l: 'TUNE', id: `tune303_${unitId}`, min: -1200, max: 1200, v: 0 },
             { l: 'CUTOFF', id: `cutoff303_${unitId}`, min: 0, max: 100, v: 50 },
-            { l: 'RESO', id: `reso303_${unitId}`, min: 0, max: 15, v: 0 },
+            { l: 'RESO', id: `reso303_${unitId}`, min: 0, max: 15, v: 0, step: 0.1 },
             { l: 'ENV MOD', id: `env303_${unitId}`, min: 0, max: 100, v: 50 },
             { l: 'DECAY', id: `decay303_${unitId}`, min: 0, max: 100, v: 50 },
             { l: 'ACCENT', id: `accent303_${unitId}`, min: 0, max: 100, v: 50 },
             { l: 'VOLUME', id: `vol303_${unitId}`, min: 0, max: 100, v: 60 }
         ];
         synthParams.forEach(p => {
-            new RotaryKnob(synthSection, p.l, p.id, p.min, p.max, p.v);
+            new RotaryKnob(synthSection, p.l, p.id, p.min, p.max, p.v, p.step || 1);
         });
         container.appendChild(synthSection);
 
