@@ -118,38 +118,22 @@ async function main() {
         await tr909.screenshot({ path: path.join(assetsDir, 'manual-tr909.png') });
 
         // 6. Piano Roll
-        // To open piano roll, we need to click a note display.
-        // Looking at styles.css, there is a .step-303 but I don't see a clear "note display" class in HTML structure I inferred.
-        // But in JS (not seen), it likely renders note names.
-        // Let's click the first step of the first 303 unit.
-        // The step structure seems to be .step-303 -> select (maybe?) or just div.
-        // The manual says "Click any note display".
-        // Let's try to click the element that shows the note name.
-        // In CSS: ".step-303 select" exists. And ".step-303" has display flex.
-        // If it's a select, Playwright might open the native picker which is not what we want (it says "pop-over note editor").
-        // This implies custom UI, not native select.
-        // Wait, styles.css has ".piano-overlay" and ".note-editor". This confirms custom UI.
-        // How is it triggered?
-        // "Click any note display to open the advanced note editor"
-        // If I click the step, maybe it opens?
-        // Or maybe there is a specific element for note display.
-        // I'll try clicking the first .step-303 in the first .sequencer-303.
-        const firstStep = page.locator('.machine.tb-303').first().locator('.sequencer-303 .step-303').first();
-        // Maybe click the text inside it?
-        // Let's just click the step.
-        await firstStep.click();
+        // The piano roll is now an inline element toggled by the piano button in the unit header.
+        await page.click('#pianoToggle303_1');
 
-        // Wait for overlay
+        // Wait for inline piano roll
         try {
-            await page.waitForSelector('.piano-overlay', { state: 'visible', timeout: 3000 });
-            const pianoOverlay = page.locator('.note-editor'); // Screenshot the editor, not the whole overlay
-            await pianoOverlay.screenshot({ path: path.join(assetsDir, 'manual-pianoroll.png') });
+            await page.waitForSelector('.note-editor', { state: 'visible', timeout: 3000 });
+            await page.waitForTimeout(500); // Allow any animation to finish
+
+            // Screenshot the entire TB-303 unit again now that the piano is visible
+            const tb303WithPiano = page.locator('.machine.tb-303').first();
+            await tb303WithPiano.screenshot({ path: path.join(assetsDir, 'manual-pianoroll.png') });
 
             // Close it
-            await page.click('.close-btn');
-            await page.waitForSelector('.piano-overlay', { state: 'hidden' });
+            await page.click('#pianoToggle303_1');
         } catch (e) {
-            console.log('Could not open piano roll or take screenshot: ' + e);
+            console.log('Could not open inline piano roll or take screenshot: ' + e);
         }
 
         // 7. Settings

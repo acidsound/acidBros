@@ -98,11 +98,11 @@ Each unit has a 16‑step grid. Steps light up when active.
 - **AC Button** – Toggle accent (red when active).
 - **SL Button** – Toggle slide (green when active).
 
-### Piano Roll Pop‑over
+### Inline Piano Roll
 
-![Piano Roll Popover](assets/manual-pianoroll.png)
+![Inline Piano Roll](assets/manual-pianoroll.png)
 
-Click any note display to open the advanced note editor:
+Click the piano toggle button (🎹) in the TB-303 unit header to open the advanced inline note editor:
 
 - **Step Navigation (< >)** – Move between steps with wrap-around.
 - **Step Indicator** – Shows current step number (01-16).
@@ -114,7 +114,7 @@ Click any note display to open the advanced note editor:
   - **SL** – Slide toggle (green when active).
 - **Preview (🔊)** – Toggle to hear notes before committing.
 - **GATE OFF (REST)** – Mute the step while keeping note value.
-- **Close** – Close the editor by clicking outside the popover.
+- **Close** – Close the editor by clicking the piano toggle button again.
 
 *Pressing a piano key automatically advances to the next step for fast pattern entry.*
 
