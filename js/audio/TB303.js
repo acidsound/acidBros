@@ -56,21 +56,25 @@ export class TB303 {
         // Slide condition: Previous step was active, had slide on, and current step is active.
         const isSliding = prevStep && prevStep.active && prevStep.slide && step.active;
 
-        if (isSliding && active && active.osc) {
+        if (isSliding && active && active.osc && active.filter) {
             // --- SLIDE (Legato) ---
             // Glide Pitch
             active.osc.frequency.cancelScheduledValues(time);
             active.osc.frequency.setValueAtTime(active.freq, time);
-            active.osc.frequency.linearRampToValueAtTime(freq, time + 0.1);
+            active.osc.frequency.exponentialRampToValueAtTime(freq, time + 0.1);
             active.freq = freq;
 
             // Update Filter (Smooth transition)
-            const baseCut = 300 + (P.cutoff * 8000) + (step.accent ? 800 : 0);
-            active.filter.frequency.cancelScheduledValues(time);
-            active.filter.frequency.linearRampToValueAtTime(baseCut, time + 0.1);
+            const baseCut = 300 + (P.cutoff * 8000) + (step.accent ? 1000 : 0);
+
+            const cutoffParam = active.filter.parameters.get('cutoff');
+            if (cutoffParam) {
+                cutoffParam.cancelScheduledValues(time);
+                cutoffParam.linearRampToValueAtTime(baseCut, time + 0.1);
+            }
 
             // Update Volume (Accent might change)
-            const targetVol = (P.vol * 0.7) * (step.accent ? 1.0 : 0.7);
+            const targetVol = (P.vol * 0.7) * (step.accent ? 1.2 : 0.8);
             active.gain.gain.cancelScheduledValues(time);
             active.gain.gain.linearRampToValueAtTime(targetVol, time + 0.1);
 
@@ -93,30 +97,50 @@ export class TB303 {
 
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
-            const filter = this.ctx.createBiquadFilter();
+            let filter;
+
+            try {
+                filter = new AudioWorkletNode(this.ctx, 'tb303-filter');
+            } catch (e) {
+                console.warn('TB303FilterProcessor not loaded, falling back to BiquadFilter', e);
+                filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+            }
 
             osc.type = P.wave;
             osc.frequency.setValueAtTime(freq, time);
 
             // Filter Setup
-            const baseCut = 300 + (P.cutoff * 8000) + (step.accent ? 800 : 0);
-            filter.type = 'lowpass';
+            const baseCut = 300 + (P.cutoff * 8000) + (step.accent ? 1000 : 0);
+            const normReso = P.reso / 15; // 0..1
 
-            // TB-303 Resonance: Extended range for "Acid" character
-            // Map 0-15 UI range to Q approx 1.0 to 20.0
-            const normReso = P.reso / 15;
-            const qVal = 1.0 + (normReso * 19.0);
-            filter.Q.value = qVal * (step.accent ? 1.5 : 1.0); // Max approx 30.0
-            filter.frequency.setValueAtTime(baseCut, time);
+            // Filter Envelope params
+            const envAmount = (P.env * 5000) + (step.accent ? 2500 : 0);
+            const decay = 0.1 + (P.decay / 100 * 0.9) * (step.accent ? 0.5 : 1.0);
 
-            // Filter Envelope
-            const envAmount = (P.env * 5000) + (step.accent ? 2000 : 0);
-            const decay = 0.2 + (P.decay / 100) * (step.accent ? 0.5 : 1.0);
-            filter.frequency.linearRampToValueAtTime(baseCut + envAmount, time + 0.005);
-            filter.frequency.setTargetAtTime(baseCut, time + 0.01, decay / 3);
+            if (filter instanceof AudioWorkletNode) {
+                const resParam = filter.parameters.get('resonance');
+                const cutParam = filter.parameters.get('cutoff');
+
+                if (resParam) resParam.setValueAtTime(normReso, time);
+                if (cutParam) cutParam.setValueAtTime(baseCut, time);
+
+                if (cutParam) {
+                    cutParam.linearRampToValueAtTime(baseCut + envAmount, time + 0.01);
+                    cutParam.setTargetAtTime(baseCut, time + 0.02, decay / 3);
+                }
+            } else {
+                // Fallback Biquad Setup
+                const qVal = 1.0 + (normReso * 19.0);
+                filter.Q.value = qVal * (step.accent ? 1.5 : 1.0);
+                filter.frequency.setValueAtTime(baseCut, time);
+
+                filter.frequency.linearRampToValueAtTime(baseCut + envAmount, time + 0.01);
+                filter.frequency.setTargetAtTime(baseCut, time + 0.02, decay / 3);
+            }
 
             // Amp Envelope
-            const peakVol = (P.vol * 0.7) * (step.accent ? 1.0 : 0.7);
+            const peakVol = (P.vol * 0.7) * (step.accent ? 1.2 : 0.8);
             gain.gain.setValueAtTime(0, time);
             gain.gain.linearRampToValueAtTime(peakVol, time + 0.005);
             gain.gain.setTargetAtTime(0, time + 0.01, decay);

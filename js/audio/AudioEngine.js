@@ -55,6 +55,7 @@ export const AudioEngine = {
             // --- AudioWorklet Setup ---
             if (this.ctx.audioWorklet) {
                 try {
+                    await this.ctx.audioWorklet.addModule('js/audio/TB303FilterProcessor.js');
                     await this.ctx.audioWorklet.addModule('js/audio/ClockProcessor.js');
                     this.clockNode = new AudioWorkletNode(this.ctx, 'clock-processor');
 

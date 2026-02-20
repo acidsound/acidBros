@@ -201,12 +201,12 @@ The TB-303 is a subtractive monophonic synthesizer. Its character comes from the
 ```mermaid
 graph LR
     subgraph Voice
-    OSC["Oscillator<br/>(Saw/Square)"] --> FILTER["Lowpass Filter<br/>(Resonant)"]
+    OSC["Oscillator<br/>(Saw/Square)"] --> FILTER["ZDF Diode-Ladder Filter<br/>(Resonant)"]
     FILTER --> VCA["VCA<br/>(Amp Envelope)"]
     end
     
     subgraph Logic
-    SEQ[Sequencer] -- Pitch/Gate --> OSC
+    SEQ[Sequencer] -- Pitch/Gate<br/>(Exponential Slide) --> OSC
     SEQ -- Cutoff/Reso/Env --> FILTER
     SEQ -- Volume --> VCA
     end
@@ -220,9 +220,9 @@ graph LR
 
 ### Key Concepts
 - **Oscillator**: Sawtooth (Buzzy) / Square (Hollow).
-- **Filter**: 4-pole Lowpass with Resonance and Envelope Modulation.
-- **Accent**: Boosts volume and opens filter cutoff, shortens decay.
-- **Slide**: Glides pitch and suppresses envelope re-trigger.
+- **Filter**: Zero-Delay Feedback (ZDF) Diode-Ladder Filter (AudioWorklet). This replaces the standard 4-pole Lowpass for a much more authentic, "squelchy" resonance characteristic.
+- **Accent**: Boosts volume, aggressively opens filter cutoff, shortens decay, and increases envelope modulation depth.
+- **Slide**: Glides pitch exponentially (using `exponentialRampToValueAtTime`) for a natural, analog feel, and suppresses envelope re-trigger.
 
 ---
 

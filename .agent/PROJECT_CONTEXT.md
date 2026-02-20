@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v129
+- **Current Version**: v132
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -596,3 +596,10 @@ To ensure project health and consistency, relevant documentation MUST be updated
   - Updated the Manage Drum Track button to resemble a physical red console button.
   - Applied textured dark plastic gradients and significant drop shadows to modal overlays (Editor, Add Track, File Manager).
 - **Design Guidelines**: Formally documented the new color palette and physical styling approaches in `.agent/DESIGN_GUIDE.md`.
+
+### v132: TB-303 Filter Upgrade
+- **Audio Engine**: Ported the TB-303 synthesis engine from `FlacidLive` (Dart/WAJuce) to `acidBros` (Web Audio API JavaScript).
+- **ZDF Diode-Ladder Filter**: Replaced the basic `BiquadFilterNode` with a custom `AudioWorkletNode` implementing a Zero-Delay Feedback (ZDF) diode-ladder filter, significantly improving the authentic "squelchy" resonance characteristic.
+- **Exponential Slide**: Implemented exponential pitch slides (`exponentialRampToValueAtTime`) replacing linear slides for a more natural, analog-feeling glide.
+- **Envelope & Accent Refinement**: Adjusted amplitude envelopes and accent scaling logic to match the hardware response more closely.
+- **Documentation**: Updated `SYNTH_ARCHITECTURE.md` to detail the new ZDF filter and slide logic.
