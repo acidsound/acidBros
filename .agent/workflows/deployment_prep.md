@@ -23,28 +23,33 @@ description: Prepare for deployment by updating version and documentation
      - Add a new changelog entry under `### vXX: [Feature Name]` with summary of changes.
      - Update `Architecture` or `File Structure` if new files were added.
 
-4. **Update User Manual**
+4. **Generate Screenshots**
+   - Before finalizing the documentation, ensure all screenshots reflect the latest UI.
+   - Run the script: `npm run generate-screenshots` (which executes `scripts/generate_screenshots.js`).
+   - Review the generated images in the `assets/` folder to confirm they are accurate.
+
+5. **Update User Manual**
    - Edit `USER_MANUAL.md`:
      - Add sections for any new user-facing features.
      - Update screenshots or descriptions if UI has changed.
 
-5. **Update README**
+6. **Update README**
    - Edit `README.md`:
      - Update feature lists or installation instructions if changed.
      - Ensure links to other documentation (like `SYNTH_ARCHITECTURE.md`) are correct.
 
-6. **Sync Korean Documentation**
+7. **Sync Korean Documentation**
    - When updating any `*.md` file, check if a corresponding `*_ko.md` file exists.
    - If it exists, apply the same changes translated to Korean.
    - Currently localized files:
      - `USER_MANUAL.md` → `USER_MANUAL_ko.md`
    - Keep section structure and formatting consistent between versions.
 
-7. **Final Verification**
+8. **Final Verification**
    - Ensure all `*.md` files are consistent with the code state.
    - Verify Korean documentation is in sync with English version.
 
-8. **Commit and Push**
+9. **Commit and Push**
    - `git add .`
    - `git commit -m "[Descriptive Message Summary]"`
    - *Example: `v65: Add MIDI Device Management and improve Learn Mode`*
