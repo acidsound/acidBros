@@ -138,6 +138,15 @@ Each track has dedicated parameter knobs and a level control:
 - **CRASH (CR)** – Crash cymbal with Level, Tune.
 - **RIDE (RD)** – Ride cymbal with Level, Tune.
 
+### Manage Drum Tracks
+
+![Manage Drum Tracks](assets/manual-manage-tracks.png)
+
+Click the **MANAGE TRACKS** button at the bottom of the TR-909 unit to open the Manage Drum Tracks popover.
+- **Toggle Tracks**: Enable or disable specific drum tracks to customize your 909 layout.
+- **Edit Drum Synth**: Click the **Settings icon** (⚙️) next to any synthesis-based track (BD, SD, LT, MT, HT, RS, CP) to open the Drum Synth Editor.
+- **Apply**: Click **APPLY** to save your track layout.
+
 ### Sequencer Grid
 Each track has its own 16‑step grid. Active steps glow orange/yellow; inactive steps remain dark.
 
@@ -148,12 +157,16 @@ Each track has its own 16‑step grid. Active steps glow orange/yellow; inactive
 - **LOCK (🔒)** – Toggle randomization lock. When active (orange), the 909 will be skipped when clicking the global **RANDOMIZE** button.
 
 ### Advanced Drum Editor (Drum Synth Editor)
-Click the **Settings icon** (⚙️) on any drum track or within the **MANAGE TRACKS** modal to open the full **Drum Synth Editor**.
+
+![Drum Synth Editor](assets/manual-drumsynth.png)
+
+Click the **Settings icon** (⚙️) within the **MANAGE TRACKS** modal to open the full **Drum Synth Editor** for a specific track.
 
 - **Deep Editing**: Modify internal parameters like 4 independent Oscillators (OSC 1-4), Click, Snap, and Noise/Filter modules to create unique drum sounds.
 - **Presets**: Save and load your custom drum patches.
 - **Classic Reset**: Instantly revert to the original factory TR-909 sound at any time.
-- **Real-time Feedback**: Hear changes immediately while the sequencer is running or via the preview button.
+- **Live Preview**: Hear changes immediately by clicking the Play / Preview button.
+- **Live Track Knobs**: Tweak the track's main macro knobs (Tune, Level, Decay, etc.) while editing the deep synth parameters.
 
 ---
 

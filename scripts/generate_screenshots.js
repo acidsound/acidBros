@@ -147,6 +147,31 @@ async function main() {
         await page.click('#settingsCloseBtn');
         await page.waitForTimeout(500);
 
+        // 8. TR-909 Manage Drum Tracks Popover
+        console.log('Taking Manage Tracks Screenshot...');
+        await page.click('.manage-909-track-btn');
+        await page.waitForSelector('.add-track-modal', { state: 'visible', timeout: 3000 });
+        await page.waitForTimeout(500);
+        const manageModal = page.locator('.add-track-modal');
+        await manageModal.screenshot({ path: path.join(assetsDir, 'manual-manage-tracks.png') });
+
+        // 9. Drum Synth Editor
+        console.log('Taking Drum Synth Editor Screenshot...');
+        // Clicking the first cog icon (BD track) in the Manage Tracks popover
+        await page.click('.track-edit-btn-side >> nth=0');
+        await page.waitForSelector('.drumsynth-modal', { state: 'visible', timeout: 3000 });
+        await page.waitForTimeout(500);
+        const drumSynthModal = page.locator('.drumsynth-modal');
+        await drumSynthModal.screenshot({ path: path.join(assetsDir, 'manual-drumsynth.png') });
+
+        // Close Drum Synth Editor
+        await page.click('#ds-close-btn');
+        await page.waitForTimeout(500);
+
+        // Close Manage Tracks Modal
+        await manageModal.locator('.close-btn').click();
+        await page.waitForTimeout(500);
+
         // --- How to add new screenshots ---
         // 1. Inspect the element you want to capture in the browser developer tools.
         // 2. Identify a unique selector (e.g., class, id, or text).
