@@ -100,8 +100,11 @@
     background: linear-gradient(to bottom, #ffccaa, #ffaa88);
 }
 
+
+
 /* Active State (Pressed down - applies to both groups) */
-.sequencer-303 .step-303:active {
+.sequencer-303 .step-303:active,
+.sequencer-303 .step-303.pressed {
     box-shadow: var(--key-shadow-active);
     transform: translateY(3px);
     background: var(--key-white-active);
@@ -632,6 +635,13 @@
 .sequencer-909 .step-909:nth-child(n+5):nth-child(-n+8),
 .sequencer-909 .step-909:nth-child(n+13) {
     background: linear-gradient(to bottom, #ffccaa, #ffaa88);
+}
+
+.step-909:active,
+.step-909.pressed {
+    box-shadow: var(--key-shadow-active);
+    transform: translateY(3px);
+    background: var(--key-white-active);
 }
 
 .step-909.active {

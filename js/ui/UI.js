@@ -12,7 +12,20 @@ export const UI = {
     bindFastEvent(el, handler) {
         el.addEventListener('pointerdown', (e) => {
             e.preventDefault();
+            el.classList.add('pressed');
             handler(e);
+
+            const cleanup = () => {
+                el.classList.remove('pressed');
+                document.removeEventListener('pointerup', cleanup);
+                document.removeEventListener('pointercancel', cleanup);
+            };
+            document.addEventListener('pointerup', cleanup);
+            document.addEventListener('pointercancel', cleanup);
+        });
+
+        el.addEventListener('pointerleave', () => {
+            el.classList.remove('pressed');
         });
     },
 
@@ -1690,7 +1703,7 @@ export const UI = {
             el.className = `step-303 ${step.active ? 'active' : ''}`;
             this.bindFastEvent(el, () => {
                 step.active = !step.active;
-                this.render303Grid(unitId);
+                el.classList.toggle('active');
                 this.update303ClearButtons();
             });
 
