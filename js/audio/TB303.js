@@ -1,9 +1,25 @@
+const NOTE_INDEX = Object.freeze({
+    C: 0,
+    'C#': 1,
+    D: 2,
+    'D#': 3,
+    E: 4,
+    F: 5,
+    'F#': 6,
+    G: 7,
+    'G#': 8,
+    A: 9,
+    'A#': 10,
+    B: 11
+});
+
 export class TB303 {
     constructor(ctx, output) {
         this.ctx = ctx;
         this.output = output;
         this.activeState = null; // { osc, filter, gain, freq }
         this.lastDelaySettings = null;
+        this._didWarnWorkletFallback = false;
 
         // Delay Effect
         this.delayNode = this.ctx.createDelay(6.0); // Max delay 6s
@@ -83,8 +99,9 @@ export class TB303 {
     }
 
     noteToFreq(note, octave) {
-        const noteMap = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        const semi = (octave * 12) + noteMap.indexOf(note);
+        const noteIndex = NOTE_INDEX[note];
+        if (noteIndex === undefined) return NaN;
+        const semi = (octave * 12) + noteIndex;
         return 16.35 * Math.pow(2, semi / 12);
     }
 
@@ -126,10 +143,12 @@ export class TB303 {
             // Update Filter (Smooth transition)
             const baseCut = 300 + (P.cutoff * 8000) + (step.accent ? 1000 : 0);
 
-            const cutoffParam = active.filter.parameters.get('cutoff');
-            if (cutoffParam) {
-                cutoffParam.cancelScheduledValues(time);
-                cutoffParam.linearRampToValueAtTime(baseCut, time + 0.1);
+            if (active.isWorkletFilter && active.cutParam) {
+                active.cutParam.cancelScheduledValues(time);
+                active.cutParam.linearRampToValueAtTime(baseCut, time + 0.1);
+            } else if (!active.isWorkletFilter && active.filter && active.filter.frequency) {
+                active.filter.frequency.cancelScheduledValues(time);
+                active.filter.frequency.linearRampToValueAtTime(baseCut, time + 0.1);
             }
 
             // Update Volume (Accent might change)
@@ -157,11 +176,18 @@ export class TB303 {
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
             let filter;
+            let isWorkletFilter = false;
+            let resParam = null;
+            let cutParam = null;
 
             try {
                 filter = new AudioWorkletNode(this.ctx, 'tb303-filter');
+                isWorkletFilter = true;
             } catch (e) {
-                console.warn('TB303FilterProcessor not loaded, falling back to BiquadFilter', e);
+                if (!this._didWarnWorkletFallback) {
+                    console.warn('TB303FilterProcessor not loaded, falling back to BiquadFilter', e);
+                    this._didWarnWorkletFallback = true;
+                }
                 filter = this.ctx.createBiquadFilter();
                 filter.type = 'lowpass';
             }
@@ -177,9 +203,9 @@ export class TB303 {
             const envAmount = (P.env * 5000) + (step.accent ? 2500 : 0);
             const decay = 0.1 + (P.decay / 100 * 0.9) * (step.accent ? 0.5 : 1.0);
 
-            if (filter instanceof AudioWorkletNode) {
-                const resParam = filter.parameters.get('resonance');
-                const cutParam = filter.parameters.get('cutoff');
+            if (isWorkletFilter) {
+                resParam = filter.parameters.get('resonance');
+                cutParam = filter.parameters.get('cutoff');
 
                 if (resParam) resParam.setValueAtTime(normReso, time);
                 if (cutParam) cutParam.setValueAtTime(baseCut, time);
@@ -224,7 +250,16 @@ export class TB303 {
                 // Slide Start: Sustain (Don't gate off immediately).
                 // Oscillator will be stopped by a later non-slide gate, retrigger, or global stop.
             }
-            const state = { osc, filter, gain, freq, cleaned: false };
+            const state = {
+                osc,
+                filter,
+                gain,
+                freq,
+                isWorkletFilter,
+                cutParam,
+                resParam,
+                cleaned: false
+            };
             osc.onended = () => {
                 this._cleanupState(state);
             };

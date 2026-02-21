@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v136
+- **Current Version**: v137
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -676,3 +676,17 @@ To ensure project health and consistency, relevant documentation MUST be updated
   - Clarified that this tuning does not alter `CUTOFF/RESO` knob ranges or saved pattern data mapping.
 - **Versioning**:
   - Bumped deployed version markers to `v136` (`sw.js` cache name and `index.html` version display).
+
+### v137: Transport Queue UX + 303 DSP Hot-Path Optimization
+- **Transport / Pattern Flow**:
+  - `RUN` now restarts immediately from step 1 (step index 0) for deterministic playback starts.
+  - In Pattern mode during playback, selecting another pattern queues the switch to the next 16-step boundary.
+  - Added BPM-synced queued glow blink for pending pattern change indication.
+  - Added the same queued blink affordance for Song mode timeline (next block preview), and improved drag-time visibility with lower drag ghost opacity.
+- **TB-303 Performance**:
+  - Optimized `TB303FilterProcessor` hot path by splitting `a-rate/k-rate` loop variants and hoisting `k-rate` coefficient math outside the per-sample loop.
+  - Added cached sample-rate derived constants and local state caching (`s1..s4`, HP stages) to reduce repeated property access in `AudioWorklet`.
+  - Kept scheduling semantics unchanged (no transport timing logic modifications) to avoid play/stop timing side effects.
+  - Minor `TB303.js` optimizations: note-index lookup table reuse and worklet parameter handle reuse in slide path.
+- **Versioning**:
+  - Bumped deployed version markers to `v137` (`sw.js` cache name and `index.html` version display).

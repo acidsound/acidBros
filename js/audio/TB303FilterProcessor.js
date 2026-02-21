@@ -58,6 +58,8 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
         // Keep these fixed and subtle to preserve existing UI/automation behavior.
         const sr = globalThis.sampleRate || 44100;
         this._sampleRate = sr;
+        this._cutoffMax = sr * 0.45;
+        this._tanScale = Math.PI / sr;
         this.hpInput = new OnePoleHighPass(15.5, sr);   // section 1
         this.hpFeedback = new OnePoleHighPass(6.1, sr); // section 4
         this.hpSumming = new OnePoleHighPass(0.7, sr);  // section 5
@@ -70,6 +72,27 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
         this.resonanceMakeupAmount = 0.75;
     }
 
+    _updateSampleRate(sampleRate) {
+        if (sampleRate === this._sampleRate) return;
+        this._sampleRate = sampleRate;
+        this._cutoffMax = sampleRate * 0.45;
+        this._tanScale = Math.PI / sampleRate;
+        this.hpInput.update(sampleRate);
+        this.hpFeedback.update(sampleRate);
+        this.hpSumming.update(sampleRate);
+        this.hpOutA.update(sampleRate);
+        this.hpOutB.update(sampleRate);
+    }
+
+    _resetCoreState() {
+        this.s1 = this.s2 = this.s3 = this.s4 = 0;
+        this.hpInput.reset();
+        this.hpFeedback.reset();
+        this.hpSumming.reset();
+        this.hpOutA.reset();
+        this.hpOutB.reset();
+    }
+
     process(inputs, outputs, parameters) {
         if (outputs.length === 0) return false;
 
@@ -79,12 +102,7 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
         const inputBus = inputs[0];
         if (!inputBus || inputBus.length === 0) {
             // No upstream source is connected anymore; allow the processor to terminate.
-            this.s1 = this.s2 = this.s3 = this.s4 = 0;
-            this.hpInput.reset();
-            this.hpFeedback.reset();
-            this.hpSumming.reset();
-            this.hpOutA.reset();
-            this.hpOutB.reset();
+            this._resetCoreState();
             const out0 = outputBus[0];
             const out1 = outputBus.length > 1 ? outputBus[1] : null;
             if (out0) out0.fill(0);
@@ -97,91 +115,287 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
         const outputChannel0 = outputBus[0];
         const outputChannel1 = outputBus.length > 1 ? outputBus[1] : null;
 
-        const cutoffParam = parameters['cutoff'];
-        const resonanceParam = parameters['resonance'];
+        const cutoffParam = parameters.cutoff;
+        const resonanceParam = parameters.resonance;
+        const frames = inputChannel.length;
+        const hasStereo = outputChannel1 !== null;
+        const sampleRate = globalThis.sampleRate || this._sampleRate || 44100;
+        this._updateSampleRate(sampleRate);
 
         const isCutoffARate = cutoffParam.length > 1;
         const isResonanceARate = resonanceParam.length > 1;
+        const cutoffMax = this._cutoffMax;
+        const tanScale = this._tanScale;
+        const resonanceMakeupAmount = this.resonanceMakeupAmount;
+        const outGain = 1.06;
 
-        const frames = inputChannel.length;
-        const sampleRate = globalThis.sampleRate || 44100;
-        if (sampleRate !== this._sampleRate) {
-            this._sampleRate = sampleRate;
-            this.hpInput.update(sampleRate);
-            this.hpFeedback.update(sampleRate);
-            this.hpSumming.update(sampleRate);
-            this.hpOutA.update(sampleRate);
-            this.hpOutB.update(sampleRate);
-        }
+        const hpInput = this.hpInput;
+        const hpFeedback = this.hpFeedback;
+        const hpSumming = this.hpSumming;
+        const hpOutA = this.hpOutA;
+        const hpOutB = this.hpOutB;
 
-        for (let i = 0; i < frames; i++) {
-            // Clamp parameters to safe ranges
-            let cutoff = isCutoffARate ? cutoffParam[i] : cutoffParam[0];
-            let resonance = isResonanceARate ? resonanceParam[i] : resonanceParam[0];
+        let s1 = this.s1;
+        let s2 = this.s2;
+        let s3 = this.s3;
+        let s4 = this.s4;
 
-            cutoff = Math.max(20.0, Math.min(cutoff, sampleRate * 0.45));
-            resonance = Math.max(0.0, Math.min(resonance, 0.99)); // Avoid total self-oscillation crash
+        const resetState = () => {
+            s1 = s2 = s3 = s4 = 0;
+            hpInput.reset();
+            hpFeedback.reset();
+            hpSumming.reset();
+            hpOutA.reset();
+            hpOutB.reset();
+        };
 
-            const g = Math.tan(Math.PI * cutoff / sampleRate);
+        // Hot loop split by automation-rate shape to avoid per-sample branching.
+        if (!isCutoffARate && !isResonanceARate) {
+            let cutoff = cutoffParam[0];
+            let resonance = resonanceParam[0];
+
+            if (cutoff < 20.0) cutoff = 20.0;
+            if (cutoff > cutoffMax) cutoff = cutoffMax;
+            if (resonance < 0.0) resonance = 0.0;
+            if (resonance > 0.99) resonance = 0.99;
+
+            const g = Math.tan(cutoff * tanScale);
             if (!Number.isFinite(g)) {
-                outputChannel0[i] = 0;
-                if (outputChannel1 !== null) outputChannel1[i] = 0;
-                continue;
-            }
-            const G = g / (1.0 + g);
-            const K = resonance * 4.0;
-
-            const x = inputChannel[i];
-            const xhp = this.hpInput.process(x);
-
-            // ZDF topology with diode2-inspired loop HP shaping and soft clipping.
-            const S = (G * G * G * this.s1 + G * G * this.s2 + G * this.s3 + this.s4) / (1.0 + g);
-            const shapedFeedback = this.hpFeedback.process(S);
-
-            const summed = this.hpSumming.process(xhp - K * Math.tanh(shapedFeedback));
-            const u = summed / (1.0 + K * G * G * G * G);
-
-            // Stage 1
-            const v1 = (u - this.s1) * G;
-            const y1 = v1 + this.s1;
-            this.s1 = y1 + v1;
-
-            // Stage 2
-            const v2 = (y1 - this.s2) * G;
-            const y2 = v2 + this.s2;
-            this.s2 = y2 + v2;
-
-            // Stage 3
-            const v3 = (y2 - this.s3) * G;
-            const y3 = v3 + this.s3;
-            this.s3 = y3 + v3;
-
-            // Stage 4
-            const v4 = (y3 - this.s4) * G;
-            const y4 = v4 + this.s4;
-            this.s4 = y4 + v4;
-            // TUNABLE: quadratic compensation curve for high resonance attenuation.
-            // resonance^2 keeps low/mid RES mostly untouched and focuses correction near the top end.
-            const resonanceMakeup = 1.0 + (this.resonanceMakeupAmount * resonance * resonance);
-            const yOut = 1.06 * resonanceMakeup * this.hpOutB.process(this.hpOutA.process(y4));
-
-            // NaN Safety check
-            if (!Number.isFinite(yOut)) {
-                this.s1 = this.s2 = this.s3 = this.s4 = 0;
-                this.hpInput.reset();
-                this.hpFeedback.reset();
-                this.hpSumming.reset();
-                this.hpOutA.reset();
-                this.hpOutB.reset();
-                outputChannel0[i] = 0;
+                outputChannel0.fill(0);
+                if (hasStereo) outputChannel1.fill(0);
+                resetState();
             } else {
-                outputChannel0[i] = yOut;
-            }
+                const onePlusG = 1.0 + g;
+                const invOnePlusG = 1.0 / onePlusG;
+                const G = g * invOnePlusG;
+                const G2 = G * G;
+                const G3 = G2 * G;
+                const G4 = G2 * G2;
+                const K = resonance * 4.0;
+                const invDenom = 1.0 / (1.0 + K * G4);
+                // TUNABLE: quadratic compensation keeps low/mid RES mostly intact.
+                const resonanceMakeup = 1.0 + (resonanceMakeupAmount * resonance * resonance);
 
-            if (outputChannel1 !== null) {
-                outputChannel1[i] = outputChannel0[i];
+                for (let i = 0; i < frames; i++) {
+                    const xhp = hpInput.process(inputChannel[i]);
+                    const S = (G3 * s1 + G2 * s2 + G * s3 + s4) * invOnePlusG;
+                    const shapedFeedback = hpFeedback.process(S);
+                    const summed = hpSumming.process(xhp - K * Math.tanh(shapedFeedback));
+                    const u = summed * invDenom;
+
+                    const v1 = (u - s1) * G;
+                    const y1 = v1 + s1;
+                    s1 = y1 + v1;
+
+                    const v2 = (y1 - s2) * G;
+                    const y2 = v2 + s2;
+                    s2 = y2 + v2;
+
+                    const v3 = (y2 - s3) * G;
+                    const y3 = v3 + s3;
+                    s3 = y3 + v3;
+
+                    const v4 = (y3 - s4) * G;
+                    const y4 = v4 + s4;
+                    s4 = y4 + v4;
+
+                    const yOut = outGain * resonanceMakeup * hpOutB.process(hpOutA.process(y4));
+
+                    if (!Number.isFinite(yOut)) {
+                        resetState();
+                        outputChannel0[i] = 0;
+                    } else {
+                        outputChannel0[i] = yOut;
+                    }
+
+                    if (hasStereo) outputChannel1[i] = outputChannel0[i];
+                }
+            }
+        } else if (!isCutoffARate && isResonanceARate) {
+            let cutoff = cutoffParam[0];
+            if (cutoff < 20.0) cutoff = 20.0;
+            if (cutoff > cutoffMax) cutoff = cutoffMax;
+
+            const g = Math.tan(cutoff * tanScale);
+            if (!Number.isFinite(g)) {
+                outputChannel0.fill(0);
+                if (hasStereo) outputChannel1.fill(0);
+                resetState();
+            } else {
+                const onePlusG = 1.0 + g;
+                const invOnePlusG = 1.0 / onePlusG;
+                const G = g * invOnePlusG;
+                const G2 = G * G;
+                const G3 = G2 * G;
+                const G4 = G2 * G2;
+
+                for (let i = 0; i < frames; i++) {
+                    let resonance = resonanceParam[i];
+                    if (resonance < 0.0) resonance = 0.0;
+                    if (resonance > 0.99) resonance = 0.99;
+                    const K = resonance * 4.0;
+                    const invDenom = 1.0 / (1.0 + K * G4);
+                    const resonanceMakeup = 1.0 + (resonanceMakeupAmount * resonance * resonance);
+
+                    const xhp = hpInput.process(inputChannel[i]);
+                    const S = (G3 * s1 + G2 * s2 + G * s3 + s4) * invOnePlusG;
+                    const shapedFeedback = hpFeedback.process(S);
+                    const summed = hpSumming.process(xhp - K * Math.tanh(shapedFeedback));
+                    const u = summed * invDenom;
+
+                    const v1 = (u - s1) * G;
+                    const y1 = v1 + s1;
+                    s1 = y1 + v1;
+
+                    const v2 = (y1 - s2) * G;
+                    const y2 = v2 + s2;
+                    s2 = y2 + v2;
+
+                    const v3 = (y2 - s3) * G;
+                    const y3 = v3 + s3;
+                    s3 = y3 + v3;
+
+                    const v4 = (y3 - s4) * G;
+                    const y4 = v4 + s4;
+                    s4 = y4 + v4;
+
+                    const yOut = outGain * resonanceMakeup * hpOutB.process(hpOutA.process(y4));
+
+                    if (!Number.isFinite(yOut)) {
+                        resetState();
+                        outputChannel0[i] = 0;
+                    } else {
+                        outputChannel0[i] = yOut;
+                    }
+
+                    if (hasStereo) outputChannel1[i] = outputChannel0[i];
+                }
+            }
+        } else if (isCutoffARate && !isResonanceARate) {
+            let resonance = resonanceParam[0];
+            if (resonance < 0.0) resonance = 0.0;
+            if (resonance > 0.99) resonance = 0.99;
+            const K = resonance * 4.0;
+            const resonanceMakeup = 1.0 + (resonanceMakeupAmount * resonance * resonance);
+
+            for (let i = 0; i < frames; i++) {
+                let cutoff = cutoffParam[i];
+                if (cutoff < 20.0) cutoff = 20.0;
+                if (cutoff > cutoffMax) cutoff = cutoffMax;
+
+                const g = Math.tan(cutoff * tanScale);
+                if (!Number.isFinite(g)) {
+                    outputChannel0[i] = 0;
+                    if (hasStereo) outputChannel1[i] = 0;
+                    continue;
+                }
+
+                const onePlusG = 1.0 + g;
+                const invOnePlusG = 1.0 / onePlusG;
+                const G = g * invOnePlusG;
+                const G2 = G * G;
+                const G3 = G2 * G;
+                const G4 = G2 * G2;
+                const invDenom = 1.0 / (1.0 + K * G4);
+
+                const xhp = hpInput.process(inputChannel[i]);
+                const S = (G3 * s1 + G2 * s2 + G * s3 + s4) * invOnePlusG;
+                const shapedFeedback = hpFeedback.process(S);
+                const summed = hpSumming.process(xhp - K * Math.tanh(shapedFeedback));
+                const u = summed * invDenom;
+
+                const v1 = (u - s1) * G;
+                const y1 = v1 + s1;
+                s1 = y1 + v1;
+
+                const v2 = (y1 - s2) * G;
+                const y2 = v2 + s2;
+                s2 = y2 + v2;
+
+                const v3 = (y2 - s3) * G;
+                const y3 = v3 + s3;
+                s3 = y3 + v3;
+
+                const v4 = (y3 - s4) * G;
+                const y4 = v4 + s4;
+                s4 = y4 + v4;
+
+                const yOut = outGain * resonanceMakeup * hpOutB.process(hpOutA.process(y4));
+
+                if (!Number.isFinite(yOut)) {
+                    resetState();
+                    outputChannel0[i] = 0;
+                } else {
+                    outputChannel0[i] = yOut;
+                }
+
+                if (hasStereo) outputChannel1[i] = outputChannel0[i];
+            }
+        } else {
+            for (let i = 0; i < frames; i++) {
+                let cutoff = cutoffParam[i];
+                let resonance = resonanceParam[i];
+                if (cutoff < 20.0) cutoff = 20.0;
+                if (cutoff > cutoffMax) cutoff = cutoffMax;
+                if (resonance < 0.0) resonance = 0.0;
+                if (resonance > 0.99) resonance = 0.99;
+
+                const g = Math.tan(cutoff * tanScale);
+                if (!Number.isFinite(g)) {
+                    outputChannel0[i] = 0;
+                    if (hasStereo) outputChannel1[i] = 0;
+                    continue;
+                }
+
+                const onePlusG = 1.0 + g;
+                const invOnePlusG = 1.0 / onePlusG;
+                const G = g * invOnePlusG;
+                const G2 = G * G;
+                const G3 = G2 * G;
+                const G4 = G2 * G2;
+                const K = resonance * 4.0;
+                const invDenom = 1.0 / (1.0 + K * G4);
+                const resonanceMakeup = 1.0 + (resonanceMakeupAmount * resonance * resonance);
+
+                const xhp = hpInput.process(inputChannel[i]);
+                const S = (G3 * s1 + G2 * s2 + G * s3 + s4) * invOnePlusG;
+                const shapedFeedback = hpFeedback.process(S);
+                const summed = hpSumming.process(xhp - K * Math.tanh(shapedFeedback));
+                const u = summed * invDenom;
+
+                const v1 = (u - s1) * G;
+                const y1 = v1 + s1;
+                s1 = y1 + v1;
+
+                const v2 = (y1 - s2) * G;
+                const y2 = v2 + s2;
+                s2 = y2 + v2;
+
+                const v3 = (y2 - s3) * G;
+                const y3 = v3 + s3;
+                s3 = y3 + v3;
+
+                const v4 = (y3 - s4) * G;
+                const y4 = v4 + s4;
+                s4 = y4 + v4;
+
+                const yOut = outGain * resonanceMakeup * hpOutB.process(hpOutA.process(y4));
+
+                if (!Number.isFinite(yOut)) {
+                    resetState();
+                    outputChannel0[i] = 0;
+                } else {
+                    outputChannel0[i] = yOut;
+                }
+
+                if (hasStereo) outputChannel1[i] = outputChannel0[i];
             }
         }
+
+        this.s1 = s1;
+        this.s2 = s2;
+        this.s3 = s3;
+        this.s4 = s4;
 
         return true;
     }
