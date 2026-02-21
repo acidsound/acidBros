@@ -68,8 +68,8 @@
   * **Song Sharing**: Share complete songs with multiple patterns (see Manual).
 * **PWA Support**: Installable as a Progressive Web App for offline use.
 * **Documentation**:
-  * **[User Manual](USER_MANUAL.md)**: Comprehensive reference guide.
-  * **[Learning Guide](LEARNING_GUIDE.md)**: Step-by-step tutorial for beginners (6 chapters).
+  * **[User Manual](docs/USER_MANUAL.md)**: Comprehensive reference guide.
+  * **[Learning Guide](docs/LEARNING_GUIDE.md)**: Step-by-step tutorial for beginners (6 chapters).
 
 ## Usage
 
@@ -100,7 +100,7 @@ Then open `http://localhost:8080` in your browser.
 ## Architecture & How it Works
 
 Curious about how the TB-303 and TR-909 synthesis engines are implemented in the Web Audio API?
-Check out our detailed **[Synthesis Architecture Guide](SYNTH_ARCHITECTURE.md)** to see the signal flow diagrams and learn about the inner workings of the acid machine.
+Check out our detailed **[Synthesis Architecture Guide](docs/SYNTH_ARCHITECTURE.md)** to see the signal flow diagrams and learn about the inner workings of the acid machine.
 
 ## License
 
