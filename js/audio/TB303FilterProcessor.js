@@ -1,3 +1,32 @@
+class OnePoleHighPass {
+    constructor(cutoffHz, sampleRate) {
+        this.cutoffHz = cutoffHz;
+        this.sampleRate = sampleRate;
+        this.a = 0;
+        this.x1 = 0;
+        this.y1 = 0;
+        this.update(sampleRate);
+    }
+
+    update(sampleRate) {
+        this.sampleRate = sampleRate;
+        const safeCut = Math.max(0.01, this.cutoffHz);
+        this.a = Math.exp((-2.0 * Math.PI * safeCut) / this.sampleRate);
+    }
+
+    reset() {
+        this.x1 = 0;
+        this.y1 = 0;
+    }
+
+    process(x) {
+        const y = this.a * (this.y1 + x - this.x1);
+        this.x1 = x;
+        this.y1 = y;
+        return y;
+    }
+}
+
 class TB303FilterProcessor extends AudioWorkletProcessor {
     static get parameterDescriptors() {
         return [
@@ -24,6 +53,16 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
         this.s2 = 0;
         this.s3 = 0;
         this.s4 = 0;
+
+        // diode2-inspired low-frequency coupling networks.
+        // Keep these fixed and subtle to preserve existing UI/automation behavior.
+        const sr = globalThis.sampleRate || 44100;
+        this._sampleRate = sr;
+        this.hpInput = new OnePoleHighPass(15.5, sr);   // section 1
+        this.hpFeedback = new OnePoleHighPass(6.1, sr); // section 4
+        this.hpSumming = new OnePoleHighPass(0.7, sr);  // section 5
+        this.hpOutA = new OnePoleHighPass(3.2, sr);     // section 2
+        this.hpOutB = new OnePoleHighPass(1.2, sr);     // section 3
     }
 
     process(inputs, outputs, parameters) {
@@ -36,6 +75,11 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
         if (!inputBus || inputBus.length === 0) {
             // No upstream source is connected anymore; allow the processor to terminate.
             this.s1 = this.s2 = this.s3 = this.s4 = 0;
+            this.hpInput.reset();
+            this.hpFeedback.reset();
+            this.hpSumming.reset();
+            this.hpOutA.reset();
+            this.hpOutB.reset();
             const out0 = outputBus[0];
             const out1 = outputBus.length > 1 ? outputBus[1] : null;
             if (out0) out0.fill(0);
@@ -56,6 +100,14 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
 
         const frames = inputChannel.length;
         const sampleRate = globalThis.sampleRate || 44100;
+        if (sampleRate !== this._sampleRate) {
+            this._sampleRate = sampleRate;
+            this.hpInput.update(sampleRate);
+            this.hpFeedback.update(sampleRate);
+            this.hpSumming.update(sampleRate);
+            this.hpOutA.update(sampleRate);
+            this.hpOutB.update(sampleRate);
+        }
 
         for (let i = 0; i < frames; i++) {
             // Clamp parameters to safe ranges
@@ -75,13 +127,14 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
             const K = resonance * 4.0;
 
             const x = inputChannel[i];
+            const xhp = this.hpInput.process(x);
 
-            // ZDF Topology with non-linear feedback (soft clipping)
+            // ZDF topology with diode2-inspired loop HP shaping and soft clipping.
             const S = (G * G * G * this.s1 + G * G * this.s2 + G * this.s3 + this.s4) / (1.0 + g);
+            const shapedFeedback = this.hpFeedback.process(S);
 
-            // Apply soft clipping to feedback path to prevent explosion
-            // u = x - K * tanh(S)
-            const u = (x - K * Math.tanh(S)) / (1.0 + K * G * G * G * G);
+            const summed = this.hpSumming.process(xhp - K * Math.tanh(shapedFeedback));
+            const u = summed / (1.0 + K * G * G * G * G);
 
             // Stage 1
             const v1 = (u - this.s1) * G;
@@ -102,13 +155,19 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
             const v4 = (y3 - this.s4) * G;
             const y4 = v4 + this.s4;
             this.s4 = y4 + v4;
+            const yOut = 1.06 * this.hpOutB.process(this.hpOutA.process(y4));
 
             // NaN Safety check
-            if (!Number.isFinite(y4)) {
+            if (!Number.isFinite(yOut)) {
                 this.s1 = this.s2 = this.s3 = this.s4 = 0;
+                this.hpInput.reset();
+                this.hpFeedback.reset();
+                this.hpSumming.reset();
+                this.hpOutA.reset();
+                this.hpOutB.reset();
                 outputChannel0[i] = 0;
             } else {
-                outputChannel0[i] = y4;
+                outputChannel0[i] = yOut;
             }
 
             if (outputChannel1 !== null) {

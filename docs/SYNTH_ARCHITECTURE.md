@@ -1,4 +1,4 @@
-# 🎹 AcidBros Synthesis Architecture (v1.2)
+# 🎹 AcidBros Synthesis Architecture (v1.3)
 
 Welcome to the engine room! 🔧
 This document explains the core synthesis architecture of AcidBros, including the **TB-303 Emulation**, **TR-909 Drum Synthesis**, and the new **Unified Drum Engine**.
@@ -199,7 +199,7 @@ The TB-303 is a subtractive monophonic synthesizer. Its character comes from the
 ```mermaid
 graph LR
     subgraph Voice
-    OSC["Oscillator<br/>(Saw/Square)"] --> FILTER["ZDF Diode-Ladder Filter<br/>(Resonant)"]
+    OSC["Oscillator<br/>(Saw/Square)"] --> FILTER["ZDF Diode-Ladder Filter<br/>(Resonant + diode2-inspired HP Coupling)"]
     FILTER --> VCA["VCA<br/>(Amp Envelope)"]
     end
     
@@ -219,9 +219,26 @@ graph LR
 
 ### Key Concepts
 - **Oscillator**: Sawtooth (Buzzy) / Square (Hollow).
-- **Filter**: Zero-Delay Feedback (ZDF) Diode-Ladder Filter (AudioWorklet). This replaces the standard 4-pole Lowpass for a much more authentic, "squelchy" resonance characteristic.
+- **Filter**: Zero-Delay Feedback (ZDF) Diode-Ladder Filter (AudioWorklet). The core 4-stage ladder now includes diode2-inspired low-frequency coupling/high-pass shaping around the loop for a fuller, more hardware-like resonance contour.
 - **Accent**: Boosts volume, aggressively opens filter cutoff, shortens decay, and increases envelope modulation depth.
 - **Slide**: Glides pitch exponentially (using `exponentialRampToValueAtTime`) for a natural, analog feel, and suppresses envelope re-trigger.
+
+### TB-303 Filter Update (v1.3)
+- **Core Preserved**: The existing 4-stage ZDF ladder (`g`, `G`, `K`) remains the main filter core.
+- **diode2-inspired HP Coupling Added**: Five one-pole high-pass sections are inserted around the loop:
+  - Input HP (pre-ladder input conditioning)
+  - Feedback HP (resonance path shaping)
+  - Summing HP (feedback summing node conditioning)
+  - Output HP A + Output HP B (post-ladder double HP shaping)
+- **Nonlinearity Preserved**: `tanh` soft clipping in the feedback path is retained for stability and analog-like saturation.
+- **Output Trim**: A small compensation gain is applied after the post-ladder HP chain to keep perceived level consistent.
+
+### UI/Knob Mapping Impact
+- **No UI range changes required** for this update.
+- Current mappings remain:
+  - `CUTOFF`: `0..100` knob -> normalized `0..1` -> mapped to filter cutoff trajectory in voice engine.
+  - `RESO`: `0..15` knob -> normalized `0..1` (`reso / 15`) -> worklet resonance parameter.
+  - `ENV MOD`, `DECAY`, `ACCENT`, `VOLUME`: unchanged behavior and ranges.
 
 ---
 
