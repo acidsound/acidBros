@@ -7,7 +7,7 @@ Welcome to **AcidBros**, your web‑based acid techno studio! This manual guides
 ## 1. Transport & Global Controls
 The top bar provides the main playback and project controls.
 
-![Transport Controls](assets/manual-transport.png)
+![Transport Controls](../assets/manual-transport.png)
 
 - **FILE MANAGER (📁)** – Save, load, and manage multiple patterns/songs with persistent browser storage. Click to open the file manager popover.
   - **New** – Create a new file (clears current pattern).
@@ -34,7 +34,7 @@ The top bar provides the main playback and project controls.
 
 ## 2. Mode Switch & Pattern Management
 
-![Mode Switch](assets/manual-mode-switch.png)
+![Mode Switch](../assets/manual-mode-switch.png)
 
 ### Mode Switch
 Toggle between **Pattern Mode** and **Song Mode** using the animated switch. The handle slides smoothly between modes.
@@ -44,7 +44,7 @@ Toggle between **Pattern Mode** and **Song Mode** using the animated switch. The
 - **COPY Button** (📋 icon) – Copy the current pattern. Toast notification confirms "Pattern copied!"
 - **PASTE Button** (📄 icon) – Paste the copied pattern. Toast notification confirms "Pattern pasted!"
 
-![Copy/Paste Buttons](assets/manual-copy-paste.png)
+![Copy/Paste Buttons](../assets/manual-copy-paste.png)
 
 ### Song Mode
 - **Pattern Timeline** – Click pattern buttons (P1-P16) to add them to your song arrangement.
@@ -64,7 +64,7 @@ Toggle between **Pattern Mode** and **Song Mode** using the animated switch. The
 ## 3. TB‑303 Bassline Units
 AcidBros features **two independent TB‑303 units** (Unit 1 & 2). Each unit offers classic acid‑style synthesis.
 
-![TB‑303 Unit](assets/manual-tb303.png)
+![TB‑303 Unit](../assets/manual-tb303.png)
 
 ### Machine Header
 - **UNIT TITLE** – Click the title to collapse/expand the unit.
@@ -103,7 +103,7 @@ Each unit has a 16‑step grid. Steps light up when active.
 
 ### Inline Piano Roll
 
-![Inline Piano Roll](assets/manual-pianoroll.png)
+![Inline Piano Roll](../assets/manual-pianoroll.png)
 
 Click the piano toggle button (🎹) in the TB-303 unit header to open the advanced inline note editor:
 
@@ -126,7 +126,7 @@ Click the piano toggle button (🎹) in the TB-303 unit header to open the advan
 ## 4. TR‑909 Rhythm Composer
 The drum section provides classic 909 sounds.
 
-![TR‑909 Unit](assets/manual-tr909.png)
+![TR‑909 Unit](../assets/manual-tr909.png)
 
 ### Drum Tracks
 Each track has dedicated parameter knobs and a level control:
@@ -143,7 +143,7 @@ Each track has dedicated parameter knobs and a level control:
 
 ### Manage Drum Tracks
 
-![Manage Drum Tracks](assets/manual-manage-tracks.png)
+![Manage Drum Tracks](../assets/manual-manage-tracks.png)
 
 Click the **MANAGE TRACKS** button at the bottom of the TR-909 unit to open the Manage Drum Tracks popover.
 - **Toggle Tracks**: Enable or disable specific drum tracks to customize your 909 layout.
@@ -161,7 +161,7 @@ Each track has its own 16‑step grid. Active steps glow orange/yellow; inactive
 
 ### Advanced Drum Editor (Drum Synth Editor)
 
-![Drum Synth Editor](assets/manual-drumsynth.png)
+![Drum Synth Editor](../assets/manual-drumsynth.png)
 
 Click the **Settings icon** (⚙️) within the **MANAGE TRACKS** modal to open the full **Drum Synth Editor** for a specific track.
 
@@ -298,7 +298,7 @@ AcidBros supports mapping MIDI controllers and PC/Bluetooth keyboards to any UI 
 
 Click the **Settings (⚙️)** button in the transport bar to open the configuration panel.
 
-![Settings Panel](assets/manual-settings.png)
+![Settings Panel](../assets/manual-settings.png)
 
 The Settings panel provides:
 - **General Tab** – Configure global application behaviors

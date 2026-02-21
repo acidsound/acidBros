@@ -7,7 +7,7 @@
 ## 1. 트랜스포트 및 전역 컨트롤
 상단 바는 주요 재생 및 프로젝트 컨트롤을 제공합니다.
 
-![Transport Controls](assets/manual-transport.png)
+![Transport Controls](../assets/manual-transport.png)
 
 - **FILE MANAGER (📁)** – 브라우저 저장소에 여러 패턴/송을 저장하고 관리하세요. 파일 관리자 팝오버를 열려면 클릭.
   - **New** – 새 파일 생성(현재 패턴 지우기).
@@ -34,7 +34,7 @@
 
 ## 2. 모드 전환 및 패턴 관리
 
-![Mode Switch](assets/manual-mode-switch.png)
+![Mode Switch](../assets/manual-mode-switch.png)
 
 ### 모드 전환
 **패턴 모드**와 **송 모드** 사이를 전환하려면 애니메이션 스위치를 사용하세요. 핸들은 모드 사이를 부드럽게 이동합니다.
@@ -44,7 +44,7 @@
 - **COPY 버튼** (📋 아이콘) – 현재 패턴 복사. 토스트 알림으로 "Pattern copied!" 확인.
 - **PASTE 버튼** (📄 아이콘) – 복사된 패턴 붙여넣기. 토스트 알림으로 "Pattern pasted!" 확인.
 
-![Copy/Paste Buttons](assets/manual-copy-paste.png)
+![Copy/Paste Buttons](../assets/manual-copy-paste.png)
 
 ### 송 모드
 - **패턴 타임라인** – 송 편성에 추가하려면 패턴 버튼(P1-P16) 클릭.
@@ -64,7 +64,7 @@
 ## 3. TB‑303 베이스라인 유닛
 AcidBros는 **두 개의 독립적인 TB‑303 유닛** (유닛 1 & 2)을 특징으로 합니다. 각 유닛은 클래식 애시드 스타일 신디사이저를 제공합니다.
 
-![TB‑303 Unit](assets/manual-tb303.png)
+![TB‑303 Unit](../assets/manual-tb303.png)
 
 ### 머신 헤더 (Machine Header)
 - **UNIT TITLE** – 타이틀을 클릭하여 유닛을 접거나 펼 수 있습니다.
@@ -103,7 +103,7 @@ AcidBros는 **두 개의 독립적인 TB‑303 유닛** (유닛 1 & 2)을 특징
 
 ### 인라인 피아노 롤
 
-![Inline Piano Roll](assets/manual-pianoroll.png)
+![Inline Piano Roll](../assets/manual-pianoroll.png)
 
 TB-303 유닛 헤더의 피아노 토글 버튼(🎹)을 클릭하여 심화 인라인 노트 편집기를 엽니다:
 
@@ -126,7 +126,7 @@ TB-303 유닛 헤더의 피아노 토글 버튼(🎹)을 클릭하여 심화 인
 ## 4. TR‑909 리듬 컴포저
 드럼 섹션은 클래식 909 사운드를 제공합니다.
 
-![TR‑909 Unit](assets/manual-tr909.png)
+![TR‑909 Unit](../assets/manual-tr909.png)
 
 ### 드럼 트랙
 각 트랙은 전용 파라미터 노브와 레벨 컨트롤을 가지고 있습니다:
@@ -143,7 +143,7 @@ TB-303 유닛 헤더의 피아노 토글 버튼(🎹)을 클릭하여 심화 인
 
 ### 드럼 트랙 관리 (Manage Drum Tracks)
 
-![Manage Drum Tracks](assets/manual-manage-tracks.png)
+![Manage Drum Tracks](../assets/manual-manage-tracks.png)
 
 TR-909 유닛 하단의 **MANAGE TRACKS** 버튼을 클릭하여 드럼 트랙 관리 팝오버를 엽니다.
 - **트랙 토글**: 특정 드럼 트랙을 활성화 또는 비활성화하여 909 레이아웃을 사용자 설정할 수 있습니다.
@@ -161,7 +161,7 @@ TR-909 유닛 하단의 **MANAGE TRACKS** 버튼을 클릭하여 드럼 트랙 �
 
 ### 심화 드럼 에디터 (Drum Synth Editor)
 
-![Drum Synth Editor](assets/manual-drumsynth.png)
+![Drum Synth Editor](../assets/manual-drumsynth.png)
 
 **MANAGE TRACKS** 모달 내의 설정 아이콘(⚙️)을 클릭하여 특정 트랙의 전체 **Drum Synth Editor**를 엽니다.
 
@@ -298,7 +298,7 @@ AcidBros는 수동 퍼포먼스를 위한 MIDI 컨트롤러 및 PC/블루투스 
 
 트랜스포트 바의 **Settings (⚙️)** 버튼을 클릭하여 매핑 구성 패널 열기.
 
-![Settings Panel](assets/manual-settings.png)
+![Settings Panel](../assets/manual-settings.png)
 
 설정 패널은 다음 기능 제공:
 - **일반 (General) 탭** – 전역 애플리케이션 동작 구성
