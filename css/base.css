@@ -66,6 +66,14 @@ body {
     -webkit-touch-callout: none;
 }
 
+body.overlay-scroll-lock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    width: 100%;
+    overflow: hidden;
+}
+
 h1,
 h2,
 h3 {

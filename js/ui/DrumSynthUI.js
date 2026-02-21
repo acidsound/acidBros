@@ -154,6 +154,7 @@ export const DrumSynthUI = {
         this.currentTrackId = trackId;
         this.isOpen = true;
         this.overlay.classList.remove('hidden');
+        UI.updateOverlayScrollLock();
 
         // Close Manage Tracks modal if open
         const manageOverlay = document.getElementById('manageTracksOverlay');
@@ -198,6 +199,7 @@ export const DrumSynthUI = {
     close() {
         this.isOpen = false;
         this.overlay.classList.add('hidden');
+        UI.updateOverlayScrollLock();
         this.currentTrackId = null;
     },
 
