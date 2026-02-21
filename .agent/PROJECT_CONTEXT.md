@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v133
+- **Current Version**: v135
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -33,6 +33,20 @@ Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
   - **Interaction**: Vertical drag (up/down) changes values
   - **Touch ID Tracking**: Each knob tracks its specific touch identifier
   - **Double-tap**: Resets to default value
+- **Overlay Scroll Lock (v134-dev)**:
+  - Main page scroll is locked while overlays/popovers are open.
+  - Overlay content remains vertically scrollable (`overscroll-behavior: contain`, `touch-action: pan-y`).
+  - Centralized control through `UI.showOverlay()`, `UI.hideOverlay()`, and `UI.updateOverlayScrollLock()`.
+- **Song Timeline Drag UX (v134-dev)**:
+  - Drag ghost now uses transform-based movement with transitions disabled during drag for lower perceived latency on touch devices.
+  - A vertical insertion marker (`.song-drop-indicator`) previews drop position between pattern blocks in Song mode.
+  - Adjacent timeline blocks at the insertion boundary receive edge glow classes (`drop-neighbor-left`, `drop-neighbor-right`) for occlusion-resistant preview on touch devices.
+  - Drop commit now applies FLIP-style position animation so blocks visibly move into final placement after drop.
+- **TB-303 Step Micro Controls (v134-dev)**:
+  - `DN/UP/AC/SL` mini-buttons now use pointerdown handlers that stop propagation so touching mini-buttons does not trigger the parent step press/toggle.
+- **Inline Style Hygiene (v134-dev)**:
+  - Static presentation styles were moved from inline HTML/JS to CSS classes (`layout.css`, `overlays.css`, `machines.css`).
+  - Dynamic-only styles remain in JS (swing moving dots, drag indicator positioning, overlay scroll lock offset).
 
 #### Creating New Knob-Based UIs (Pattern: TB-303/DrumSynth)
 
@@ -244,10 +258,10 @@ To ensure project health and consistency, relevant documentation MUST be updated
 | **`.agent/PROJECT_CONTEXT.md`** | Source of truth for agents. | **Required for EVERY change.** Update `Recent Changes` and `Architecture` sections. |
 | **`.agent/DESIGN_GUIDE.md`** | UI/UX standards and typography. | Any new component, modal, or styling pattern. **MUST be referenced for all UI work.** |
 | **`.qwen/PROJECT_SUMMARY.md`** | High-level technical summary. | Major feature additions or architectural shifts. |
-| **`BINARY_FORMAT.md`** | Data structure spec. | Any change to how patterns, settings, or project states are encoded/saved. |
-| **`USER_MANUAL.md` / `_ko.md`** | End-user instructions. | UI changes, new controls, or feature workflows. |
-| **`LEARNING_GUIDE.md`** | Beginner tutorials. | Changes affecting the "getting started" experience or core concepts. |
-| **`SYNTH_ARCHITECTURE.md`**| Detailed audio/logic spec. | Internal logic changes in TR-909 or TB-303 engines. |
+| **`docs/BINARY_FORMAT.md`** | Data structure spec. | Any change to how patterns, settings, or project states are encoded/saved. |
+| **`docs/USER_MANUAL.md` / `_ko.md`** | End-user instructions. | UI changes, new controls, or feature workflows. |
+| **`docs/LEARNING_GUIDE.md`** | Beginner tutorials. | Changes affecting the "getting started" experience or core concepts. |
+| **`docs/SYNTH_ARCHITECTURE.md`**| Detailed audio/logic spec. | Internal logic changes in TR-909 or TB-303 engines. |
 | **`README.md`** | Project landing page. | Major version bumps or dependency changes. |
 
 
@@ -362,7 +376,7 @@ To ensure project health and consistency, relevant documentation MUST be updated
 
 ### v71: Binary Format for Sharing
 - **New Feature**: Compact binary format for URL sharing
-  - `BINARY_FORMAT.md`: Complete specification document
+  - `docs/BINARY_FORMAT.md`: Complete specification document
   - `BinaryFormatEncoder.js`: Encode synth state to compact binary
   - `BinaryFormatDecoder.js`: Decode binary back to synth state
   - Base64URL encoding (URL-safe, no percent-encoding needed)
@@ -393,7 +407,7 @@ To ensure project health and consistency, relevant documentation MUST be updated
 - **Unified Waveform Toggle**: Waveform switches now support single-key/MIDI-note toggle mapping. Previously, sawtooth and square had separate mappings. Now mapped to `.waveform-switch` container, a single press toggles between the two waveforms.
 - **New Mapping Type**: Added `waveform-toggle` type in MidiManager.js for this behavior.
 - **HTML Changes**: Added `id="waveform-switch-1"` and `id="waveform-switch-2"` with `data-midi-mappable="waveform-toggle"` attribute.
-- **Learning Guide**: Created comprehensive `LEARNING_GUIDE.md` with 6 chapters for beginners:
+- **Learning Guide**: Created comprehensive `docs/LEARNING_GUIDE.md` with 6 chapters for beginners:
   - Chapter 1: Getting Started (interface, first sound)
   - Chapter 2: Creating Rhythms (sequencer, drums, bass patterns)
   - Chapter 3: Shaping Sound (filter, envelope, accent, slide)
@@ -520,7 +534,7 @@ To ensure project health and consistency, relevant documentation MUST be updated
 - **BD Refinement**: Calibrated TUNE knob for pitch decay control (neutral at 40), softened click impact, and fixed master level mapping.
 - **SD Refinement**: Implemented dual Triangle VCO (1:1.62 ratio) and 20ms pitch bend for hardware accuracy.
 - **Shared Noise Fix**: Investigated and reverted the Shared Noise Bus architecture due to connection accumulation issues; restored per-trigger individual noise sources to prevent leakage.
-- **Improved Documentation**: Updated `SYNTH_ARCHITECTURE.md` with detailed 909 synthesis specs and signal flow diagrams.
+- **Improved Documentation**: Updated `docs/SYNTH_ARCHITECTURE.md` with detailed 909 synthesis specs and signal flow diagrams.
 
 ### v95: TR-909 Refinement & Custom Samples
 - **Refined Track Management**:
@@ -579,7 +593,7 @@ To ensure project health and consistency, relevant documentation MUST be updated
   - Resolved the 1-step delay issue on TR-909 sample-based tracks (CR, RD, CH, OH).
   - Improved `stopAll()` logic to prevent cutting off tails during scheduled playback while maintaining manual preview responsiveness.
 - **Documentation Overhaul**:
-  - Entirely rewrote `SYNTH_ARCHITECTURE.md` to reflect the `UnifiedSynth` engine.
+  - Entirely rewrote `docs/SYNTH_ARCHITECTURE.md` to reflect the `UnifiedSynth` engine.
   - Added detailed Mermaid diagrams for internal signal flow (OSC 1-4, Click, Snap, Noise/Filter).
   - Defined explicit parameter mappings between UI knobs and internal engine variables for all original TR-909 instruments.
   - Added technical specs for sample-based Hi-Hats and Cymbals, including choke and tuning logic.
@@ -607,7 +621,7 @@ To ensure project health and consistency, relevant documentation MUST be updated
 - **ZDF Diode-Ladder Filter**: Replaced the basic `BiquadFilterNode` with a custom `AudioWorkletNode` implementing a Zero-Delay Feedback (ZDF) diode-ladder filter, significantly improving the authentic "squelchy" resonance characteristic.
 - **Exponential Slide**: Implemented exponential pitch slides (`exponentialRampToValueAtTime`) replacing linear slides for a more natural, analog-feeling glide.
 - **Envelope & Accent Refinement**: Adjusted amplitude envelopes and accent scaling logic to match the hardware response more closely.
-- **Documentation**: Updated `SYNTH_ARCHITECTURE.md` to detail the new ZDF filter and slide logic.
+- **Documentation**: Updated `docs/SYNTH_ARCHITECTURE.md` to detail the new ZDF filter and slide logic.
 
 ### v134-dev: Audio Timing Drift / Dropout Stability Fix
 - **Issue Signature**: Long playback sessions could gradually drift in timing and eventually drop audio output without visible UI or console errors.
@@ -621,3 +635,34 @@ To ensure project health and consistency, relevant documentation MUST be updated
 - **TR-909 / UnifiedSynth Fixes**:
   - Replaced passive expiry tracking with actual disconnect callbacks for expired nodes.
   - Added `DrumVoice.stop()` and `TR909.stop()` propagation so transport stop clears active synth chains immediately.
+
+### v134-dev: Popover Scroll Lock Fix
+- **Issue Signature**: While popovers/modals were open, background page could still scroll, causing interaction conflicts on mobile.
+- **UI Scroll Lock**:
+  - Added body-level fixed scroll lock class (`overlay-scroll-lock`) with saved scroll position restore.
+  - Introduced centralized overlay helpers in `UI.js` for open/close and lock synchronization.
+- **Overlay Behavior**:
+  - Applied vertical scrolling + overscroll containment on overlay backdrops so modal/popover content scrolls while the main page stays locked.
+  - Hooked File Manager, Settings, Drum Synth overlay, and Add Track popover into the unified lock lifecycle.
+
+### v134-dev: Song Drag Preview & 303 Step Touch Precision
+- **TB-303 Touch Precision**:
+  - Fixed mobile issue where tapping `DN/UP/AC/SL` mini-buttons could press/toggle the entire 303 step.
+  - Mini-buttons now intercept pointerdown and prevent bubbling to the parent `.step-303`.
+- **Song Mode Drag Responsiveness**:
+  - Reduced drag lag by removing all-property transition coupling from `.song-block` and disabling transitions on drag ghost.
+  - Drag ghost now follows pointer via `translate3d(...)` for smoother updates.
+- **Song Mode Drop Preview**:
+  - Added a vertical insertion bar in timeline (`.song-drop-indicator`) that previews where the dragged pattern will be inserted.
+  - Added gradient edge glow on the adjacent left/right blocks (`drop-neighbor-left`, `drop-neighbor-right`) so insertion target remains visible when finger occludes the bar.
+  - Added drop commit motion feedback: neighboring timeline blocks animate into new positions, while the dragged block only nudges from the drop point into its final slot and is briefly emphasized (`song-drop-landed`).
+
+### v134-dev: Inline Style Cleanup (HTML/JS -> CSS Classes)
+- **index.html**:
+  - Removed all inline `style="..."` usage from Swing guides/dots and Mode spacer.
+  - Replaced with semantic classes (`swing-guide-25`, `swing-guide-75`, `swing-dot-0`, `swing-dot-50`, `mode-switch-spacer`).
+- **UI.js**:
+  - Replaced static `element.style.*` assignments (MIDI empty states, MIDI learn button base layout, song drag ghost base style) with class-based styling.
+  - Kept runtime/dynamic style writes only for values that change by interaction (`left/top/height/transform`).
+- **Piano Keys**:
+  - Removed per-key inline CSS var injection (`--white-index`) and switched to generated index classes (`white-index-0`..`white-index-20`) mapped in `machines.css`.

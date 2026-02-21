@@ -92,7 +92,7 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v133</div>
+          <div class="version-display">v135</div>
           <button id="fileManagerBtn" class="transport-icon-btn" title="File Manager" aria-label="File Manager">
             <span class="icon icon-lg icon-folder"></span>
           </button>
@@ -144,10 +144,10 @@
         <div class="swing-label">SWING</div>
         <div class="ribbon-controller" id="ribbonController">
           <div class="swing-track"></div>
-          <div class="swing-guide" style="left: 25%"></div>
-          <div class="swing-guide" style="left: 75%"></div>
-          <div class="swing-dot fixed" style="left: 0%"></div>
-          <div class="swing-dot fixed" style="left: 50%"></div>
+          <div class="swing-guide swing-guide-25"></div>
+          <div class="swing-guide swing-guide-75"></div>
+          <div class="swing-dot fixed swing-dot-0"></div>
+          <div class="swing-dot fixed swing-dot-50"></div>
           <div class="swing-dot moving" id="swingDot1"></div>
           <div class="swing-dot moving" id="swingDot2"></div>
         </div>
@@ -159,7 +159,7 @@
     <div id="mode-controls" class="mode-controls">
       <div class="mode-switch-group">
         <!-- Item 0: Spacer for layout balance -->
-        <div class="switch-group-item spacer" style="visibility: hidden; width: 40px;"></div>
+        <div class="switch-group-item spacer mode-switch-spacer"></div>
         <!-- Item 1: Mode Switch -->
         <div class="switch-group-item">
           <div class="switch-label">MODE</div>

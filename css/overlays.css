@@ -15,6 +15,11 @@
     backdrop-filter: blur(5px);
     z-index: 3000 !important;
     /* Ensure it is on top of add-track overlay (z-index 2000) */
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
 }
 
 .piano-overlay,
@@ -33,6 +38,11 @@
     justify-content: center;
     backdrop-filter: blur(5px);
     font-family: 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
 }
 
 .empty-msg {
@@ -664,6 +674,30 @@
 }
 
 .midi-device-status.disconnected {
+    background: #ff3333;
+}
+
+.midi-empty-state {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+.midi-empty-devices {
+    padding: 15px;
+}
+
+.midi-empty-mappings {
+    padding: 20px;
+}
+
+.midi-learn-toggle {
+    width: 100%;
+    margin-bottom: 15px;
+    justify-content: center;
+}
+
+.midi-learn-toggle.learning {
     background: #ff3333;
 }
 

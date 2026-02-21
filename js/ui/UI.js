@@ -8,6 +8,47 @@ import { DrumSynthUI } from './DrumSynthUI.js';
 
 export const UI = {
     isInitialized: false,
+    isMainScrollLocked: false,
+    scrollLockY: 0,
+    overlaySelector: '#fileManagerOverlay:not(.hidden), #settingsOverlay:not(.hidden), #drumSynthOverlay:not(.hidden), #add-track-popover-overlay:not(.hidden)',
+
+    lockMainScroll() {
+        if (this.isMainScrollLocked) return;
+        this.scrollLockY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+        document.body.style.top = `-${this.scrollLockY}px`;
+        document.body.classList.add('overlay-scroll-lock');
+        this.isMainScrollLocked = true;
+    },
+
+    unlockMainScroll() {
+        if (!this.isMainScrollLocked) return;
+        const restoreY = this.scrollLockY || 0;
+        document.body.classList.remove('overlay-scroll-lock');
+        document.body.style.top = '';
+        this.isMainScrollLocked = false;
+        window.scrollTo(0, restoreY);
+    },
+
+    updateOverlayScrollLock() {
+        const hasOpenOverlay = Boolean(document.querySelector(this.overlaySelector));
+        if (hasOpenOverlay) {
+            this.lockMainScroll();
+        } else {
+            this.unlockMainScroll();
+        }
+    },
+
+    showOverlay(overlay) {
+        if (!overlay) return;
+        overlay.classList.remove('hidden');
+        this.updateOverlayScrollLock();
+    },
+
+    hideOverlay(overlay) {
+        if (!overlay) return;
+        overlay.classList.add('hidden');
+        this.updateOverlayScrollLock();
+    },
 
     bindFastEvent(el, handler) {
         el.addEventListener('pointerdown', (e) => {
@@ -494,9 +535,9 @@ export const UI = {
                 const overlay = document.getElementById('fileManagerOverlay');
                 if (overlay.classList.contains('hidden')) {
                     this.renderFileList();
-                    overlay.classList.remove('hidden');
+                    this.showOverlay(overlay);
                 } else {
-                    overlay.classList.add('hidden');
+                    this.hideOverlay(overlay);
                 }
             };
         }
@@ -604,12 +645,12 @@ export const UI = {
         // Close on overlay click
         overlay.onclick = (e) => {
             if (e.target === overlay) {
-                overlay.classList.add('hidden');
+                this.hideOverlay(overlay);
             }
         };
 
         document.getElementById('fileCloseBtn').onclick = () => {
-            overlay.classList.add('hidden');
+            this.hideOverlay(overlay);
         };
 
         document.getElementById('fileNewBtn').onclick = () => {
@@ -678,7 +719,7 @@ export const UI = {
         const tabContents = document.querySelectorAll('.settings-tab-content');
 
         btn.onclick = () => {
-            overlay.classList.remove('hidden');
+            this.showOverlay(overlay);
             this.renderMidiMappings();
             this.renderMidiDevices();
             // Sync checkbox with current setting
@@ -701,7 +742,7 @@ export const UI = {
         }
 
         const closeSettings = () => {
-            overlay.classList.add('hidden');
+            this.hideOverlay(overlay);
             MidiManager.disableLearnMode();
             document.body.classList.remove('midi-learn-active');
         };
@@ -807,10 +848,7 @@ export const UI = {
 
         if (devices.length === 0) {
             const empty = document.createElement('div');
-            empty.style.padding = '15px';
-            empty.style.textAlign = 'center';
-            empty.style.color = '#666';
-            empty.style.fontStyle = 'italic';
+            empty.className = 'midi-empty-state midi-empty-devices';
             empty.innerText = 'No MIDI devices found.';
             list.appendChild(empty);
             return;
@@ -852,11 +890,7 @@ export const UI = {
 
         // Learn Button
         const learnBtn = document.createElement('button');
-        learnBtn.className = 'file-action-btn';
-        learnBtn.style.width = '100%';
-        learnBtn.style.marginBottom = '15px';
-        learnBtn.style.justifyContent = 'center';
-        learnBtn.style.background = MidiManager.isLearning ? '#ff3333' : 'linear-gradient(to bottom, #444, #333)';
+        learnBtn.className = `file-action-btn midi-learn-toggle${MidiManager.isLearning ? ' learning' : ''}`;
         learnBtn.innerText = document.body.classList.contains('midi-learn-active') ? 'Exit Learn Mode' : 'Start MIDI Learn';
 
         learnBtn.onclick = () => {
@@ -867,7 +901,7 @@ export const UI = {
                 this.hideLearnModeBanner();
                 learnBtn.innerText = 'Start MIDI Learn';
             } else {
-                overlay.classList.add('hidden');
+                this.hideOverlay(overlay);
                 document.body.classList.add('midi-learn-active');
                 this.showLearnModeBanner();
                 this.showToast('Select a control to map...');
@@ -877,10 +911,7 @@ export const UI = {
 
         if (mappings.length === 0) {
             const empty = document.createElement('div');
-            empty.style.padding = '20px';
-            empty.style.textAlign = 'center';
-            empty.style.color = '#666';
-            empty.style.fontStyle = 'italic';
+            empty.className = 'midi-empty-state midi-empty-mappings';
             empty.innerText = 'No MIDI mappings.';
             list.appendChild(empty);
             return;
@@ -1060,6 +1091,84 @@ export const UI = {
         if (timeline) this.updateSongTimelineDOM(timeline);
     },
 
+    animateSongDropReorder(oldRects, dragIndex, insertIndex, dropPoint = null) {
+        if (!oldRects || oldRects.length === 0) return;
+
+        const getOldIndexForNewIndex = (newIndex) => {
+            if (newIndex === insertIndex) return dragIndex;
+
+            if (dragIndex < insertIndex) {
+                if (newIndex >= dragIndex && newIndex < insertIndex) return newIndex + 1;
+                return newIndex;
+            }
+
+            if (dragIndex > insertIndex) {
+                if (newIndex > insertIndex && newIndex <= dragIndex) return newIndex - 1;
+                return newIndex;
+            }
+
+            return newIndex;
+        };
+
+        window.requestAnimationFrame(() => {
+            const timeline = document.getElementById('song-timeline');
+            if (!timeline) return;
+
+            const blocks = Array.from(timeline.querySelectorAll('.song-block'));
+            if (blocks.length !== oldRects.length) return;
+
+            blocks.forEach((block, newIndex) => {
+                if (newIndex === insertIndex) return;
+
+                const oldIndex = getOldIndexForNewIndex(newIndex);
+                const oldRect = oldRects[oldIndex];
+                const newRect = block.getBoundingClientRect();
+                if (!oldRect || !newRect) return;
+
+                const dx = oldRect.left - newRect.left;
+                const dy = oldRect.top - newRect.top;
+                if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+
+                if (typeof block.animate === 'function') {
+                    block.animate(
+                        [
+                            { transform: `translate(${dx}px, ${dy}px)` },
+                            { transform: 'translate(0, 0)' }
+                        ],
+                        { duration: 220, easing: 'cubic-bezier(0.2, 0, 0, 1)' }
+                    );
+                }
+            });
+
+            const landedBlock = blocks[insertIndex];
+            if (landedBlock) {
+                if (dropPoint && typeof landedBlock.animate === 'function') {
+                    const finalRect = landedBlock.getBoundingClientRect();
+                    const startLeft = dropPoint.clientX - (finalRect.width / 2);
+                    const startTop = dropPoint.clientY - (finalRect.height / 2);
+
+                    // Keep the landed-block motion subtle and local to drop position.
+                    const maxNudge = 26;
+                    const dx = Math.max(-maxNudge, Math.min(maxNudge, startLeft - finalRect.left));
+                    const dy = Math.max(-maxNudge, Math.min(maxNudge, startTop - finalRect.top));
+
+                    if (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5) {
+                        landedBlock.animate(
+                            [
+                                { transform: `translate(${dx}px, ${dy}px)` },
+                                { transform: 'translate(0, 0)' }
+                            ],
+                            { duration: 170, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+                        );
+                    }
+                }
+
+                landedBlock.classList.add('song-drop-landed');
+                window.setTimeout(() => landedBlock.classList.remove('song-drop-landed'), 260);
+            }
+        });
+    },
+
     updateSongTimelineDOM(container) {
         container.innerHTML = '';
 
@@ -1071,14 +1180,38 @@ export const UI = {
             return;
         }
 
+        const resolveDropPlacement = (point, dragIndex) => {
+            const elemBelow = document.elementFromPoint(point.clientX, point.clientY);
+            const targetBlock = elemBelow ? elemBelow.closest('.song-block') : null;
+            if (!targetBlock || !container.contains(targetBlock)) return null;
+
+            const targetIndex = parseInt(targetBlock.dataset.index, 10);
+            if (Number.isNaN(targetIndex) || targetIndex === dragIndex) return null;
+
+            const rect = targetBlock.getBoundingClientRect();
+            const insertAfter = (point.clientX - rect.left) > (rect.width / 2);
+
+            let insertIndex;
+            if (insertAfter) {
+                insertIndex = dragIndex < targetIndex ? targetIndex : targetIndex + 1;
+            } else {
+                insertIndex = dragIndex < targetIndex ? targetIndex - 1 : targetIndex;
+            }
+
+            return {
+                insertIndex,
+                indicatorLeft: insertAfter ? rect.right : rect.left,
+                indicatorTop: rect.top,
+                indicatorHeight: rect.height
+            };
+        };
+
         Data.song.forEach((patId, idx) => {
             const block = document.createElement('div');
             block.className = 'song-block';
             block.innerText = `P${patId + 1}`;
             block.dataset.index = idx;
             block.title = 'Click to remove, Drag to reorder';
-            block.style.cursor = 'pointer';
-            block.style.touchAction = 'none'; // Prevent scrolling while dragging
 
             // Highlight current playing block
             if (AudioEngine.isPlaying && AudioEngine.currentSongIndex === idx) {
@@ -1090,6 +1223,12 @@ export const UI = {
             let startY = 0;
             let isDragging = false;
             let ghost = null;
+            let ghostHalfWidth = 0;
+            let ghostHalfHeight = 0;
+            let dropIndicator = null;
+            let lastDropPlacement = null;
+            let dropLeftNeighbor = null;
+            let dropRightNeighbor = null;
             const dragIndex = idx;
 
             const onStart = (e) => {
@@ -1097,12 +1236,55 @@ export const UI = {
                 startX = point.clientX;
                 startY = point.clientY;
                 isDragging = false;
+                lastDropPlacement = null;
 
                 // Bind window events
                 window.addEventListener('mousemove', onMove, { passive: false });
                 window.addEventListener('touchmove', onMove, { passive: false });
                 window.addEventListener('mouseup', onEnd);
                 window.addEventListener('touchend', onEnd);
+            };
+
+            const removeDropIndicator = () => {
+                if (!dropIndicator) return;
+                dropIndicator.remove();
+                dropIndicator = null;
+            };
+
+            const clearDropNeighbors = () => {
+                if (dropLeftNeighbor) {
+                    dropLeftNeighbor.classList.remove('drop-neighbor-left');
+                    dropLeftNeighbor = null;
+                }
+                if (dropRightNeighbor) {
+                    dropRightNeighbor.classList.remove('drop-neighbor-right');
+                    dropRightNeighbor = null;
+                }
+            };
+
+            const updateDropNeighbors = (insertIndex) => {
+                const remainingIndices = [];
+                for (let j = 0; j < Data.song.length; j++) {
+                    if (j !== dragIndex) remainingIndices.push(j);
+                }
+
+                const leftIndex = insertIndex > 0 ? remainingIndices[insertIndex - 1] : null;
+                const rightIndex = insertIndex < remainingIndices.length ? remainingIndices[insertIndex] : null;
+
+                const nextLeft = leftIndex === null ? null : container.querySelector(`.song-block[data-index="${leftIndex}"]`);
+                const nextRight = rightIndex === null ? null : container.querySelector(`.song-block[data-index="${rightIndex}"]`);
+
+                if (dropLeftNeighbor !== nextLeft) {
+                    if (dropLeftNeighbor) dropLeftNeighbor.classList.remove('drop-neighbor-left');
+                    dropLeftNeighbor = nextLeft;
+                    if (dropLeftNeighbor) dropLeftNeighbor.classList.add('drop-neighbor-left');
+                }
+
+                if (dropRightNeighbor !== nextRight) {
+                    if (dropRightNeighbor) dropRightNeighbor.classList.remove('drop-neighbor-right');
+                    dropRightNeighbor = nextRight;
+                    if (dropRightNeighbor) dropRightNeighbor.classList.add('drop-neighbor-right');
+                }
             };
 
             const onMove = (e) => {
@@ -1117,24 +1299,39 @@ export const UI = {
 
                         // Create Ghost
                         ghost = block.cloneNode(true);
-                        ghost.style.position = 'fixed';
-                        ghost.style.zIndex = '9999';
-                        ghost.style.opacity = '0.9';
-                        ghost.style.pointerEvents = 'none';
-                        ghost.style.width = block.offsetWidth + 'px';
-                        ghost.style.height = block.offsetHeight + 'px';
-                        ghost.style.transform = 'scale(1.1)';
-                        ghost.style.boxShadow = '0 5px 15px rgba(0,0,0,0.5)';
+                        ghost.classList.add('song-drag-ghost');
                         document.body.appendChild(ghost);
+                        ghostHalfWidth = block.offsetWidth / 2;
+                        ghostHalfHeight = block.offsetHeight / 2;
 
-                        block.style.opacity = '0.2';
+                        block.classList.add('dragging-source');
                     }
                 }
 
                 if (isDragging && ghost) {
                     if (e.cancelable) e.preventDefault(); // Prevent scroll
-                    ghost.style.left = (point.clientX - ghost.offsetWidth / 2) + 'px';
-                    ghost.style.top = (point.clientY - ghost.offsetHeight / 2) + 'px';
+                    ghost.style.transform = `translate3d(${point.clientX - ghostHalfWidth}px, ${point.clientY - ghostHalfHeight}px, 0) scale(1.08)`;
+
+                    const placement = resolveDropPlacement(point, dragIndex);
+                    lastDropPlacement = placement;
+
+                    if (!placement) {
+                        removeDropIndicator();
+                        clearDropNeighbors();
+                        return;
+                    }
+
+                    if (!dropIndicator) {
+                        dropIndicator = document.createElement('div');
+                        dropIndicator.className = 'song-drop-indicator';
+                        container.appendChild(dropIndicator);
+                    }
+
+                    const containerRect = container.getBoundingClientRect();
+                    dropIndicator.style.left = `${placement.indicatorLeft - containerRect.left}px`;
+                    dropIndicator.style.top = `${placement.indicatorTop - containerRect.top + container.scrollTop}px`;
+                    dropIndicator.style.height = `${placement.indicatorHeight}px`;
+                    updateDropNeighbors(placement.insertIndex);
                 }
             };
 
@@ -1147,143 +1344,25 @@ export const UI = {
                 if (isDragging) {
                     // Cleanup ghost
                     if (ghost) ghost.remove();
-                    block.style.opacity = '1';
+                    removeDropIndicator();
+                    clearDropNeighbors();
+                    block.classList.remove('dragging-source');
 
-                    // Find drop target
                     const point = e.changedTouches ? e.changedTouches[0] : e;
-                    const elemBelow = document.elementFromPoint(point.clientX, point.clientY);
-                    const targetBlock = elemBelow ? elemBelow.closest('.song-block') : null;
+                    const finalPlacement = point ? (resolveDropPlacement(point, dragIndex) || lastDropPlacement) : lastDropPlacement;
+                    const item = Data.song[dragIndex];
 
-                    if (targetBlock && targetBlock !== block) {
-                        const targetIndex = parseInt(targetBlock.dataset.index);
-                        const item = Data.song[dragIndex];
-
-                        // Remove current
+                    if (finalPlacement && item !== undefined) {
+                        const oldRects = Array.from(container.querySelectorAll('.song-block')).map(songBlock => songBlock.getBoundingClientRect());
                         Data.song.splice(dragIndex, 1);
-                        // Insert at new (adjusting for removal if target is after)
-                        // Actually splice(dragIndex, 1) shifts indices.
-                        // If dragIndex < targetIndex, targetIndex decreases by 1
-                        // But targetBlock.dataset.index has the OLD index.
-                        // So if we are moving from 0 to 2:
-                        // [A, B, C] -> remove A -> [B, C]. Insert at 2? -> [B, C, A]. Correct.
-                        // If we are moving from 2 to 0:
-                        // [A, B, C] -> remove C -> [A, B]. Insert at 0 -> [C, A, B]. Correct.
-
-                        // We must be careful about "insert after" vs "insert before".
-                        // Simply inserting at the target index usually works as a "swap" or "place before".
-                        // To be precise: "Place before target".
-                        // If I drop on B (index 1), I want to be at index 1.
-                        // [A, B, C] -> drag A -> drop on B.
-                        // remove A (idx 0). List [B, C]. Drop at idx 1 (B's old idx). -> [B, A, C].
-                        // Wait, A was 0. B is 1. OLD indices.
-                        // remove 0. [B, C]. insert at 1? -> B is at 0 now. C is 1.
-                        // inserting at 1 -> [B, A, C]. So A moved after B.
-                        // User expectation might be 'insert before B'.
-                        // If I want [A, B, C] -> drop C on A -> [C, A, B].
-                        // C (2), A (0). remove 2 -> [A, B]. insert at 0 -> [C, A, B].
-
-                        // Let's refine:
-                        // We remove the item first.
-                        // Then we insert at `targetIndex`.
-                        // BUT if `dragIndex < targetIndex`, the removal shifted the indices of items after `dragIndex` down by 1.
-                        // So `targetIndex` (which is the OLD index from dataset) is now actually `targetIndex - 1` in the new array.
-                        // So we should insert at `targetIndex - 1`.
-                        // IF `dragIndex > targetIndex`, indices before `dragIndex` are unaffected. So `targetIndex` is valid.
-
-                        let insertIndex = targetIndex;
-                        // Logic check:
-                        // [0:A, 1:B, 2:C]
-                        // Drag A(0) to B(1).
-                        // targetIndex = 1. dragIndex = 0.
-                        // Remove A -> [B, C].
-                        // If(0 < 1) insertIndex = 1 - 0 = 1? No.. ?
-                        // Visual drop on B means "Put me where B is". -> [A, B, C] (No change? or swap?)
-                        // If I drag A slightly past B, I hit B.
-                        // Usually DnD means "insert before".
-                        // If I drop on B, I want to be before B.
-                        // [A, B, C] -> drop A on B. -> [A, B, C].
-                        // [A, B, C] -> drop C on B. -> [A, C, B].
-                        // remove C(2). [A, B]. target B(1). insert at 1. [A, C, B]. Correct.
-
-                        // So the rule "Insert at targetIndex" works IF target is NOT shifted.
-                        // If `dragIndex < targetIndex`:
-                        // [A, B, C]. Drag A(0) drop on C(2).
-                        // remove A -> [B, C].
-                        // target C was 2. But now C is at index 1.
-                        // If we insert at 2: [B, C, A]. A became last.
-                        // Goal: [B, A, C]? Drop on C means before C?
-                        // If drop on C means before C, result should be [B, A, C].
-                        // current array [B, C]. C is at index 1.
-                        // We want insert at index 1.
-                        // targetIndex was 2.
-                        // So `insertIndex = targetIndex - 1`.
-
-                        if (dragIndex < targetIndex) {
-                            insertIndex = targetIndex; // If we drop "on" it, maybe insert *after* it if dragging forward?
-                            // Standard behavior: dropping "past" the center usually determines.
-                            // But here we just get the element.
-                            // Let's stick to "Insert Before".
-                            insertIndex = targetIndex - 1;
-                            // Wait, if I drop A(0) on B(1).
-                            // Remove A. [B, C].
-                            // targetIndex=1. insertIndex=0.
-                            // Result [A, B, C]. No change.
-
-                            // To move A after B, I must drop on C?
-                            // This is the limitation of "ElementFromPoint" without coordinate logic.
-
-                            // Let's improve: Calculate if mouse is on left or right half of target.
-                            const rect = targetBlock.getBoundingClientRect();
-                            const relX = point.clientX - rect.left;
-                            if (relX > rect.width / 2) {
-                                // Right side: Insert After
-                                // If A(0) -> B(1) right side.
-                                // Remove A. [B, C].
-                                // targetIndex=1. Insert after -> index 1 (since B is at 0) + 1 = 2?
-                                // No, B is at 0. Insert at 1. -> [B, A, C].
-
-                                // DragIndex(0) < TargetIndex(1).
-                                // Remove 0. Array shifted.
-                                // Target(1) is now at 0.
-                                // Insert After (index 0 + 1) = 1.
-                                // [B, A, C].
-
-                                insertIndex = targetIndex; // Effectively targetIndex because of shift -1 and +1 (after)
-                            } else {
-                                // Left side: Insert Before
-                                // If A(0) -> B(1) left side.
-                                // Remove 0. [B, C].
-                                // Target(1) is at 0.
-                                // Insert at 0. -> [A, B, C].
-                                insertIndex = targetIndex - 1;
-                            }
-                        } else {
-                            // DragIndex(2) > TargetIndex(1). C -> B.
-                            // Remove C(2). [A, B].
-                            // Target B(1) is still at 1.
-
-                            // Check side
-                            const rect = targetBlock.getBoundingClientRect();
-                            const relX = point.clientX - rect.left;
-                            if (relX > rect.width / 2) {
-                                // Insert After B.
-                                // Insert at 1 + 1 = 2.
-                                // [A, B, C].
-                                insertIndex = targetIndex + 1;
-                            } else {
-                                // Insert Before B.
-                                // Insert at 1.
-                                // [A, C, B].
-                                insertIndex = targetIndex;
-                            }
-                        }
-
-                        // Safety clamp
+                        let insertIndex = finalPlacement.insertIndex;
                         if (insertIndex < 0) insertIndex = 0;
                         if (insertIndex > Data.song.length) insertIndex = Data.song.length;
 
                         Data.song.splice(insertIndex, 0, item);
                         this.renderModeControls();
+                        const dropPoint = point ? { clientX: point.clientX, clientY: point.clientY } : null;
+                        this.animateSongDropReorder(oldRects, dragIndex, insertIndex, dropPoint);
                     } else {
                         // Dropped on self or nothing -> Rerender to restore opacity
                         this.renderModeControls();
@@ -1616,13 +1695,8 @@ export const UI = {
                 div.dataset.note = k.n;
                 div.dataset.oct = oct;
 
-                if (k.type === 'white') {
-                    div.style.setProperty('--white-index', whiteIndex);
-                    whiteIndex++;
-                } else {
-                    // Position black keys based on the previous white key index
-                    div.style.setProperty('--white-index', whiteIndex);
-                }
+                const keyWhiteIndex = k.type === 'white' ? whiteIndex++ : whiteIndex;
+                div.classList.add(`white-index-${keyWhiteIndex}`);
 
                 bindFastEvent(div, () => {
                     const seq = Data.getSequence(`tb303_${unitId}`);
@@ -1724,7 +1798,7 @@ export const UI = {
                 // Active if current octave matches target
                 if (step.octave === targetOct) b.classList.add('active');
 
-                b.onclick = (e) => {
+                this.bindFastEvent(b, (e) => {
                     e.stopPropagation();
                     if (step.octave === targetOct) {
                         // Toggle OFF -> Return to neutral (2)
@@ -1734,7 +1808,7 @@ export const UI = {
                         step.octave = targetOct;
                     }
                     this.render303Grid(unitId);
-                };
+                });
                 return b;
             };
 
@@ -1747,11 +1821,11 @@ export const UI = {
                 const b = document.createElement('div');
                 b.innerText = lbl; b.className = 'mini-btn ' + cls;
                 if (step[prop]) b.classList.add('active');
-                b.onclick = (e) => {
+                this.bindFastEvent(b, (e) => {
                     e.stopPropagation();
                     step[prop] = !step[prop];
                     this.render303Grid(unitId);
-                };
+                });
                 return b;
             }
 
@@ -1958,7 +2032,10 @@ export const UI = {
 
     showAddTrackPopover(x, y) {
         const existing = document.getElementById('add-track-popover-overlay');
-        if (existing) existing.remove();
+        if (existing) {
+            existing.remove();
+            this.updateOverlayScrollLock();
+        }
 
         // Template state: copy current active tracks
         let selectedIds = [...Data.active909Tracks];
@@ -1966,6 +2043,10 @@ export const UI = {
         const overlay = document.createElement('div');
         overlay.id = 'add-track-popover-overlay';
         overlay.className = 'piano-overlay';
+        const closeOverlay = () => {
+            overlay.remove();
+            this.updateOverlayScrollLock();
+        };
 
         const modal = document.createElement('div');
         modal.className = 'modal add-track-modal';
@@ -1973,7 +2054,7 @@ export const UI = {
         const header = document.createElement('div');
         header.className = 'modal-header';
         header.innerHTML = '<span class="modal-title">MANAGE DRUM TRACKS</span><button class="close-btn">&times;</button>';
-        header.querySelector('.close-btn').onclick = () => overlay.remove();
+        header.querySelector('.close-btn').onclick = closeOverlay;
         modal.appendChild(header);
 
         const content = document.createElement('div');
@@ -2080,15 +2161,20 @@ export const UI = {
 
             Data.saveSettings();
             this.render909();
-            overlay.remove();
+            closeOverlay();
         };
         footer.appendChild(applyBtn);
         modal.appendChild(footer);
 
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
+        this.updateOverlayScrollLock();
 
-        overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.add('hidden'); };
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                closeOverlay();
+            }
+        };
     },
 
     add909Track(id, source = 'factory', sampleId = null) {

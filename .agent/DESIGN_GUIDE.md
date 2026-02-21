@@ -184,6 +184,11 @@ Use recognizable, instrument-specific line-art icons.
 - **Hover**: Background `#555`, border `#ffcc00`, text `#ffcc00`.
 - **Active/Pressed**: Slight inward shadow or scale.
 
+### Drag & Drop Feedback
+- Use an explicit insertion indicator (e.g., a vertical bar) when reordering timeline/grid items.
+- Drag ghost elements must track pointer position without `transition: all`; animate only visual states, not position.
+- For touch occlusion scenarios, add secondary neighbor-edge glow feedback on both sides of the insertion point.
+
 ---
 
 ## 7. Mobile-First Interaction
@@ -223,4 +228,4 @@ Use recognizable, instrument-specific line-art icons.
 
 ---
 
-*Last Updated: 2026-02-02*
+*Last Updated: 2026-02-21*

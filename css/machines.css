@@ -367,6 +367,48 @@
     transition: all 0.05s;
 }
 
+.piano-key.white-index-0 { --white-index: 0; }
+
+.piano-key.white-index-1 { --white-index: 1; }
+
+.piano-key.white-index-2 { --white-index: 2; }
+
+.piano-key.white-index-3 { --white-index: 3; }
+
+.piano-key.white-index-4 { --white-index: 4; }
+
+.piano-key.white-index-5 { --white-index: 5; }
+
+.piano-key.white-index-6 { --white-index: 6; }
+
+.piano-key.white-index-7 { --white-index: 7; }
+
+.piano-key.white-index-8 { --white-index: 8; }
+
+.piano-key.white-index-9 { --white-index: 9; }
+
+.piano-key.white-index-10 { --white-index: 10; }
+
+.piano-key.white-index-11 { --white-index: 11; }
+
+.piano-key.white-index-12 { --white-index: 12; }
+
+.piano-key.white-index-13 { --white-index: 13; }
+
+.piano-key.white-index-14 { --white-index: 14; }
+
+.piano-key.white-index-15 { --white-index: 15; }
+
+.piano-key.white-index-16 { --white-index: 16; }
+
+.piano-key.white-index-17 { --white-index: 17; }
+
+.piano-key.white-index-18 { --white-index: 18; }
+
+.piano-key.white-index-19 { --white-index: 19; }
+
+.piano-key.white-index-20 { --white-index: 20; }
+
 .piano-key.black {
     background: var(--key-black);
     height: 60%;
