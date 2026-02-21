@@ -9,6 +9,7 @@ export class BinaryFormatDecoder {
         this.BLOCK_GLOBAL = 0x01;
         this.BLOCK_UNIT = 0x02;
         this.BLOCK_METADATA = 0x03;
+        this.BLOCK_CUSTOM_SYNTH = 0x04;
 
         // Unit Types
         this.UNIT_TB303 = 0x01;
@@ -92,6 +93,10 @@ export class BinaryFormatDecoder {
                     this.parseMetadataBlock(buffer, offset, header.length, state);
                     break;
 
+                case this.BLOCK_CUSTOM_SYNTH:
+                    this.parseTR909CustomSynthBlock(buffer, offset, header.length, state);
+                    break;
+
                 case this.BLOCK_END:
                     return state;
 
@@ -154,17 +159,17 @@ export class BinaryFormatDecoder {
                 tr909: {
                     type: 'tr909',
                     tracks: {
-                        bd: { steps: Array(16).fill(0), tune: 50, level: 100, attack: 50, decay: 50 },
-                        sd: { steps: Array(16).fill(0), tune: 50, level: 100, tone: 50, snappy: 50 },
-                        lt: { steps: Array(16).fill(0), tune: 50, level: 100, decay: 50 },
-                        mt: { steps: Array(16).fill(0), tune: 50, level: 100, decay: 50 },
-                        ht: { steps: Array(16).fill(0), tune: 50, level: 100, decay: 50 },
-                        rs: { steps: Array(16).fill(0), level: 100 },
-                        ch: { steps: Array(16).fill(0), level: 100, ch_decay: 50 },
-                        oh: { steps: Array(16).fill(0), level: 100, oh_decay: 50 },
-                        cr: { steps: Array(16).fill(0), level: 100, cr_tune: 50 },
-                        rd: { steps: Array(16).fill(0), level: 100, rd_tune: 50 },
-                        cp: { steps: Array(16).fill(0), level: 100 }
+                        bd: { steps: Array(16).fill(0), tune: 50, level: 100, attack: 50, decay: 50, customSynth: {} },
+                        sd: { steps: Array(16).fill(0), tune: 50, level: 100, tone: 50, snappy: 50, customSynth: {} },
+                        lt: { steps: Array(16).fill(0), tune: 50, level: 100, decay: 50, customSynth: {} },
+                        mt: { steps: Array(16).fill(0), tune: 50, level: 100, decay: 50, customSynth: {} },
+                        ht: { steps: Array(16).fill(0), tune: 50, level: 100, decay: 50, customSynth: {} },
+                        rs: { steps: Array(16).fill(0), level: 100, customSynth: {} },
+                        ch: { steps: Array(16).fill(0), level: 100, ch_decay: 50, customSynth: {} },
+                        oh: { steps: Array(16).fill(0), level: 100, oh_decay: 50, customSynth: {} },
+                        cr: { steps: Array(16).fill(0), level: 100, cr_tune: 50, customSynth: {} },
+                        rd: { steps: Array(16).fill(0), level: 100, rd_tune: 50, customSynth: {} },
+                        cp: { steps: Array(16).fill(0), level: 100, customSynth: {} }
                     }
                 }
             }
@@ -241,6 +246,89 @@ export class BinaryFormatDecoder {
 
             if (order[trackIdx]) {
                 state.customSampleMap[order[trackIdx]] = sampleId;
+            }
+        }
+    }
+
+    _isPlainObject(value) {
+        return !!value && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    _mergeDeepObjects(base, patch) {
+        if (!this._isPlainObject(base)) return this._isPlainObject(patch) ? { ...patch } : patch;
+        if (!this._isPlainObject(patch)) return patch;
+
+        const merged = { ...base };
+        for (const [key, value] of Object.entries(patch)) {
+            if (this._isPlainObject(value) && this._isPlainObject(merged[key])) {
+                merged[key] = this._mergeDeepObjects(merged[key], value);
+            } else {
+                merged[key] = value;
+            }
+        }
+        return merged;
+    }
+
+    parseTR909CustomSynthBlock(buffer, offset, length, state) {
+        const end = offset + length;
+        if (offset + 3 > end) return;
+
+        const unitType = buffer[offset++];
+        offset++; // unit order (reserved)
+        const patternCount = buffer[offset++];
+
+        if (unitType !== this.UNIT_TR909) return;
+
+        const trackKeys = {
+            0x00: 'bd', 0x01: 'sd', 0x05: 'lt', 0x06: 'mt', 0x07: 'ht',
+            0x08: 'rs', 0x02: 'ch', 0x03: 'oh', 0x09: 'cr', 0x0A: 'rd', 0x04: 'cp'
+        };
+        const decoder = new TextDecoder();
+
+        for (let i = 0; i < patternCount && offset < end; i++) {
+            if (offset + 2 > end) break;
+            const patternIdx = buffer[offset++] & 0x0F;
+            const patchCount = buffer[offset++];
+
+            if (!state.patterns[patternIdx]) {
+                state.patterns[patternIdx] = this.createDefaultState().patterns[0];
+            }
+            if (!state.patterns[patternIdx].units) {
+                state.patterns[patternIdx].units = this.createDefaultState().patterns[0].units;
+            }
+
+            for (let j = 0; j < patchCount && offset < end; j++) {
+                if (offset + 3 > end) {
+                    offset = end;
+                    break;
+                }
+
+                const trackId = buffer[offset++];
+                const jsonLen = this.readUint16LE(buffer, offset);
+                offset += 2;
+                if (offset + jsonLen > end) {
+                    offset = end;
+                    break;
+                }
+
+                const trackKey = trackKeys[trackId];
+                const jsonBytes = buffer.slice(offset, offset + jsonLen);
+                offset += jsonLen;
+                if (!trackKey) continue;
+
+                let parsedPatch = null;
+                try {
+                    parsedPatch = JSON.parse(decoder.decode(jsonBytes));
+                } catch (e) {
+                    parsedPatch = null;
+                }
+
+                if (!this._isPlainObject(parsedPatch)) continue;
+                const track = state.patterns[patternIdx]?.units?.tr909?.tracks?.[trackKey];
+                if (!track) continue;
+
+                const current = this._isPlainObject(track.customSynth) ? track.customSynth : {};
+                track.customSynth = this._mergeDeepObjects(current, parsedPatch);
             }
         }
     }
@@ -400,11 +488,31 @@ export class BinaryFormatDecoder {
             }
 
             let paramOrder;
-            if (instrId === 0x00) paramOrder = ['tune', 'level', 'attack', 'decay'];
-            else if (instrId === 0x01) paramOrder = ['tune', 'level', 'tone', 'snappy'];
-            else if (instrId === 0x05 || instrId === 0x06 || instrId === 0x07) paramOrder = ['tune', 'level', 'decay'];
-            else if (instrId === 0x08) paramOrder = ['level'];
-            else if (instrId === 0x04) paramOrder = ['level'];
+            if (instrId === 0x00) {
+                paramOrder = (paramCount >= 8)
+                    ? ['tune', 'level', 'attack', 'decay', 'macro_enabled', 'drop', 'ring', 'bright']
+                    : ['tune', 'level', 'attack', 'decay'];
+            }
+            else if (instrId === 0x01) {
+                paramOrder = (paramCount >= 8)
+                    ? ['tune', 'level', 'tone', 'snappy', 'macro_enabled', 'drop', 'ring', 'bright']
+                    : ['tune', 'level', 'tone', 'snappy'];
+            }
+            else if (instrId === 0x05 || instrId === 0x06 || instrId === 0x07) {
+                if (paramCount >= 7) paramOrder = ['tune', 'level', 'decay', 'macro_enabled', 'drop', 'ring', 'bright'];
+                else if (paramCount === 6) paramOrder = ['tune', 'level', 'decay', 'drop', 'ring', 'bright']; // legacy (no enabled byte)
+                else paramOrder = ['tune', 'level', 'decay'];
+            }
+            else if (instrId === 0x08) {
+                paramOrder = (paramCount >= 5)
+                    ? ['level', 'macro_enabled', 'drop', 'ring', 'bright']
+                    : ['level'];
+            }
+            else if (instrId === 0x04) {
+                paramOrder = (paramCount >= 5)
+                    ? ['level', 'macro_enabled', 'drop', 'ring', 'bright']
+                    : ['level'];
+            }
             else if (instrId === 0x02) paramOrder = ['level', 'ch_decay'];
             else if (instrId === 0x03) paramOrder = ['level', 'oh_decay'];
             else if (instrId === 0x09) paramOrder = ['level', 'cr_tune'];
@@ -468,8 +576,36 @@ export class BinaryFormatDecoder {
             // Apply settings to pattern
             if (currentTrackSettings) {
                 for (const [key, settings] of Object.entries(currentTrackSettings)) {
-                    if (state.patterns[patternIdx].units.tr909.tracks[key]) {
-                        Object.assign(state.patterns[patternIdx].units.tr909.tracks[key], settings);
+                    const track = state.patterns[patternIdx].units.tr909.tracks[key];
+                    if (track) {
+                        const copied = { ...settings };
+                        const hasTomMacros = (
+                            Number.isFinite(copied.macro_enabled) ||
+                            Number.isFinite(copied.drop) ||
+                            Number.isFinite(copied.ring) ||
+                            Number.isFinite(copied.bright)
+                        );
+                        if (hasTomMacros && ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp'].includes(key)) {
+                            if (!track.customSynth || typeof track.customSynth !== 'object') {
+                                track.customSynth = {};
+                            }
+                            const prev = track.customSynth.shaper || track.customSynth.tomMacros || {};
+                            track.customSynth.shaper = {
+                                ...prev,
+                                enabled: Number.isFinite(copied.macro_enabled)
+                                    ? copied.macro_enabled > 0
+                                    : (prev.enabled !== false),
+                                drop: Number.isFinite(copied.drop) ? copied.drop : (Number.isFinite(prev.drop) ? prev.drop : 50),
+                                ring: Number.isFinite(copied.ring) ? copied.ring : (Number.isFinite(prev.ring) ? prev.ring : 50),
+                                bright: Number.isFinite(copied.bright) ? copied.bright : (Number.isFinite(prev.bright) ? prev.bright : 50),
+                            };
+                            track.customSynth.tomMacros = { ...track.customSynth.shaper };
+                        }
+                        delete copied.macro_enabled;
+                        delete copied.drop;
+                        delete copied.ring;
+                        delete copied.bright;
+                        Object.assign(track, copied);
                     }
                 }
             }

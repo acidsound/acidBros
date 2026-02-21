@@ -28,6 +28,7 @@ Each block starts with a 3-byte header:
 | 0x01 | Global Settings | Tempo, swing, mode, song sequence |
 | 0x02 | Unit Block | Complete data for one synth unit (settings + patterns) |
 | 0x03 | Metadata Block | Track visibility and custom sample mappings |
+| 0x04 | Custom Synth Block | Per-pattern TR-909 `customSynth` JSON patches |
 
 ---
 
@@ -154,19 +155,59 @@ Each pattern: 16 steps × 2 bytes = 32 bytes
 
 | Field | Size | Description |
 |-------|------|-------------|
-| Instrument ID | 1 byte | 0x00=BD, 0x01=SD, 0x02=CH, 0x03=OH, 0x04=CP |
+| Instrument ID | 1 byte | 0x00=BD, 0x01=SD, 0x05=LT, 0x06=MT, 0x07=HT, 0x08=RS, 0x04=CP, 0x02=CH, 0x03=OH, 0x09=CR, 0x0A=RD |
 | Param Count | 1 byte | Number of parameters |
 | Param Values | 1 byte each | Values in fixed order per instrument |
 
-**TR-909 Instrument Parameters:**
+**TR-909 Instrument Parameters (exact encoder order):**
 
-| ID | Instrument | Params | Param 0 | Param 1 | Param 2 | Param 3 |
-|----|------------|--------|---------|---------|---------|---------|
-| 0x00 | BD | 4 | Tune | Attack | Decay | Level |
-| 0x01 | SD | 4 | Tune | Snappy | Decay | Level |
-| 0x02 | CH | 2 | Tune | Level | - | - |
-| 0x03 | OH | 2 | Decay | Level | - | - |
-| 0x04 | CP | 2 | Decay | Level | - | - |
+| ID | Instrument | Param Count | Param Order |
+|----|------------|-------------|-------------|
+| 0x00 | BD | 8 | `tune`, `level`, `attack`, `decay`, `macro_enabled`, `drop`, `ring`, `bright` |
+| 0x01 | SD | 8 | `tune`, `level`, `tone`, `snappy`, `macro_enabled`, `drop`, `ring`, `bright` |
+| 0x05 | LT | 7 | `tune`, `level`, `decay`, `macro_enabled`, `drop`, `ring`, `bright` |
+| 0x06 | MT | 7 | `tune`, `level`, `decay`, `macro_enabled`, `drop`, `ring`, `bright` |
+| 0x07 | HT | 7 | `tune`, `level`, `decay`, `macro_enabled`, `drop`, `ring`, `bright` |
+| 0x08 | RS | 5 | `level`, `macro_enabled`, `drop`, `ring`, `bright` |
+| 0x04 | CP | 5 | `level`, `macro_enabled`, `drop`, `ring`, `bright` |
+| 0x02 | CH | 2 | `level`, `ch_decay` |
+| 0x03 | OH | 2 | `level`, `oh_decay` |
+| 0x09 | CR | 2 | `level`, `cr_tune` |
+| 0x0A | RD | 2 | `level`, `rd_tune` |
+
+Notes:
+- `macro_enabled` stores DRUM SHAPER ON/OFF (`0` = OFF, `1` = ON).
+- `drop/ring/bright` are DRUM SHAPER bytes stored for synth voices (`BD/SD/LT/MT/HT/RS/CP`).
+- During decode these are mapped to `tracks.{id}.customSynth.shaper` (legacy `tomMacros` is also mirrored for compatibility).
+
+---
+
+### 0x04 - Custom Synth Block (TR-909)
+
+This optional block stores full `customSynth` patch payloads (JSON), including new macro profile definitions.
+
+```
+[0x04][Length][UnitType][UnitOrder][PatternCount]
+  [PatternIndex][PatchCount]
+    [TrackId][JsonLenLE16][JsonBytes...]
+  ...
+```
+
+| Field | Size | Description |
+|-------|------|-------------|
+| UnitType | 1 byte | `0x02` (TR-909) |
+| UnitOrder | 1 byte | Reserved (`0x00`) |
+| PatternCount | 1 byte | Number of patterns carrying custom synth patches |
+| PatternIndex | 1 byte | Pattern slot (0-15) |
+| PatchCount | 1 byte | Number of track patches in this pattern |
+| TrackId | 1 byte | Same IDs used by TR-909 settings block |
+| JsonLenLE16 | 2 bytes | UTF-8 JSON payload length |
+| JsonBytes | N bytes | Serialized `tracks.{id}.customSynth` object |
+
+Notes:
+- Encoder writes only non-empty `customSynth` patches.
+- Decoder deep-merges this JSON payload into existing track `customSynth` (so settings-derived shaper bytes from 0x02 remain available unless explicitly overridden).
+- This block enables persistence of `schemaVersion`, `previewProfile`, and any future patch fields.
 
 #### TR-909 Pattern Section (×16 patterns)
 Each pattern contains data for all instruments.
@@ -187,7 +228,7 @@ Each pattern contains data for all instruments.
 
 | Field | Size | Description |
 |-------|------|-------------|
-| Instrument ID | 1 byte | 0x00=BD, 0x01=SD, 0x02=CH, 0x03=OH, 0x04=CP |
+| Instrument ID | 1 byte | 0x00=BD, 0x01=SD, 0x05=LT, 0x06=MT, 0x07=HT, 0x08=RS, 0x02=CH, 0x03=OH, 0x09=CR, 0x0A=RD, 0x04=CP |
 | Attr Count | 1 byte | Number of attribute bitmasks |
 | Attr Steps | 2 bytes each | 16-bit bitmask (little-endian) |
 
@@ -270,29 +311,27 @@ Used in Pattern Mode (once), Full Mode (per pattern), or Song Mode (Global Heade
 
 ### 2.5 TR-909 Data Format
 
-#### Settings Block (Varies)
-1. **Instrument Count** (1 Byte): `0x05` (BD, SD, CH, OH, CP)
-2. **Instrument 0 (BD)**:
-   - ID: `0x00`
-   - Param Count: `0x04`
-   - Params: Tune, Attack, Decay, Level
-3. **Instrument 1 (SD)**:
-   - ID: `0x01`
-   - Param Count: `0x04`
-   - Params: Tune, Snappy, Decay, Level
-4. **Instrument 2 (CH)**:
-   - ID: `0x02`
-   - Param Count: `0x02`
-   - Params: Decay, Level
-... (Same for OH, CP)
+#### Settings Block (78 bytes in current implementation)
+1. **Instrument Count** (1 byte): `0x0B` (11 instruments)
+2. **Per instrument**: `[ID][ParamCount][ParamValues...]`
+3. **Instrument order**:
+   - `0x00` BD: `tune`, `level`, `attack`, `decay`, `macro_enabled`, `drop`, `ring`, `bright`
+   - `0x01` SD: `tune`, `level`, `tone`, `snappy`, `macro_enabled`, `drop`, `ring`, `bright`
+   - `0x05` LT: `tune`, `level`, `decay`, `macro_enabled`, `drop`, `ring`, `bright`
+   - `0x06` MT: `tune`, `level`, `decay`, `macro_enabled`, `drop`, `ring`, `bright`
+   - `0x07` HT: `tune`, `level`, `decay`, `macro_enabled`, `drop`, `ring`, `bright`
+   - `0x08` RS: `level`, `macro_enabled`, `drop`, `ring`, `bright`
+   - `0x04` CP: `level`, `macro_enabled`, `drop`, `ring`, `bright`
+   - `0x02` CH: `level`, `ch_decay`
+   - `0x03` OH: `level`, `oh_decay`
+   - `0x09` CR: `level`, `cr_tune`
+   - `0x0A` RD: `level`, `rd_tune`
 
-#### Pattern Data Block (Varies)
-1. **Pattern Instrument Count** (1 Byte): `0x05`
-2. **Instrument 0 (BD)**:
-   - ID: `0x00`
-   - Attr Count: `0x01` (Just Triggers)
-   - **Trigger Bits** (2 Bytes): 16 bits for 16 steps (1=Trig, 0=Rest)
-... (Repeat for all instruments)
+#### Pattern Data Block (45 bytes in current implementation)
+1. **Pattern Instrument Count** (1 byte): `0x0B`
+2. **Per instrument**: `[ID][AttrCount=0x01][TriggerBits(2 bytes LE)]`
+3. **Instrument order**:
+   - `0x00` BD, `0x01` SD, `0x05` LT, `0x06` MT, `0x07` HT, `0x08` RS, `0x02` CH, `0x03` OH, `0x09` CR, `0x0A` RD, `0x04` CP
 
 ## Note Encoding
 

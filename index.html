@@ -92,7 +92,7 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v137</div>
+          <div class="version-display">v138</div>
           <button id="fileManagerBtn" class="transport-icon-btn" title="File Manager" aria-label="File Manager">
             <span class="icon icon-lg icon-folder"></span>
           </button>
@@ -479,6 +479,54 @@
               </div>
             </div>
           </div>
+
+          <!-- Noise2 Section -->
+          <div class="ds-section-row">
+            <div class="ds-module wide-module" id="ds-noise2">
+              <div class="module-header">
+                <span class="module-title">NOISE 2 & FILTER</span>
+                <div class="ds-switch">
+                  <input type="radio" name="ds_sw_noise2" id="ds_sw_noise2_off" value="false">
+                  <label for="ds_sw_noise2_off">OFF</label>
+                  <input type="radio" name="ds_sw_noise2" id="ds_sw_noise2_on" value="true" checked>
+                  <label for="ds_sw_noise2_on">ON</label>
+                  <div class="switch-handle"></div>
+                </div>
+              </div>
+              <div class="module-controls">
+                <div class="ds-radio-group" data-param="filter_type">
+                  <input type="radio" name="f_noise2" id="f_noise2_lpf" value="LPF">
+                  <label for="f_noise2_lpf">LPF</label>
+                  <input type="radio" name="f_noise2" id="f_noise2_hpf" value="HPF" checked>
+                  <label for="f_noise2_hpf">HPF</label>
+                  <input type="radio" name="f_noise2" id="f_noise2_bpf" value="BPF">
+                  <label for="f_noise2_bpf">BPF</label>
+                </div>
+                <div class="knob-group" id="ds-noise2-knobs"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drum Shaper Section -->
+          <div class="ds-section-row">
+            <div class="ds-module wide-module hidden" id="ds-shaper">
+              <div class="module-header">
+                <span class="module-title">DRUM SHAPER</span>
+                <div class="ds-switch">
+                  <input type="radio" name="ds_sw_shaper" id="ds_sw_shaper_off" value="false">
+                  <label for="ds_sw_shaper_off">OFF</label>
+                  <input type="radio" name="ds_sw_shaper" id="ds_sw_shaper_on" value="true" checked>
+                  <label for="ds_sw_shaper_on">ON</label>
+                  <div class="switch-handle"></div>
+                </div>
+              </div>
+              <div class="module-controls">
+                <div class="ds-radio-group" data-param="spacer"></div>
+                <div class="knob-group" id="ds-shaper-knobs"></div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <div class="ds-footer">

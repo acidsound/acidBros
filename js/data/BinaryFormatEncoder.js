@@ -9,6 +9,7 @@ export class BinaryFormatEncoder {
         this.BLOCK_GLOBAL = 0x01;
         this.BLOCK_UNIT = 0x02;
         this.BLOCK_METADATA = 0x03;
+        this.BLOCK_CUSTOM_SYNTH = 0x04;
 
         // Unit Types
         this.UNIT_TB303 = 0x01;
@@ -82,6 +83,9 @@ export class BinaryFormatEncoder {
         // TR-909 Unit Block
         buffers.push(this.encodeTR909UnitBlock(state, 0, allPatterns, this.MODE_FULL));
 
+        // Custom Synth patches for TR-909 tracks
+        buffers.push(this.encodeTR909CustomSynthBlock(state, allPatterns));
+
         // Metadata Block
         buffers.push(this.encodeMetadataBlock(state));
 
@@ -108,6 +112,9 @@ export class BinaryFormatEncoder {
 
         // TR-909 Unit
         buffers.push(this.encodeTR909UnitBlock(state, 0, patternIndices, this.MODE_PATTERN));
+
+        // Custom Synth patches for shared pattern
+        buffers.push(this.encodeTR909CustomSynthBlock(state, patternIndices));
 
         // Metadata Block
         buffers.push(this.encodeMetadataBlock(state));
@@ -310,29 +317,52 @@ export class BinaryFormatEncoder {
 
     // Helper to write TR-909 Settings
     writeTR909Settings(buffer, offset, tracks) {
+        const shaperDefaults = {
+            bd: { enabled: false, drop: 50, ring: 50, bright: 50 },
+            sd: { enabled: false, drop: 50, ring: 50, bright: 50 },
+            lt: { enabled: true, drop: 100, ring: 100, bright: 100 },
+            mt: { enabled: true, drop: 100, ring: 100, bright: 100 },
+            ht: { enabled: true, drop: 100, ring: 100, bright: 100 },
+            rs: { enabled: false, drop: 50, ring: 50, bright: 50 },
+            cp: { enabled: false, drop: 50, ring: 50, bright: 50 }
+        };
         const instruments = [
-            { id: 0x00, key: 'bd', params: ['tune', 'level', 'attack', 'decay'] },
-            { id: 0x01, key: 'sd', params: ['tune', 'level', 'tone', 'snappy'] },
-            { id: 0x05, key: 'lt', params: ['tune', 'level', 'decay'] },
-            { id: 0x06, key: 'mt', params: ['tune', 'level', 'decay'] },
-            { id: 0x07, key: 'ht', params: ['tune', 'level', 'decay'] },
-            { id: 0x08, key: 'rs', params: ['level'] },
-            { id: 0x04, key: 'cp', params: ['level'] },
+            // Synth-voice tracks include DRUM SHAPER bytes.
+            { id: 0x00, key: 'bd', params: ['tune', 'level', 'attack', 'decay', 'macro_enabled', 'drop', 'ring', 'bright'] },
+            { id: 0x01, key: 'sd', params: ['tune', 'level', 'tone', 'snappy', 'macro_enabled', 'drop', 'ring', 'bright'] },
+            { id: 0x05, key: 'lt', params: ['tune', 'level', 'decay', 'macro_enabled', 'drop', 'ring', 'bright'] },
+            { id: 0x06, key: 'mt', params: ['tune', 'level', 'decay', 'macro_enabled', 'drop', 'ring', 'bright'] },
+            { id: 0x07, key: 'ht', params: ['tune', 'level', 'decay', 'macro_enabled', 'drop', 'ring', 'bright'] },
+            { id: 0x08, key: 'rs', params: ['level', 'macro_enabled', 'drop', 'ring', 'bright'] },
+            { id: 0x04, key: 'cp', params: ['level', 'macro_enabled', 'drop', 'ring', 'bright'] },
             { id: 0x02, key: 'ch', params: ['level', 'ch_decay'] },
             { id: 0x03, key: 'oh', params: ['level', 'oh_decay'] },
             { id: 0x09, key: 'cr', params: ['level', 'cr_tune'] },
             { id: 0x0A, key: 'rd', params: ['level', 'rd_tune'] }
         ];
+        const clampByte = (val, def = 50) => {
+            const n = Number.isFinite(val) ? val : def;
+            return Math.max(0, Math.min(127, Math.round(n)));
+        };
 
         buffer[offset++] = instruments.length; // 11 instruments
 
         for (const instr of instruments) {
-            const track = tracks[instr.key];
+            const track = tracks[instr.key] || {};
+            const shaperBase = track.customSynth?.shaper || track.customSynth?.tomMacros || shaperDefaults[instr.key] || {};
             buffer[offset++] = instr.id;
             buffer[offset++] = instr.params.length;
 
             for (const param of instr.params) {
-                buffer[offset++] = track[param] !== undefined ? track[param] : 50;
+                if (param === 'macro_enabled') {
+                    buffer[offset++] = shaperBase.enabled === false ? 0 : 1;
+                    continue;
+                }
+                if (param === 'drop' || param === 'ring' || param === 'bright') {
+                    buffer[offset++] = clampByte(shaperBase[param], 50);
+                    continue;
+                }
+                buffer[offset++] = clampByte(track[param], 50);
             }
         }
         return offset;
@@ -340,10 +370,13 @@ export class BinaryFormatEncoder {
 
     // Capture TR-909 Settings length
     getTR909SettingsLength() {
-        // 1 (count) + 11 * (1 (id) + 1 (pcount)) = 23 bytes overhead
-        // Params: 4(bd) + 4(sd) + 3(lt) + 3(mt) + 3(ht) + 1(rs) + 2(ch) + 2(oh) + 3(cr) + 3(rd) + 2(cp) = 30 bytes
-        // Total: 53 bytes
-        return 53;
+        const instruments = [
+            ['bd', 8], ['sd', 8], ['lt', 7], ['mt', 7], ['ht', 7],
+            ['rs', 5], ['cp', 5], ['ch', 2], ['oh', 2], ['cr', 2], ['rd', 2]
+        ];
+        const overhead = 1 + instruments.length * 2; // count + (id + pcount)*N
+        const params = instruments.reduce((sum, item) => sum + item[1], 0);
+        return overhead + params;
     }
 
     // Helper to write TR-909 Sequence
@@ -434,6 +467,78 @@ export class BinaryFormatEncoder {
                 offset = this.writeTR909Settings(buffer, offset, tracks);
             }
             offset = this.writeTR909Sequence(buffer, offset, tracks);
+        }
+
+        return buffer;
+    }
+
+    encodeTR909CustomSynthBlock(state, patternIndices) {
+        const trackMap = [
+            { key: 'bd', id: 0x00 }, { key: 'sd', id: 0x01 },
+            { key: 'lt', id: 0x05 }, { key: 'mt', id: 0x06 }, { key: 'ht', id: 0x07 },
+            { key: 'rs', id: 0x08 }, { key: 'cp', id: 0x04 },
+            { key: 'ch', id: 0x02 }, { key: 'oh', id: 0x03 },
+            { key: 'cr', id: 0x09 }, { key: 'rd', id: 0x0A }
+        ];
+        const encoder = new TextEncoder();
+        const patterns = [];
+
+        for (const patternIdx of patternIndices) {
+            const pattern = state.patterns?.[patternIdx];
+            const tracks = pattern?.units?.tr909?.tracks;
+            if (!tracks || typeof tracks !== 'object') continue;
+
+            const entries = [];
+            for (const track of trackMap) {
+                const patch = tracks[track.key]?.customSynth;
+                if (!patch || typeof patch !== 'object' || Object.keys(patch).length === 0) continue;
+                let json;
+                try {
+                    json = JSON.stringify(patch);
+                } catch (e) {
+                    continue;
+                }
+                if (!json) continue;
+                const bytes = encoder.encode(json);
+                if (bytes.length > 0xFFFF) continue;
+                entries.push({ id: track.id, bytes });
+            }
+
+            if (entries.length > 0) {
+                patterns.push({ patternIdx, entries });
+            }
+        }
+
+        if (patterns.length === 0) {
+            return new Uint8Array(0);
+        }
+
+        let dataLength = 3; // unit type + unit order + pattern count
+        for (const pattern of patterns) {
+            dataLength += 2; // pattern index + track patch count
+            for (const entry of pattern.entries) {
+                dataLength += 1 + 2 + entry.bytes.length; // track id + json length + payload
+            }
+        }
+
+        const buffer = new Uint8Array(3 + dataLength);
+        this.writeBlockHeader(buffer, 0, this.BLOCK_CUSTOM_SYNTH, dataLength);
+
+        let offset = 3;
+        buffer[offset++] = this.UNIT_TR909;
+        buffer[offset++] = 0x00;
+        buffer[offset++] = patterns.length;
+
+        for (const pattern of patterns) {
+            buffer[offset++] = pattern.patternIdx & 0x0F;
+            buffer[offset++] = pattern.entries.length;
+            for (const entry of pattern.entries) {
+                buffer[offset++] = entry.id;
+                this.writeUint16LE(buffer, offset, entry.bytes.length);
+                offset += 2;
+                buffer.set(entry.bytes, offset);
+                offset += entry.bytes.length;
+            }
         }
 
         return buffer;

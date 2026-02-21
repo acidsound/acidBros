@@ -4,12 +4,10 @@ import { AudioEngine } from '../audio/AudioEngine.js';
 import { UI } from './UI.js';
 import {
     UnifiedSynth,
-    getFactoryPreset,
-    getTomFrequencies,
-    TOM_START_FREQ_MULTIPLIER,
-    TOM_PITCH_DROP_RATIO,
-    TOM_PITCH_DROP_TIME,
-    createTomPitchEnv
+    mergePresetWithBase,
+    resolvePreviewProfile,
+    getPreviewControlValues,
+    applyTrackPerformanceControls
 } from '../audio/tr909/UnifiedSynth.js';
 
 /**
@@ -21,6 +19,8 @@ export const DrumSynthUI = {
     currentTrackId: null,
     synth: null,
     knobs: {},
+    previewProfile: null,
+    SHAPER_TRACKS: ['bd', 'sd', 'lt', 'mt', 'ht', 'rs', 'cp'],
 
     // Knob definitions matching UnifiedSynth parameters
     // freq in Hz, decay times in seconds (displayed as ms in UI)
@@ -68,48 +68,24 @@ export const DrumSynthUI = {
             { id: 'burst_count', label: 'BRST', min: 1, max: 8, def: 1, step: 1 },
             { id: 'burst_interval', label: 'INT', min: 0.002, max: 0.02, def: 0.008, step: 0.001 },
             { id: 'level', label: 'LVL', min: 0, max: 1.5, def: 0.5, step: 0.01 }
+        ],
+        noise2: [
+            { id: 'cutoff', label: 'CUT', min: 200, max: 10000, def: 2200, step: 100 },
+            { id: 'Q', label: 'Q', min: 0.1, max: 10, def: 1.0, step: 0.1 },
+            { id: 'decay', label: 'DEC', min: 0.02, max: 1.0, def: 0.15, step: 0.01 },
+            { id: 'burst_count', label: 'BRST', min: 1, max: 8, def: 1, step: 1 },
+            { id: 'burst_interval', label: 'INT', min: 0.002, max: 0.02, def: 0.008, step: 0.001 },
+            { id: 'level', label: 'LVL', min: 0, max: 1.5, def: 0.5, step: 0.01 }
+        ],
+        shaper: [
+            { id: 'drop', label: 'DROP', min: 0, max: 100, def: 50, step: 1 },
+            { id: 'ring', label: 'RING', min: 0, max: 100, def: 50, step: 1 },
+            { id: 'bright', label: 'BRIGHT', min: 0, max: 100, def: 50, step: 1 }
         ]
     },
 
-    // TR909 style knobs (p1, p2, p3) + LEVEL - same as original 909 UI
-    TR909_KNOBS: {
-        bd: [
-            { id: 'p1', label: 'TUNE', min: 0, max: 100, def: 40 },
-            { id: 'p2', label: 'ATTACK', min: 0, max: 100, def: 50 },
-            { id: 'p3', label: 'DECAY', min: 0, max: 100, def: 50 },
-            { id: 'level', label: 'LEVEL', min: 0, max: 200, def: 100 }
-        ],
-        sd: [
-            { id: 'p1', label: 'TUNE', min: 0, max: 100, def: 50 },
-            { id: 'p2', label: 'TONE', min: 0, max: 100, def: 50 },
-            { id: 'p3', label: 'SNAPPY', min: 0, max: 100, def: 50 },
-            { id: 'level', label: 'LEVEL', min: 0, max: 200, def: 100 }
-        ],
-        lt: [
-            { id: 'p1', label: 'TUNE', min: 0, max: 100, def: 50 },
-            { id: 'p2', label: 'DECAY', min: 0, max: 100, def: 50 },
-            { id: 'level', label: 'LEVEL', min: 0, max: 200, def: 100 }
-        ],
-        mt: [
-            { id: 'p1', label: 'TUNE', min: 0, max: 100, def: 50 },
-            { id: 'p2', label: 'DECAY', min: 0, max: 100, def: 50 },
-            { id: 'level', label: 'LEVEL', min: 0, max: 200, def: 100 }
-        ],
-        ht: [
-            { id: 'p1', label: 'TUNE', min: 0, max: 100, def: 50 },
-            { id: 'p2', label: 'DECAY', min: 0, max: 100, def: 50 },
-            { id: 'level', label: 'LEVEL', min: 0, max: 200, def: 100 }
-        ],
-        rs: [
-            { id: 'level', label: 'LEVEL', min: 0, max: 200, def: 100 }
-        ],
-        cp: [
-            { id: 'decay', label: 'DECAY', min: 0, max: 100, def: 50 },
-            { id: 'level', label: 'LEVEL', min: 0, max: 200, def: 100 }
-        ]
-    },
-
-    liveKnobs: {},  // TR909-style knobs
+    liveKnobs: {},
+    liveKnobDefs: [],
 
     init() {
         console.log('DrumSynthUI: Initializing...');
@@ -175,30 +151,37 @@ export const DrumSynthUI = {
         const footerLabel = document.getElementById('ds-voice-label-footer');
         if (footerLabel) footerLabel.innerText = displayName;
 
-        // Build TR909-style live knobs for this drum
-        this.buildLiveKnobs(trackId);
+        const shaperModule = document.getElementById('ds-shaper');
+        if (shaperModule) {
+            const hasShaper = this.SHAPER_TRACKS.includes(trackId);
+            shaperModule.classList.toggle('hidden', !hasShaper);
+        }
 
-        // Load settings
+        // Load settings (includes dynamic preview macro knob build)
         this.loadSettings(trackId);
     },
 
-    buildLiveKnobs(trackId) {
+    buildLiveKnobs(trackId, profile = null) {
         const container = document.getElementById('ds-live-knobs');
         if (!container) return;
 
         container.innerHTML = '';
         this.liveKnobs = {};
+        this.liveKnobDefs = [];
 
-        const knobDefs = this.TR909_KNOBS[trackId] || [];
+        const resolved = profile || resolvePreviewProfile(trackId, null);
+        const knobDefs = Array.isArray(resolved?.controls) ? resolved.controls : [];
         if (knobDefs.length === 0) {
-            container.innerHTML = '<span class="empty-msg">No 909 knobs for this drum</span>';
+            container.innerHTML = '<span class="empty-msg">No preview macros configured</span>';
             return;
         }
 
         knobDefs.forEach(def => {
             const knobId = `ds_live_${def.id}`;
-            const knob = new RotaryKnob(container, def.label, knobId, def.min, def.max, def.def, 1, 'small');
+            const step = Number.isFinite(def.step) ? def.step : 1;
+            const knob = new RotaryKnob(container, def.label, knobId, def.min, def.max, def.def, step, 'small');
             this.liveKnobs[def.id] = knob;
+            this.liveKnobDefs.push(def);
 
             // Auto-trig removed - manual preview only via Arcade button
         });
@@ -215,6 +198,8 @@ export const DrumSynthUI = {
         const saved = Data.getUnitSettings('tr909')?.[trackId]?.customSynth;
         const preset = this._mergePresetWithFactory(trackId, saved);
         if (!preset) return;
+        this.previewProfile = resolvePreviewProfile(trackId, saved || preset);
+        this.buildLiveKnobs(trackId, this.previewProfile);
 
         // Apply preset values to knobs
         Object.keys(this.knobs).forEach(modId => {
@@ -255,6 +240,17 @@ export const DrumSynthUI = {
                     onRadio.checked = enabled;
                     offRadio.checked = !enabled;
                 }
+            }
+        });
+
+        // Sync live preview macros to current track settings.
+        const tr909Track = Data.getUnitSettings('tr909')?.[trackId] || {};
+        const controlValues = getPreviewControlValues(trackId, tr909Track, this.previewProfile);
+        Object.keys(this.liveKnobs || {}).forEach((id) => {
+            const knob = this.liveKnobs[id];
+            if (!knob) return;
+            if (Number.isFinite(controlValues[id])) {
+                knob.setValue(controlValues[id]);
             }
         });
     },
@@ -300,10 +296,25 @@ export const DrumSynthUI = {
             }
         });
 
-        // Use live level knob for volume if available
-        if (this.liveKnobs && this.liveKnobs.level) {
-            params.vol = this.liveKnobs.level.value / 100;
+        const controlValues = {};
+        Object.keys(this.liveKnobs || {}).forEach((id) => {
+            const knob = this.liveKnobs[id];
+            if (!knob) return;
+            controlValues[id] = knob.value;
+        });
+
+        if (Number.isFinite(controlValues.level)) {
+            params.vol = controlValues.level / 100;
         }
+
+        if (!this.SHAPER_TRACKS.includes(this.currentTrackId)) {
+            delete params.shaper;
+        }
+
+        params.previewProfile = JSON.parse(JSON.stringify(
+            this.previewProfile || resolvePreviewProfile(this.currentTrackId, null)
+        ));
+        params.schemaVersion = 2;
 
         // Ensure vol has a default
         if (params.vol === undefined) params.vol = 1;
@@ -330,7 +341,7 @@ export const DrumSynthUI = {
             );
         }
 
-        // Use TR909-style preview with live knobs
+        // Use preview macro profile
         this.previewWith909Knobs();
     },
 
@@ -340,192 +351,30 @@ export const DrumSynthUI = {
         // 1. Get current UI parameters
         const uiParams = this.collectParams();
 
-        // 2. Merge with factory preset for architectural defaults (masterEnv, noise2, etc.)
-        const factory = getFactoryPreset(this.currentTrackId);
+        // 2. Build playable preset
         const preset = this._mergePresetWithFactory(this.currentTrackId, uiParams);
 
-        // 3. Special architectural syncs
-        // SD has noise2 (HPF path) which isn't in UI - sync it with noise1 (LPF path)
-        if (factory?.noise2) {
-            preset.noise2 = JSON.parse(JSON.stringify(factory.noise2));
-            preset.noise2.enabled = uiParams.noise.enabled;
-            // Also sync some knobs if they match
-            preset.noise2.decay = uiParams.noise.decay;
-        }
-
-        // 4. Collect live 909 knobs
-        const P = {};
+        // 3. Collect live macro controls
+        const controls = {};
         Object.keys(this.liveKnobs).forEach(id => {
-            P[id] = this.liveKnobs[id].value;
+            controls[id] = this.liveKnobs[id].value;
         });
 
-        // 5. Apply 909 knob mappings (TUNE, DECAY, etc.) to the detailed preset
-        this._applyKnobParams(preset, P, this.currentTrackId);
+        // 4. Apply preview profile macro mappings to the detailed preset
+        applyTrackPerformanceControls(
+            preset,
+            this.currentTrackId,
+            controls,
+            this.previewProfile
+        );
 
         console.log('DrumSynthUI: Preview', preset);
         this.synth.play(preset);
     },
 
-
-
-    // Apply TR909 knob values to preset (mirrors DrumVoice._applyKnobParams)
-    _applyKnobParams(preset, P, trackId) {
-        const resolveAccentGain = (accent) => {
-            if (accent === undefined || accent === null) return 1.0;
-            if (typeof accent === 'boolean') return accent ? 1.35 : 1.0;
-            const n = Number(accent);
-            if (!Number.isFinite(n)) return 1.0;
-            if (n <= 1.0) return 1.0 + Math.max(0, n) * 0.35;
-            return Math.max(0.5, Math.min(2.0, n));
-        };
-
-        // Handle Level knob if present
-        if (P.level !== undefined) {
-            preset.vol = P.level / 100;
-        } else {
-            preset.vol = P.vol !== undefined ? P.vol : 1;
-        }
-        preset.accent = resolveAccentGain(P.accent);
-
-        const vol = preset.vol;
-
-        switch (trackId) {
-            case 'bd':
-                if (P.p1 !== undefined) {
-                    const baseFreq = 40 + (P.p1 / 100) * 25;
-                    preset.osc1.freq = baseFreq;
-                    preset.osc1.startFreq = baseFreq * 5;
-
-                    let pitchDecay;
-                    if (P.p1 <= 40) {
-                        pitchDecay = 0.005 + (P.p1 / 40) * 0.015;
-                    } else {
-                        pitchDecay = 0.02 + ((P.p1 - 40) / 60) * 0.150;
-                    }
-                    preset.osc1.p_decay = pitchDecay;
-                }
-                if (P.p2 !== undefined && preset.click) {
-                    preset.click.enabled = true;
-                    preset.click.level = (P.p2 / 100) * 0.5;
-                }
-                if (P.p3 !== undefined) {
-                    preset.osc1.a_decay = 0.1 + (P.p3 / 100) * 1.9;
-                }
-                break;
-
-            case 'sd':
-                if (P.p1 !== undefined) {
-                    const baseFreq = 180 + (P.p1 / 100) * 60;
-                    preset.osc1.freq = baseFreq;
-                    preset.osc1.startFreq = baseFreq * 1.5;
-                    preset.osc2.freq = baseFreq * 1.62;
-                    preset.osc2.startFreq = baseFreq * 1.62 * 1.5;
-                }
-                if (P.p2 !== undefined) {
-                    if (preset.noise) preset.noise.cutoff = 4000 + (P.p2 / 100) * 4000;
-                    if (preset.noise2) preset.noise2.cutoff = 1200 + (P.p2 / 100) * 2000;
-                }
-                if (P.p3 !== undefined) {
-                    const snappyLevel = P.p3 / 100;
-                    if (preset.noise) preset.noise.level = vol * snappyLevel * 1.5;
-                    if (preset.noise2) preset.noise2.level = vol * snappyLevel * 1.0;
-                }
-                break;
-
-            case 'lt': case 'mt': case 'ht':
-                if (P.p1 !== undefined) {
-                    const [f1, f2, f3] = getTomFrequencies(trackId, P.p1);
-                    const freqs = [f1, f2, f3];
-                    ['osc1', 'osc2', 'osc3'].forEach((osc, i) => {
-                        if (preset[osc]) {
-                            const targetFreq = freqs[i];
-                            preset[osc].freq = targetFreq;
-                            preset[osc].startFreq = targetFreq * TOM_START_FREQ_MULTIPLIER;
-                            preset[osc].endFreq = targetFreq * TOM_PITCH_DROP_RATIO;
-                            preset[osc].p_decay = TOM_PITCH_DROP_TIME;
-                            preset[osc].pitchEnv = createTomPitchEnv();
-                        }
-                    });
-                    if (preset.masterLowShelf) {
-                        preset.masterLowShelf.freq = f1 * 1.6;
-                    }
-                    if (preset.masterPeak) {
-                        preset.masterPeak.freq = f1;
-                    }
-                    if (preset.masterHighShelf) {
-                        preset.masterHighShelf.freq = f3 * 1.9;
-                    }
-                    if (preset.noise) {
-                        preset.noise.cutoff = f3 * 2.6;
-                    }
-                }
-                if (P.p2 !== undefined) {
-                    const bodyDecay = 0.1 + (P.p2 / 100) * 0.8;
-                    // Match runtime TOM envelope balance:
-                    // fundamental longest, upper harmonics shorter.
-                    const o1 = bodyDecay * 1.25;
-                    const o2 = bodyDecay * 0.62;
-                    const o3 = bodyDecay * 0.36;
-                    const noiseDecay = 0.008 + (P.p2 / 100) * 0.045;
-
-                    if (preset.osc1) {
-                        preset.osc1.staticLevel = false;
-                        preset.osc1.noAttack = true;
-                        preset.osc1.a_decay = o1;
-                    }
-                    if (preset.osc2) {
-                        preset.osc2.staticLevel = false;
-                        preset.osc2.noAttack = true;
-                        preset.osc2.a_decay = o2;
-                    }
-                    if (preset.osc3) {
-                        preset.osc3.staticLevel = false;
-                        preset.osc3.noAttack = true;
-                        preset.osc3.a_decay = o3;
-                    }
-                    if (preset.noise) {
-                        preset.noise.decay = noiseDecay;
-                    }
-                    // Keep compatibility with legacy custom presets that still depend on masterEnv.
-                    if (preset.masterEnv) {
-                        preset.masterEnv.decay = bodyDecay;
-                    }
-                }
-                break;
-
-            case 'cp':
-                if (P.decay !== undefined && preset.noise) {
-                    preset.noise.decay = 0.2 + (P.decay / 100) * 0.6;
-                }
-                break;
-        }
-    },
-
-    // Backward-compatible merge: fill missing modules/fields from factory preset.
+    // Normalize editor patch for preview/playback.
     _mergePresetWithFactory(trackId, overridePreset) {
-        const clone = (obj) => JSON.parse(JSON.stringify(obj || {}));
-        const factory = clone(getFactoryPreset(trackId));
-        const override = (overridePreset && typeof overridePreset === 'object')
-            ? clone(overridePreset)
-            : null;
-
-        if (!override || Object.keys(override).length === 0) {
-            return factory;
-        }
-
-        for (const [key, value] of Object.entries(override)) {
-            const isObj = value && typeof value === 'object' && !Array.isArray(value);
-            const factoryVal = factory[key];
-            const isFactoryObj = factoryVal && typeof factoryVal === 'object' && !Array.isArray(factoryVal);
-
-            if (isObj && isFactoryObj) {
-                factory[key] = { ...factoryVal, ...value };
-            } else {
-                factory[key] = value;
-            }
-        }
-
-        return factory;
+        return mergePresetWithBase(trackId, overridePreset);
     },
 
     resetToFactory() {

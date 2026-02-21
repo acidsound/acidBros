@@ -1070,6 +1070,11 @@ body.midi-learn-active .midi-mapped::after {
     color: #ff5555;
 }
 
+#ds-noise2 .module-title {
+    color: #ff9966;
+}
+
+
 .ds-module .module-controls {
     display: flex;
     flex-wrap: wrap;
@@ -1354,6 +1359,7 @@ body.midi-learn-active .midi-mapped::after {
 .apply-controls {
     width: 100%;
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     gap: 10px;
 }

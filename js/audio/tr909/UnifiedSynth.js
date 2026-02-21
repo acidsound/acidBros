@@ -123,7 +123,8 @@ export class UnifiedSynth {
             this.stopAll();
         }
 
-        const vol = P.vol !== undefined ? P.vol : 1;
+        const safeValue = (value, fallback) => Number.isFinite(value) ? value : fallback;
+        const vol = safeValue(P.vol, 1);
         const voiceDuration = this._estimateVoiceDuration(P);
 
         // Master Gain (can have its own envelope for Tom-style sounds)
@@ -133,8 +134,9 @@ export class UnifiedSynth {
 
         if (P.masterEnv) {
             // Tom style: master has the envelope
-            const decay = Math.max(0.001, P.masterEnv.decay || 0.5);
-            masterGain.gain.setValueAtTime(vol * P.masterEnv.level, now);
+            const decay = Math.max(0.001, safeValue(P.masterEnv.decay, 0.5));
+            const envLevel = safeValue(P.masterEnv.level, 1.0);
+            masterGain.gain.setValueAtTime(vol * envLevel, now);
             masterGain.gain.exponentialRampToValueAtTime(0.001, now + decay);
         } else {
             masterGain.gain.setValueAtTime(vol * 1.5, now);
@@ -595,6 +597,843 @@ export function createTomPitchEnv() {
     };
 }
 
+export const DRUM_SHAPER_DEFAULTS = Object.freeze({
+    bd: Object.freeze({ enabled: false, pitchMode: 'legacy', drop: 50, ring: 50, bright: 50 }),
+    sd: Object.freeze({ enabled: false, pitchMode: 'legacy', drop: 50, ring: 50, bright: 50 }),
+    lt: Object.freeze({ enabled: true, pitchMode: 'cv', drop: 100, ring: 100, bright: 100 }),
+    mt: Object.freeze({ enabled: true, pitchMode: 'cv', drop: 100, ring: 100, bright: 100 }),
+    ht: Object.freeze({ enabled: true, pitchMode: 'cv', drop: 100, ring: 100, bright: 100 }),
+    rs: Object.freeze({ enabled: false, pitchMode: 'legacy', drop: 50, ring: 50, bright: 50 }),
+    cp: Object.freeze({ enabled: false, pitchMode: 'legacy', drop: 50, ring: 50, bright: 50 }),
+    default: Object.freeze({ enabled: false, pitchMode: 'legacy', drop: 50, ring: 50, bright: 50 })
+});
+
+export function getDefaultDrumShaper(trackId = 'default') {
+    const base = DRUM_SHAPER_DEFAULTS[trackId] || DRUM_SHAPER_DEFAULTS.default;
+    return { ...base };
+}
+
+export const SNAPPY_DEFAULTS = Object.freeze({
+    bd: Object.freeze({ enabled: false, amount: 0, tone: 50, decay: 50 }),
+    sd: Object.freeze({ enabled: false, amount: 50, tone: 50, decay: 50 }),
+    lt: Object.freeze({ enabled: false, amount: 0, tone: 50, decay: 50 }),
+    mt: Object.freeze({ enabled: false, amount: 0, tone: 50, decay: 50 }),
+    ht: Object.freeze({ enabled: false, amount: 0, tone: 50, decay: 50 }),
+    rs: Object.freeze({ enabled: false, amount: 0, tone: 50, decay: 50 }),
+    cp: Object.freeze({ enabled: false, amount: 35, tone: 58, decay: 45 }),
+    default: Object.freeze({ enabled: false, amount: 0, tone: 50, decay: 50 })
+});
+
+export function getDefaultSnappy(trackId = 'default') {
+    const base = SNAPPY_DEFAULTS[trackId] || SNAPPY_DEFAULTS.default;
+    return { ...base };
+}
+
+const _defaultLevelControl = Object.freeze({
+    id: 'level',
+    label: 'LEVEL',
+    min: 0,
+    max: 200,
+    def: 100,
+    step: 1,
+    sourceKeys: Object.freeze(['level', 'vol'])
+});
+
+function _buildTomPreviewProfile(trackId) {
+    const [f1Min, f2Min, f3Min] = getTomFrequencies(trackId, 0);
+    const [f1Max, f2Max, f3Max] = getTomFrequencies(trackId, 100);
+    const [f1Base, f2Base, f3Base] = getTomFrequencies(trackId, 50);
+
+    return {
+        mode: 'direct',
+        controls: [
+            {
+                id: 'tune',
+                label: 'TUNE',
+                min: 0,
+                max: 100,
+                def: 50,
+                step: 1,
+                sourceKeys: ['tune', 'p1'],
+                targets: [
+                    { path: 'osc1.freq', mode: 'mul', outMin: f1Min / f1Base, outMax: f1Max / f1Base },
+                    { path: 'osc2.freq', mode: 'mul', outMin: f2Min / f2Base, outMax: f2Max / f2Base },
+                    { path: 'osc3.freq', mode: 'mul', outMin: f3Min / f3Base, outMax: f3Max / f3Base },
+                    { path: 'osc1.startFreq', mode: 'mul', outMin: f1Min / f1Base, outMax: f1Max / f1Base },
+                    { path: 'osc2.startFreq', mode: 'mul', outMin: f2Min / f2Base, outMax: f2Max / f2Base },
+                    { path: 'osc3.startFreq', mode: 'mul', outMin: f3Min / f3Base, outMax: f3Max / f3Base },
+                    { path: 'osc1.endFreq', mode: 'mul', outMin: f1Min / f1Base, outMax: f1Max / f1Base },
+                    { path: 'osc2.endFreq', mode: 'mul', outMin: f2Min / f2Base, outMax: f2Max / f2Base },
+                    { path: 'osc3.endFreq', mode: 'mul', outMin: f3Min / f3Base, outMax: f3Max / f3Base },
+                    { path: 'osc1.p_decay', value: TOM_PITCH_DROP_TIME },
+                    { path: 'osc2.p_decay', value: TOM_PITCH_DROP_TIME },
+                    { path: 'osc3.p_decay', value: TOM_PITCH_DROP_TIME },
+                    { path: 'osc1.pitchEnv.startMultiplier', value: TOM_CV_START_MULTIPLIER },
+                    { path: 'osc1.pitchEnv.cvTargetRatio', value: 1.0 },
+                    { path: 'osc1.pitchEnv.cvDecay', value: TOM_CV_DECAY_TIME },
+                    { path: 'osc1.pitchEnv.dropDelay', value: TOM_PITCH_DROP_DELAY },
+                    { path: 'osc1.pitchEnv.dropRatio', value: TOM_PITCH_DROP_RATIO },
+                    { path: 'osc1.pitchEnv.dropTime', value: TOM_PITCH_DROP_TIME },
+                    { path: 'osc2.pitchEnv.startMultiplier', value: TOM_CV_START_MULTIPLIER },
+                    { path: 'osc2.pitchEnv.cvTargetRatio', value: 1.0 },
+                    { path: 'osc2.pitchEnv.cvDecay', value: TOM_CV_DECAY_TIME },
+                    { path: 'osc2.pitchEnv.dropDelay', value: TOM_PITCH_DROP_DELAY },
+                    { path: 'osc2.pitchEnv.dropRatio', value: TOM_PITCH_DROP_RATIO },
+                    { path: 'osc2.pitchEnv.dropTime', value: TOM_PITCH_DROP_TIME },
+                    { path: 'osc3.pitchEnv.startMultiplier', value: TOM_CV_START_MULTIPLIER },
+                    { path: 'osc3.pitchEnv.cvTargetRatio', value: 1.0 },
+                    { path: 'osc3.pitchEnv.cvDecay', value: TOM_CV_DECAY_TIME },
+                    { path: 'osc3.pitchEnv.dropDelay', value: TOM_PITCH_DROP_DELAY },
+                    { path: 'osc3.pitchEnv.dropRatio', value: TOM_PITCH_DROP_RATIO },
+                    { path: 'osc3.pitchEnv.dropTime', value: TOM_PITCH_DROP_TIME },
+                    { path: 'masterLowShelf.freq', mode: 'mul', outMin: f1Min / f1Base, outMax: f1Max / f1Base },
+                    { path: 'masterPeak.freq', mode: 'mul', outMin: f1Min / f1Base, outMax: f1Max / f1Base },
+                    { path: 'masterHighShelf.freq', mode: 'mul', outMin: f3Min / f3Base, outMax: f3Max / f3Base },
+                    { path: 'noise.cutoff', mode: 'mul', outMin: f3Min / f3Base, outMax: f3Max / f3Base }
+                ]
+            },
+            {
+                id: 'decay',
+                label: 'DECAY',
+                min: 0,
+                max: 100,
+                def: 50,
+                step: 1,
+                sourceKeys: ['decay', 'p2'],
+                targets: [
+                    { path: 'osc1.staticLevel', value: false },
+                    { path: 'osc2.staticLevel', value: false },
+                    { path: 'osc3.staticLevel', value: false },
+                    { path: 'osc1.noAttack', value: true },
+                    { path: 'osc2.noAttack', value: true },
+                    { path: 'osc3.noAttack', value: true },
+                    { path: 'osc1.a_decay', mode: 'mul', outMin: 0.278, outMax: 2.5 },
+                    { path: 'osc2.a_decay', mode: 'mul', outMin: 0.282, outMax: 2.536 },
+                    { path: 'osc3.a_decay', mode: 'mul', outMin: 0.277, outMax: 2.492 },
+                    { path: 'noise.decay', mode: 'mul', outMin: 0.267, outMax: 1.767 },
+                    { path: 'masterEnv.decay', mode: 'mul', outMin: 0.2, outMax: 1.8 }
+                ]
+            },
+            { ..._defaultLevelControl }
+        ]
+    };
+}
+
+function _createLegacyPreviewProfile(trackId = 'default') {
+    switch (trackId) {
+        case 'bd':
+            return {
+                mode: 'direct',
+                controls: [
+                    {
+                        id: 'tune',
+                        label: 'TUNE',
+                        min: 0,
+                        max: 100,
+                        def: 40,
+                        step: 1,
+                sourceKeys: ['tune', 'p1'],
+                targets: [
+                            { path: 'osc1.freq', mode: 'mul', outMin: 0.747664, outMax: 1.214953 },
+                            { path: 'osc1.startFreq', mode: 'mul', outMin: 0.747664, outMax: 1.214953 },
+                            { path: 'osc1.p_decay', mode: 'mul', points: [[0, 0.090909], [40, 0.363636], [100, 3.090909]] }
+                        ]
+                    },
+                    {
+                        id: 'attack',
+                        label: 'ATTACK',
+                        min: 0,
+                        max: 100,
+                        def: 50,
+                        step: 1,
+                        sourceKeys: ['attack', 'p2'],
+                        targets: [
+                            { path: 'click.level', mode: 'mul', outMin: 0.0, outMax: 1.25 }
+                        ]
+                    },
+                    {
+                        id: 'decay',
+                        label: 'DECAY',
+                        min: 0,
+                        max: 100,
+                        def: 50,
+                        step: 1,
+                        sourceKeys: ['decay', 'p3'],
+                        targets: [{ path: 'osc1.a_decay', mode: 'mul', outMin: 0.2, outMax: 4.0 }]
+                    },
+                    { ..._defaultLevelControl }
+                ]
+            };
+        case 'sd':
+            return {
+                mode: 'direct',
+                controls: [
+                    {
+                        id: 'tune',
+                        label: 'TUNE',
+                        min: 0,
+                        max: 100,
+                        def: 50,
+                        step: 1,
+                sourceKeys: ['tune', 'p1'],
+                targets: [
+                            { path: 'osc1.freq', mode: 'mul', outMin: 1.0, outMax: 1.333333 },
+                            { path: 'osc1.startFreq', mode: 'mul', outMin: 1.0, outMax: 1.333333 },
+                            { path: 'osc2.freq', mode: 'mul', outMin: 1.0, outMax: 1.333333 },
+                            { path: 'osc2.startFreq', mode: 'mul', outMin: 1.0, outMax: 1.333333 }
+                        ]
+                    },
+                    {
+                        id: 'tone',
+                        label: 'TONE',
+                        min: 0,
+                        max: 100,
+                        def: 50,
+                        step: 1,
+                        sourceKeys: ['tone', 'p2'],
+                        targets: [
+                            { path: 'noise.cutoff', mode: 'mul', outMin: 0.666667, outMax: 1.333333 },
+                            { path: 'noise2.cutoff', mode: 'mul', outMin: 0.545455, outMax: 1.454545 }
+                        ]
+                    },
+                    {
+                        id: 'snappy',
+                        label: 'SNAPPY',
+                        min: 0,
+                        max: 100,
+                        def: 50,
+                        step: 1,
+                        sourceKeys: ['snappy', 'p3'],
+                        targets: [
+                            { path: 'noise.level', mode: 'mul', outMin: 0.0, outMax: 2.0 },
+                            { path: 'noise2.level', mode: 'mul', outMin: 0.0, outMax: 2.0 }
+                        ]
+                    },
+                    { ..._defaultLevelControl }
+                ]
+            };
+        case 'lt':
+        case 'mt':
+        case 'ht':
+            return _buildTomPreviewProfile(trackId);
+        case 'cp':
+            return {
+                mode: 'direct',
+                controls: [
+                    {
+                        id: 'decay',
+                        label: 'DECAY',
+                        min: 0,
+                        max: 100,
+                        def: 50,
+                        step: 1,
+                        sourceKeys: ['decay', 'p2'],
+                        targets: [{ path: 'noise.decay', mode: 'mul', outMin: 0.5, outMax: 2.0 }]
+                    },
+                    { ..._defaultLevelControl }
+                ]
+            };
+        case 'rs':
+            return {
+                mode: 'direct',
+                controls: [{ ..._defaultLevelControl }]
+            };
+        default:
+            return {
+                mode: 'direct',
+                controls: [{ ..._defaultLevelControl }]
+            };
+    }
+}
+
+function _cloneDeep(obj) {
+    return JSON.parse(JSON.stringify(obj || {}));
+}
+
+function _normalizePreviewControl(control, fallback = {}) {
+    const id = typeof control?.id === 'string' ? control.id.trim() : '';
+    if (!id) return null;
+
+    const fallbackMin = Number.isFinite(fallback.min) ? fallback.min : 0;
+    const fallbackMax = Number.isFinite(fallback.max) ? fallback.max : 100;
+    const min = Number.isFinite(control.min) ? control.min : fallbackMin;
+    const max = Number.isFinite(control.max) ? control.max : fallbackMax;
+    const step = Number.isFinite(control.step) ? control.step : (Number.isFinite(fallback.step) ? fallback.step : 1);
+    const def = Number.isFinite(control.def)
+        ? _clamp(control.def, min, max)
+        : (Number.isFinite(fallback.def) ? _clamp(fallback.def, min, max) : min);
+
+    const normalized = {
+        id,
+        label: typeof control.label === 'string' && control.label.trim() ? control.label : id.toUpperCase(),
+        min,
+        max,
+        def,
+        step
+    };
+
+    if (Array.isArray(control.sourceKeys) && control.sourceKeys.length > 0) {
+        normalized.sourceKeys = control.sourceKeys.filter((key) => typeof key === 'string' && key.trim());
+    } else if (Array.isArray(fallback.sourceKeys) && fallback.sourceKeys.length > 0) {
+        normalized.sourceKeys = [...fallback.sourceKeys];
+    }
+
+    if (Array.isArray(control.targets) && control.targets.length > 0) {
+        normalized.targets = _cloneDeep(control.targets);
+    } else if (control.target !== undefined) {
+        normalized.target = _cloneDeep(control.target);
+    } else if (Array.isArray(fallback.targets) && fallback.targets.length > 0) {
+        normalized.targets = _cloneDeep(fallback.targets);
+    } else if (fallback.target !== undefined) {
+        normalized.target = _cloneDeep(fallback.target);
+    }
+
+    return normalized;
+}
+
+function _findLevelControl(profile) {
+    if (!profile || !Array.isArray(profile.controls)) return null;
+    return profile.controls.find((control) => control.id === 'level') || null;
+}
+
+function _normalizePreviewProfile(trackId = 'default', profile = null) {
+    const fallback = _cloneDeep(_createLegacyPreviewProfile(trackId));
+    const mode = (typeof profile?.mode === 'string' && profile.mode.trim())
+        ? profile.mode.trim().toLowerCase()
+        : (fallback.mode || 'direct');
+
+    const rawControls = Array.isArray(profile?.controls) && profile.controls.length > 0
+        ? profile.controls
+        : fallback.controls;
+
+    const controls = [];
+    rawControls.forEach((control) => {
+        const fallbackControl = fallback.controls.find((item) => item.id === control.id) || {};
+        const normalized = _normalizePreviewControl(control, fallbackControl);
+        if (normalized) controls.push(normalized);
+    });
+
+    if (controls.length === 0) {
+        fallback.controls.forEach((control) => {
+            const normalized = _normalizePreviewControl(control, control);
+            if (normalized) controls.push(normalized);
+        });
+    }
+
+    if (!_findLevelControl({ controls })) {
+        const fallbackLevel = _findLevelControl(fallback) || _defaultLevelControl;
+        const normalizedLevel = _normalizePreviewControl(fallbackLevel, fallbackLevel);
+        if (normalizedLevel) controls.push(normalizedLevel);
+    }
+
+    return { mode, controls };
+}
+
+export function getDefaultPreviewProfile(trackId = 'default') {
+    return _normalizePreviewProfile(trackId, null);
+}
+
+export function resolvePreviewProfile(trackId = 'default', patch = null) {
+    const candidate = patch?.previewProfile || patch?.preview?.profile || null;
+    return _normalizePreviewProfile(trackId, candidate);
+}
+
+function _getControlFallback(control) {
+    return Number.isFinite(control.def) ? control.def : control.min;
+}
+
+export function getPreviewControlValues(trackId = 'default', params = {}, profile = null) {
+    const resolvedProfile = _normalizePreviewProfile(trackId, profile);
+    const values = {};
+
+    resolvedProfile.controls.forEach((control) => {
+        let value = Number.isFinite(params?.[control.id]) ? params[control.id] : null;
+
+        if (!Number.isFinite(value) && Array.isArray(control.sourceKeys)) {
+            for (const sourceKey of control.sourceKeys) {
+                if (sourceKey === 'vol' && Number.isFinite(params?.vol)) {
+                    value = params.vol * 100;
+                    break;
+                }
+                if (Number.isFinite(params?.[sourceKey])) {
+                    value = params[sourceKey];
+                    break;
+                }
+            }
+        }
+
+        if (!Number.isFinite(value) && control.id === 'level' && Number.isFinite(params?.vol)) {
+            value = params.vol * 100;
+        }
+
+        if (!Number.isFinite(value)) {
+            value = _getControlFallback(control);
+        }
+
+        values[control.id] = _clamp(value, control.min, control.max);
+    });
+
+    return values;
+}
+
+function _getNestedValue(obj, path) {
+    if (!obj || typeof obj !== 'object' || typeof path !== 'string' || !path) return undefined;
+    return path.split('.').reduce((cursor, segment) => {
+        if (!cursor || typeof cursor !== 'object') return undefined;
+        return cursor[segment];
+    }, obj);
+}
+
+function _setNestedValue(obj, path, value) {
+    if (!obj || typeof obj !== 'object' || typeof path !== 'string' || !path) return false;
+    const keys = path.split('.');
+    let cursor = obj;
+    for (let i = 0; i < keys.length - 1; i++) {
+        const key = keys[i];
+        if (!cursor[key] || typeof cursor[key] !== 'object' || Array.isArray(cursor[key])) {
+            cursor[key] = {};
+        }
+        cursor = cursor[key];
+    }
+    cursor[keys[keys.length - 1]] = value;
+    return true;
+}
+
+function _interpolatePoints(points = [], input) {
+    if (!Array.isArray(points) || points.length === 0) return input;
+    const normalized = points
+        .filter((pair) => Array.isArray(pair) && Number.isFinite(pair[0]) && Number.isFinite(pair[1]))
+        .map((pair) => [pair[0], pair[1]])
+        .sort((a, b) => a[0] - b[0]);
+    if (normalized.length === 0) return input;
+    if (normalized.length === 1) return normalized[0][1];
+    if (input <= normalized[0][0]) return normalized[0][1];
+    const last = normalized[normalized.length - 1];
+    if (input >= last[0]) return last[1];
+
+    for (let i = 0; i < normalized.length - 1; i++) {
+        const a = normalized[i];
+        const b = normalized[i + 1];
+        if (input < a[0] || input > b[0]) continue;
+        const span = b[0] - a[0];
+        if (span <= 0) return b[1];
+        const t = (input - a[0]) / span;
+        return a[1] + t * (b[1] - a[1]);
+    }
+    return input;
+}
+
+function _mapControlToTarget(control, target, rawValue, preset) {
+    const t = (target && typeof target === 'object' && !Array.isArray(target)) ? target : {};
+    if (Object.prototype.hasOwnProperty.call(t, 'value')) {
+        return t.value;
+    }
+
+    let input = rawValue;
+    if (typeof t.fromPath === 'string' && t.fromPath) {
+        const source = _getNestedValue(preset, t.fromPath);
+        if (Number.isFinite(source)) {
+            input = source;
+        }
+    }
+
+    let value = input;
+    const inMin = Number.isFinite(t.inMin) ? t.inMin : (Number.isFinite(control.min) ? control.min : 0);
+    const inMax = Number.isFinite(t.inMax) ? t.inMax : (Number.isFinite(control.max) ? control.max : 100);
+    const inSpan = Math.max(0.000001, inMax - inMin);
+    const normalized = _clamp((input - inMin) / inSpan, 0, 1);
+
+    if (Array.isArray(t.points) && t.points.length > 0) {
+        value = _interpolatePoints(t.points, input);
+    } else if (Number.isFinite(t.outMin) && Number.isFinite(t.outMax)) {
+        value = t.outMin + normalized * (t.outMax - t.outMin);
+    } else {
+        if (Number.isFinite(t.scale)) value *= t.scale;
+        if (Number.isFinite(t.offset)) value += t.offset;
+    }
+
+    if (typeof t.mulPath === 'string' && t.mulPath) {
+        const mul = _getNestedValue(preset, t.mulPath);
+        if (Number.isFinite(mul)) {
+            value *= mul;
+        }
+    }
+
+    if (typeof t.addPath === 'string' && t.addPath) {
+        const add = _getNestedValue(preset, t.addPath);
+        if (Number.isFinite(add)) {
+            value += add;
+        }
+    }
+
+    if (Number.isFinite(t.min) || Number.isFinite(t.max)) {
+        value = _clamp(
+            value,
+            Number.isFinite(t.min) ? t.min : value,
+            Number.isFinite(t.max) ? t.max : value
+        );
+    }
+    return value;
+}
+
+function _applyDirectPreviewProfile(preset, values, profile) {
+    profile.controls.forEach((control) => {
+        const raw = Number.isFinite(values[control.id]) ? values[control.id] : _getControlFallback(control);
+        const targets = Array.isArray(control.targets)
+            ? control.targets
+            : (control.target !== undefined ? [control.target] : []);
+
+        targets.forEach((target) => {
+            const descriptor = typeof target === 'string' ? { path: target } : target;
+            if (!descriptor || typeof descriptor.path !== 'string' || !descriptor.path) return;
+
+            const mapped = _mapControlToTarget(control, descriptor, raw, preset);
+            if (descriptor.mode === 'add') {
+                const current = _getNestedValue(preset, descriptor.path);
+                const base = Number.isFinite(current) ? current : 0;
+                _setNestedValue(preset, descriptor.path, base + mapped);
+                return;
+            }
+            if (descriptor.mode === 'mul') {
+                const current = _getNestedValue(preset, descriptor.path);
+                const base = Number.isFinite(current) ? current : 1;
+                _setNestedValue(preset, descriptor.path, base * mapped);
+                return;
+            }
+            _setNestedValue(preset, descriptor.path, mapped);
+        });
+    });
+}
+
+export function resolveVoiceAccentGain(accent) {
+    if (accent === undefined || accent === null) return 1.0;
+    if (typeof accent === 'boolean') return accent ? 1.35 : 1.0;
+    const n = Number(accent);
+    if (!Number.isFinite(n)) return 1.0;
+    if (n <= 1.0) return 1.0 + Math.max(0, n) * 0.35;
+    return Math.max(0.5, Math.min(2.0, n));
+}
+
+export function applyTrackPerformanceControls(preset, trackId, params = {}, profile = null) {
+    if (!preset || typeof preset !== 'object') return preset;
+
+    const resolvedProfile = _normalizePreviewProfile(trackId, profile);
+    const values = getPreviewControlValues(trackId, params, resolvedProfile);
+    const level = Number.isFinite(values.level) ? values.level : 100;
+    preset.vol = level / 100;
+    preset.accent = resolveVoiceAccentGain(params.accent);
+    _applyDirectPreviewProfile(preset, values, resolvedProfile);
+
+    const shaper = (preset.shaper && typeof preset.shaper === 'object')
+        ? preset.shaper
+        : ((preset.tomMacros && typeof preset.tomMacros === 'object') ? preset.tomMacros : null);
+    if (shaper) {
+        applyShaperControls(preset, shaper);
+    }
+
+    return preset;
+}
+
+export function mergePresetWithBase(trackId, customPatch) {
+    const patch = (customPatch && typeof customPatch === 'object')
+        ? _cloneDeep(customPatch)
+        : null;
+
+    if (!patch || Object.keys(patch).length === 0) {
+        return getFactoryPreset(trackId);
+    }
+
+    if (patch.tomMacros && !patch.shaper) {
+        patch.shaper = { ...patch.tomMacros };
+    }
+    delete patch.basePreset;
+    delete patch.base;
+    delete patch.inheritFactory;
+    if (patch.meta && typeof patch.meta === 'object') {
+        delete patch.meta.basePreset;
+        delete patch.meta.base;
+    }
+
+    return patch;
+}
+
+function _clamp(value, min, max) {
+    if (!Number.isFinite(value)) return min;
+    return Math.max(min, Math.min(max, value));
+}
+
+function _normMacro(value, fallback = 50) {
+    const v = Number.isFinite(value) ? value : fallback;
+    const clamped = _clamp(v, 0, 100);
+    return {
+        raw: clamped,
+        norm: (clamped - 50) / 50
+    };
+}
+
+function _safeMul(base, factor, min = 0.001, max = 10) {
+    const b = Number.isFinite(base) ? base : min;
+    return _clamp(b * factor, min, max);
+}
+
+// Apply DRUM SHAPER controls:
+// - drop: pitch sweep contour
+// - ring: body resonance/decay
+// - bright: high-frequency attack/air
+export function applyShaperControls(preset, shaper = {}) {
+    if (!preset || typeof preset !== 'object') {
+        return preset;
+    }
+    const safeNumber = (value, fallback) => Number.isFinite(value) ? value : fallback;
+
+    const drop = _normMacro(shaper.drop, 50);
+    const ring = _normMacro(shaper.ring, 50);
+    const bright = _normMacro(shaper.bright, 50);
+    const enabled = shaper.enabled !== false;
+
+    const pitchMode = (typeof shaper.pitchMode === 'string' && shaper.pitchMode.toLowerCase() === 'cv')
+        ? 'cv'
+        : 'legacy';
+
+    const normalized = {
+        enabled,
+        pitchMode,
+        drop: drop.raw,
+        ring: ring.raw,
+        bright: bright.raw
+    };
+
+    if (!enabled) {
+        preset.shaper = normalized;
+        preset.tomMacros = { ...normalized };
+        return preset;
+    }
+
+    // Keep DROP center (50) neutral for all instruments.
+    const useCvPitch = pitchMode === 'cv';
+    const dropSemitone = _clamp(drop.norm * 2.0, -2.0, 2.0);
+    const dropPitchMul = Math.pow(2, dropSemitone / 12);
+
+    let refHighFreq = null;
+    ['osc1', 'osc2', 'osc3', 'osc4'].forEach((oscId, index) => {
+        const osc = preset[oscId];
+        if (!osc || osc.enabled === false) return;
+
+        const basePDecay = _clamp(safeNumber(osc.p_decay, 0.08), 0.003, 0.5);
+        const oscDropTime = _clamp(basePDecay * (1 + drop.norm * (useCvPitch ? 0.9 : 0.6)), 0.003, 0.5);
+        const freq = Number.isFinite(osc.freq) ? osc.freq : null;
+        let baseStartFreq = null;
+        if (freq && freq > 0) {
+            baseStartFreq = Number.isFinite(osc.startFreq) ? osc.startFreq : freq;
+            osc.startFreq = _clamp(baseStartFreq * dropPitchMul, 1, 20000);
+            if (useCvPitch) {
+                osc.endFreq = freq;
+            }
+            osc.p_decay = oscDropTime;
+            refHighFreq = Math.max(refHighFreq || 0, freq);
+        }
+
+        if (useCvPitch) {
+            const basePitchEnv = (osc.pitchEnv && typeof osc.pitchEnv === 'object') ? osc.pitchEnv : {};
+            const fallbackStartMul = (freq && Number.isFinite(baseStartFreq))
+                ? _clamp(baseStartFreq / freq, 0.5, 3.0)
+                : 1.0;
+            const baseStartMul = _clamp(safeNumber(basePitchEnv.startMultiplier, fallbackStartMul), 0.5, 3.0);
+            const baseCvDecay = _clamp(safeNumber(basePitchEnv.cvDecay, basePDecay), 0.003, 0.5);
+
+            osc.pitchEnv = {
+                startMultiplier: _clamp(baseStartMul * dropPitchMul, 0.5, 3.0),
+                cvTargetRatio: _clamp(safeNumber(basePitchEnv.cvTargetRatio, 1.0), 0.25, 4.0),
+                cvDecay: _clamp(baseCvDecay * (1 + drop.norm * 0.5), 0.003, 0.5),
+                dropDelay: Math.max(0, safeNumber(basePitchEnv.dropDelay, 0.0)),
+                dropRatio: _clamp(safeNumber(basePitchEnv.dropRatio, 1.0), 0.25, 4.0),
+                dropTime: oscDropTime
+            };
+        }
+
+        if (Number.isFinite(osc.a_decay)) {
+            const ringDecayScale = 1 + ring.norm * (index === 0 ? 0.55 : index === 1 ? 0.35 : 0.24);
+            const brightDecayScale = 1 + bright.norm * (index === 0 ? 0.12 : 0.22);
+            osc.a_decay = _safeMul(osc.a_decay, ringDecayScale * brightDecayScale, 0.003, 3.0);
+        }
+        if (Number.isFinite(osc.level)) {
+            const ringLevelScale = 1 + ring.norm * (index === 0 ? 0.12 : 0.07);
+            const brightLevelScale = 1 + bright.norm * (index === 0 ? 0.1 : 0.35);
+            osc.level = _safeMul(osc.level, ringLevelScale * brightLevelScale, 0.005, 2.5);
+        }
+        if (Number.isFinite(osc.drive)) {
+            osc.drive = _safeMul(osc.drive, 1 + ring.norm * 0.2 + bright.norm * 0.12, 0, 40);
+        }
+    });
+
+    const refBaseFreq = Number.isFinite(preset.osc1?.freq) ? preset.osc1.freq : null;
+    const refFreq = refHighFreq || refBaseFreq;
+    const airScale = 1 + bright.norm * 0.7;
+
+    if (preset.masterLowShelf && Number.isFinite(preset.masterLowShelf.gain)) {
+        preset.masterLowShelf.gain = _clamp(preset.masterLowShelf.gain + ring.norm * 1.8 - bright.norm * 0.6, -6, 10);
+    }
+    if (preset.masterPeak) {
+        if (Number.isFinite(preset.masterPeak.gain)) {
+            preset.masterPeak.gain = _clamp(preset.masterPeak.gain + ring.norm * 1.3, -6, 10);
+        }
+        if (Number.isFinite(preset.masterPeak.Q)) {
+            preset.masterPeak.Q = _clamp(preset.masterPeak.Q + ring.norm * 0.2, 0.5, 1.6);
+        }
+    }
+    if (preset.masterHighShelf) {
+        if (Number.isFinite(preset.masterHighShelf.gain)) {
+            preset.masterHighShelf.gain = _clamp(preset.masterHighShelf.gain + bright.norm * 2.6, -6, 10);
+        }
+        if (Number.isFinite(preset.masterHighShelf.freq)) {
+            preset.masterHighShelf.freq = _safeMul(preset.masterHighShelf.freq, 1 + bright.norm * 0.2, 300, 12000);
+        } else if (refFreq) {
+            preset.masterHighShelf.freq = refFreq * (1.7 + (bright.raw / 100) * 0.7);
+        }
+    }
+
+    ['noise', 'noise2'].forEach((noiseId) => {
+        const noise = preset[noiseId];
+        if (!noise || noise.enabled === false) return;
+
+        if (refFreq && Number.isFinite(noise.cutoff)) {
+            const baseMul = noiseId === 'noise2' ? 1.7 : 2.2;
+            const brightMul = noiseId === 'noise2' ? 1.0 : 1.4;
+            noise.cutoff = refFreq * (baseMul + (bright.raw / 100) * brightMul);
+        }
+        if (Number.isFinite(noise.Q)) {
+            noise.Q = _clamp(noise.Q + bright.norm * 0.3 + ring.norm * 0.08, 0.3, 2.0);
+        }
+        if (Number.isFinite(noise.level)) {
+            noise.level = _safeMul(noise.level, airScale, 0.002, 3.0);
+        }
+        if (Number.isFinite(noise.decay)) {
+            const noiseScale = 1 + ring.norm * 0.35 + bright.norm * 0.15;
+            noise.decay = _safeMul(noise.decay, noiseScale, 0.001, 2.0);
+        }
+    });
+
+    if (preset.click) {
+        if (Number.isFinite(preset.click.level)) {
+            const clickScale = 1 + bright.norm * 0.5 + ring.norm * 0.1;
+            preset.click.level = _safeMul(preset.click.level, clickScale, 0.001, 1.2);
+        }
+        if (Number.isFinite(preset.click.decay)) {
+            preset.click.decay = _safeMul(preset.click.decay, 1 + ring.norm * 0.2, 0.001, 0.08);
+        }
+        if (Number.isFinite(preset.click.filter_freq)) {
+            preset.click.filter_freq = _safeMul(preset.click.filter_freq, 1 + bright.norm * 0.25, 120, 12000);
+        }
+    }
+
+    if (preset.snap) {
+        if (Number.isFinite(preset.snap.level)) {
+            preset.snap.level = _safeMul(preset.snap.level, 1 + bright.norm * 0.35, 0.001, 1.5);
+        }
+        if (Number.isFinite(preset.snap.startFreq)) {
+            preset.snap.startFreq = _safeMul(preset.snap.startFreq, 1 + bright.norm * 0.2, 60, 6000);
+        }
+    }
+
+    preset.shaper = normalized;
+    // Legacy compatibility for saved patches created before rename.
+    preset.tomMacros = { ...normalized };
+    return preset;
+}
+
+// Backward-compatible alias.
+export function applyTomMacroControls(preset, macros = {}, trackId = '') {
+    return applyShaperControls(preset, macros);
+}
+
+export function applySnappyControls(preset, snappy = {}) {
+    if (!preset || typeof preset !== 'object') return preset;
+
+    const amount = _normMacro(snappy.amount, 0);
+    const tone = _normMacro(snappy.tone, 50);
+    const decay = _normMacro(snappy.decay, 50);
+    const enabled = snappy.enabled === true || amount.raw > 0;
+
+    const normalized = {
+        enabled,
+        amount: amount.raw,
+        tone: tone.raw,
+        decay: decay.raw
+    };
+    if (!enabled) {
+        preset.macros = { ...(preset.macros || {}), snappy: normalized };
+        return preset;
+    }
+
+    const amt = amount.raw / 100;
+    const toneNorm = tone.norm;
+    const decayNorm = decay.norm;
+
+    if (preset.noise) {
+        preset.noise.enabled = true;
+        if (Number.isFinite(preset.noise.level)) {
+            preset.noise.level = _safeMul(preset.noise.level, 1 + amt * 1.2, 0.001, 3.0);
+        }
+        if (Number.isFinite(preset.noise.cutoff)) {
+            preset.noise.cutoff = _safeMul(preset.noise.cutoff, 1 + toneNorm * 0.35 + amt * 0.2, 120, 12000);
+        }
+        if (Number.isFinite(preset.noise.decay)) {
+            preset.noise.decay = _safeMul(preset.noise.decay, 1 + decayNorm * 0.5 + amt * 0.35, 0.002, 2.0);
+        }
+    }
+
+    // Build/strengthen HPF snappy path if absent.
+    if (!preset.noise2 && preset.noise) {
+        preset.noise2 = {
+            ...preset.noise,
+            filter_type: 'highpass',
+            cutoff: Math.min(12000, Math.max(200, (preset.noise.cutoff || 2000) * 0.45)),
+            level: (preset.noise.level || 0.3) * 0.55,
+            decay: Math.max(0.002, (preset.noise.decay || 0.15) * 0.7),
+            enabled: true
+        };
+    }
+    if (preset.noise2) {
+        preset.noise2.enabled = true;
+        if (Number.isFinite(preset.noise2.level)) {
+            preset.noise2.level = _safeMul(preset.noise2.level, 1 + amt * 1.4, 0.001, 3.0);
+        }
+        if (Number.isFinite(preset.noise2.cutoff)) {
+            preset.noise2.cutoff = _safeMul(preset.noise2.cutoff, 1 + toneNorm * 0.5 + amt * 0.15, 120, 12000);
+        }
+        if (Number.isFinite(preset.noise2.decay)) {
+            preset.noise2.decay = _safeMul(preset.noise2.decay, 1 + decayNorm * 0.6 + amt * 0.25, 0.002, 2.0);
+        }
+    }
+
+    preset.macros = { ...(preset.macros || {}), snappy: normalized };
+    return preset;
+}
+
+export function applyMacroControls(preset, macros = {}) {
+    if (!preset || typeof preset !== 'object') return preset;
+
+    // Backward compatibility for legacy patch shape.
+    const shaper = macros.shaper || preset.shaper || preset.tomMacros || null;
+    if (shaper) {
+        applyShaperControls(preset, shaper);
+    }
+
+    const snappy = macros.snappy || null;
+    if (snappy) {
+        applySnappyControls(preset, snappy);
+    }
+
+    if (shaper || snappy) {
+        preset.macros = {
+            ...(preset.macros || {}),
+            ...(shaper ? { shaper: preset.shaper || shaper } : {}),
+            ...(snappy ? { snappy: preset.macros?.snappy || snappy } : {})
+        };
+    }
+    return preset;
+}
+
 const [MT_OSC1_FREQ, MT_OSC2_FREQ, MT_OSC3_FREQ] = getTomFrequencies('mt', 50);
 
 /**
@@ -623,7 +1462,8 @@ export const FACTORY_PRESETS = {
             decay: 0.005,        // 5ms
             filter_freq: 2000,
             level: 0.4           // Boosted base click level
-        }
+        },
+        shaper: getDefaultDrumShaper('bd')
     },
     sd: {
         // TR909 playSD: 2 Triangles (1:1.62 ratio), pitch bend 1.5x in 20ms
@@ -665,7 +1505,8 @@ export const FACTORY_PRESETS = {
             Q: 1.0,
             decay: 0.15,         // HPF path: 150ms
             level: 0.5           // snappyLevel * 1.0 at p3=50
-        }
+        },
+        shaper: getDefaultDrumShaper('sd')
     },
     tom: {
         // TR909 playTom (MT): 3 oscillators (tri + sine + sine), pitch 1.3x in 50ms.
@@ -732,7 +1573,8 @@ export const FACTORY_PRESETS = {
             Q: 0.85,
             decay: 0.03,         // short stick/transient component
             level: 0.13
-        }
+        },
+        shaper: getDefaultDrumShaper('mt')
     },
     rs: {
         // TR909 playRim: 3 Sines (220, 500, 1000 Hz)
@@ -776,7 +1618,8 @@ export const FACTORY_PRESETS = {
             endFreq: 400,
             level: 0.6
         },
-        masterHPF: 200           // 200Hz HPF for metallic character
+        masterHPF: 200,          // 200Hz HPF for metallic character
+        shaper: getDefaultDrumShaper('rs')
     },
     cp: {
         // TR909 playCP: Noise BPF 1200Hz, 4 bursts at 8ms intervals
@@ -790,7 +1633,8 @@ export const FACTORY_PRESETS = {
             burst_interval: 0.008,  // 8ms
             decay: 0.4,             // 400ms tail
             level: 1.2              // Slightly higher level
-        }
+        },
+        shaper: getDefaultDrumShaper('cp')
     }
 };
 
@@ -823,6 +1667,7 @@ export function getFactoryPreset(trackId) {
             p.masterHighShelf.freq = f3 * 1.9;
         }
         p.noise.cutoff = f3 * 2.6;
+        p.shaper = getDefaultDrumShaper(trackId);
         return p;
     }
     return JSON.parse(JSON.stringify(FACTORY_PRESETS.bd));

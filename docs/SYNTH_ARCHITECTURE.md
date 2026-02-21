@@ -92,11 +92,29 @@ White noise generators coupled with a dedicated filter section.
 
 | Module | Key Parameters |
 | :--- | :--- |
-| `osc1-4` | `freq`, `startFreq`, `p_decay`, `a_decay`, `level`, `wave`, `staticLevel`, `drive` (osc1 only) |
+| `osc1-4` | `freq`, `startFreq`, `endFreq`, `p_decay`, `a_decay`, `level`, `wave`, `staticLevel`, `drive` (osc1 only), `pitchEnv` `{startMultiplier, cvTargetRatio, cvDecay, dropDelay, dropRatio, dropTime, hold}` |
 | `click` | `startFreq`, `freq`, `decay`, `filter_freq`, `level` |
 | `snap` | `startFreq`, `endFreq`, `level` |
 | `noise` | `cutoff`, `Q`, `decay`, `level`, `filter_type`, `burst_count`, `burst_interval` |
-| `master` | `masterEnv` {level, decay}, `masterHPF` (Hz) |
+| `master` | `masterEnv` `{level, decay}`, `triggerMute`, `masterHPF` (Hz), `masterLowShelf` `{freq, gain}`, `masterPeak` `{freq, Q, gain}`, `masterHighShelf` `{freq, gain}` |
+
+### Performance Macro Router (v1.4)
+
+`DrumVoice`/`DrumSynthUI` no longer keep duplicated per-track knob switches. They now use shared routing helpers exported from `UnifiedSynth.js`.
+
+- `applyTrackPerformanceControls(preset, trackId, params, profile)`:
+  - Applies preview/track controls to a preset using one shared path.
+  - Macro mapping is data-driven (`controls[].targets[]`), so runtime no longer requires per-instrument switch logic.
+- `resolvePreviewProfile(trackId, patch)`:
+  - Builds preview macro UI from patch data.
+  - Enforces `LEVEL` as required control.
+- `getPreviewControlValues(trackId, params, profile)`:
+  - Maps sequencer/runtime params (`p1/p2/p3`, `tune`, `vol`, etc.) into macro values.
+- `mergePresetWithBase(trackId, customPatch)`:
+  - Returns factory preset when patch is empty.
+  - Otherwise uses the saved patch as a self-contained synth definition (legacy base metadata is ignored).
+
+This enables “macro-first” preview design and allows new custom drum voices without adding new mapping code in both UI and runtime paths.
 
 ---
 
@@ -109,7 +127,15 @@ The **Drum Synth Editor** provides a deep-dive interface for sound design, model
 ### Features
 - **Channel Strip Layout**: Horizontal scrolling modules for every drum voice.
 - **TR-909 Style Controls**: Custom rotary knobs with 909 styling (grey body, orange pointer) and toggle switches.
-- **Live Preview**: Adjust parameters in real-time while the sequencer runs or via the preview button.
+- **Profile-Driven Preview Macros**:
+  - Preview knobs are generated from `previewProfile.controls`.
+  - Legacy tracks default to 909-style profiles, but are expressed as target maps (not hardcoded knob switches).
+  - Custom patches can map controls to arbitrary preset paths (`targets.path`, linear range, piecewise points, `fromPath`, `mulPath`).
+- **Preview Profile Data**:
+  - Preview macro routing is stored in patch data (`previewProfile`) and resolved by the shared runtime router.
+- **Dual Noise Paths**:
+  - `NOISE` + `NOISE 2` modules are both editable in Drum Synth Editor for open-ended transient/body design.
+- **Live Preview**: Trigger preview through the shared macro router.
 - **Preset Management**: Load and save custom drum patches per track.
 - **Compact Param Selectors**: Inline radio buttons for Waveform (`Tri`/`Sin`/`Sqr`) and Filter Type.
 
@@ -168,10 +194,15 @@ Recreates the metallic "clack" using harmonic oscillators and a Master HPF.
 ---
 
 ### 🥁 Toms (LT/MT/HT)
-Toms use a shared architectural preset with varied base frequencies.
-- **Logic**: Uses `masterEnv` for overall decay.
-- **TUNE Mapping**: Shifts the frequency of all 3 oscillators (`osc1, 2, 3`) simultaneously.
-- **DECAY Mapping**: Controls `masterEnv.decay`, which gates all internal oscillators.
+Toms use a shared architectural preset with varied base frequencies and a dedicated CV-style pitch envelope.
+- **Logic**: Independent oscillator/noise envelopes (no required shared `masterEnv` gate).
+- **TUNE Mapping (TR-909 panel)**: Shifts the base frequencies of `osc1/2/3`.
+- **DECAY Mapping (TR-909 panel)**: Controls body/noise envelope times.
+- **Drum Shaper (`shaper`)**: `DROP`, `RING`, `BRIGHT` are patch-level timbre controls used for sound design.
+  - Available on synth voices: `BD`, `SD`, `LT`, `MT`, `HT`, `RS`, `CP`.
+  - These are **not** part of the real-time TR-909 sequencer knob path.
+  - They are applied from the saved Drum Synth patch (`customSynth.shaper`) in preview/playback.
+  - TOM factory defaults (`LT/MT/HT`) are `enabled=true`, `drop=100`, `ring=100`, `bright=100`.
 
 ---
 

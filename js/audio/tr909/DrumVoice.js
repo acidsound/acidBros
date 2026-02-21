@@ -1,11 +1,8 @@
 import {
     UnifiedSynth,
     getFactoryPreset,
-    getTomFrequencies,
-    TOM_START_FREQ_MULTIPLIER,
-    TOM_PITCH_DROP_RATIO,
-    TOM_PITCH_DROP_TIME,
-    createTomPitchEnv
+    mergePresetWithBase,
+    applyTrackPerformanceControls
 } from './UnifiedSynth.js';
 
 export class DrumVoice {
@@ -53,15 +50,6 @@ export class DrumVoice {
         return this.synth;
     }
 
-    _resolveAccentGain(accent) {
-        if (accent === undefined || accent === null) return 1.0;
-        if (typeof accent === 'boolean') return accent ? 1.35 : 1.0;
-        const n = Number(accent);
-        if (!Number.isFinite(n)) return 1.0;
-        if (n <= 1.0) return 1.0 + Math.max(0, n) * 0.35;
-        return Math.max(0.5, Math.min(2.0, n));
-    }
-
     trigger(time, params) {
         const now = time;
         params = params || {};
@@ -75,9 +63,8 @@ export class DrumVoice {
         // 2. Custom Synth Patch (from DrumSynth Maker)
         if (params.customSynth && Object.keys(params.customSynth).length > 0) {
             const customPreset = this._mergeWithFactory(params.customSynth);
-            if (params.accent !== undefined) {
-                customPreset.accent = this._resolveAccentGain(params.accent);
-            }
+            // Keep sequencer controls (Tune/Decay/Level etc.) active on top of saved patch.
+            this._applyKnobParams(customPreset, params);
             this._getSynth().play(customPreset, now);
             if (!this.layerSynthAndSample) return;
         }
@@ -97,29 +84,10 @@ export class DrumVoice {
         }
     }
 
-    // Backward-compatible merge: if customSynth is partial, fill missing fields from factory.
+    // Normalize saved patch payload (legacy base metadata stripped in UnifiedSynth helper).
     _mergeWithFactory(customSynth) {
         if (!this.trackId) return JSON.parse(JSON.stringify(customSynth || {}));
-
-        const base = getFactoryPreset(this.trackId) || {};
-        const merged = JSON.parse(JSON.stringify(base));
-        const patch = (customSynth && typeof customSynth === 'object')
-            ? JSON.parse(JSON.stringify(customSynth))
-            : {};
-
-        for (const [key, value] of Object.entries(patch)) {
-            const isObj = value && typeof value === 'object' && !Array.isArray(value);
-            const baseVal = merged[key];
-            const isBaseObj = baseVal && typeof baseVal === 'object' && !Array.isArray(baseVal);
-
-            if (isObj && isBaseObj) {
-                merged[key] = { ...baseVal, ...value };
-            } else {
-                merged[key] = value;
-            }
-        }
-
-        return merged;
+        return mergePresetWithBase(this.trackId, customSynth);
     }
 
     stop() {
@@ -131,141 +99,12 @@ export class DrumVoice {
     // Apply TR909 knob values (p1, p2, p3) to preset
     _applyKnobParams(preset, P) {
         if (!this.trackId) return;
-
-        const vol = P.vol !== undefined ? P.vol : 1;
-        preset.vol = vol;
-        preset.accent = this._resolveAccentGain(P.accent);
-
-        switch (this.trackId) {
-            case 'bd':
-                // p1 = TUNE (base freq + pitch decay), p2 = ATTACK (click level), p3 = DECAY (extended)
-                if (P.p1 !== undefined) {
-                    // TUNE adjusts both the base pitch and the sweep depth
-                    // 0 = Low pitch (40Hz), 100 = High pitch (65Hz)
-                    const baseFreq = 40 + (P.p1 / 100) * 25;
-                    preset.osc1.freq = baseFreq;
-                    preset.osc1.startFreq = baseFreq * 5; // maintain 5x sweep ratio
-
-                    let pitchDecay;
-                    if (P.p1 <= 40) {
-                        pitchDecay = 0.005 + (P.p1 / 40) * 0.015;
-                    } else {
-                        pitchDecay = 0.02 + ((P.p1 - 40) / 60) * 0.150;
-                    }
-                    preset.osc1.p_decay = pitchDecay;
-                }
-                if (P.p2 !== undefined && preset.click) {
-                    preset.click.enabled = true;
-                    // Maximum click level is 0.5 for a sharp punch
-                    preset.click.level = (P.p2 / 100) * 0.5;
-                }
-                if (P.p3 !== undefined) {
-                    // Extended Decay Mod: 0.1s to 2.0s
-                    preset.osc1.a_decay = 0.1 + (P.p3 / 100) * 1.9;
-                }
-                break;
-
-            case 'sd':
-                // p1 = TUNE, p2 = TONE (filter freqs), p3 = SNAPPY (noise level)
-                if (P.p1 !== undefined) {
-                    const baseFreq = 180 + (P.p1 / 100) * 60;
-                    preset.osc1.freq = baseFreq;
-                    preset.osc1.startFreq = baseFreq * 1.5;
-                    preset.osc2.freq = baseFreq * 1.62;
-                    preset.osc2.startFreq = baseFreq * 1.62 * 1.5;
-                }
-                if (P.p2 !== undefined) {
-                    // LPF path
-                    if (preset.noise) {
-                        preset.noise.cutoff = 4000 + (P.p2 / 100) * 4000;
-                    }
-                    // HPF path
-                    if (preset.noise2) {
-                        preset.noise2.cutoff = 1200 + (P.p2 / 100) * 2000;
-                    }
-                }
-                if (P.p3 !== undefined) {
-                    const snappyLevel = P.p3 / 100;
-                    if (preset.noise) {
-                        preset.noise.level = vol * snappyLevel * 1.5;
-                    }
-                    if (preset.noise2) {
-                        preset.noise2.level = vol * snappyLevel * 1.0;
-                    }
-                }
-                break;
-
-            case 'lt': case 'mt': case 'ht':
-                // p1 = TUNE, p2 = DECAY
-                if (P.p1 !== undefined) {
-                    const [f1, f2, f3] = getTomFrequencies(this.trackId, P.p1);
-                    const freqs = [f1, f2, f3];
-                    ['osc1', 'osc2', 'osc3'].forEach((osc, i) => {
-                        if (preset[osc]) {
-                            const targetFreq = freqs[i];
-                            preset[osc].freq = targetFreq;
-                            preset[osc].startFreq = targetFreq * TOM_START_FREQ_MULTIPLIER;
-                            preset[osc].endFreq = targetFreq * TOM_PITCH_DROP_RATIO;
-                            preset[osc].p_decay = TOM_PITCH_DROP_TIME;
-                            preset[osc].pitchEnv = createTomPitchEnv();
-                        }
-                    });
-                    if (preset.masterLowShelf) {
-                        preset.masterLowShelf.freq = f1 * 1.6;
-                    }
-                    if (preset.masterPeak) {
-                        preset.masterPeak.freq = f1;
-                    }
-                    if (preset.masterHighShelf) {
-                        preset.masterHighShelf.freq = f3 * 1.9;
-                    }
-                    // Track noise brightness with the highest oscillator.
-                    if (preset.noise) {
-                        preset.noise.cutoff = f3 * 2.6;
-                    }
-                }
-                if (P.p2 !== undefined) {
-                    const bodyDecay = 0.1 + (P.p2 / 100) * 0.8;
-                    // Fundamental longest, upper harmonics shorter.
-                    const o1 = bodyDecay * 1.25;
-                    const o2 = bodyDecay * 0.62;
-                    const o3 = bodyDecay * 0.36;
-                    const noiseDecay = 0.008 + (P.p2 / 100) * 0.045;
-
-                    if (preset.osc1) {
-                        preset.osc1.staticLevel = false;
-                        preset.osc1.noAttack = true;
-                        preset.osc1.a_decay = o1;
-                    }
-                    if (preset.osc2) {
-                        preset.osc2.staticLevel = false;
-                        preset.osc2.noAttack = true;
-                        preset.osc2.a_decay = o2;
-                    }
-                    if (preset.osc3) {
-                        preset.osc3.staticLevel = false;
-                        preset.osc3.noAttack = true;
-                        preset.osc3.a_decay = o3;
-                    }
-                    if (preset.noise) {
-                        preset.noise.decay = noiseDecay;
-                    }
-                    // Keep compatibility with legacy custom presets that still depend on masterEnv.
-                    if (preset.masterEnv) {
-                        preset.masterEnv.decay = bodyDecay;
-                    }
-                }
-                break;
-
-            case 'cp':
-                // decay param
-                if (P.decay !== undefined && preset.noise) {
-                    preset.noise.decay = 0.2 + (P.decay / 100) * 0.6;
-                }
-                break;
-
-            // rs doesn't have knob mappings in original TR909.js
-        }
+        applyTrackPerformanceControls(
+            preset,
+            this.trackId,
+            P || {},
+            preset?.previewProfile || null
+        );
     }
 
     playSampleBuffer(time, buffer, P, playbackRate = 1.0) {
