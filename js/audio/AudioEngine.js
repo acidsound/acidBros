@@ -8,6 +8,8 @@ export const AudioEngine = {
     master: null,
     analyser: null, // FFT Analyser
     clockNode: null, // AudioWorkletNode
+    isInitialized: false,
+    hasVisibilityHandler: false,
     isPlaying: false,
     tempo: 125,
     swing: 50,
@@ -27,7 +29,9 @@ export const AudioEngine = {
     async init() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
 
+        if (!this.isInitialized) {
             // --- FFT Analyser Setup ---
             this.analyser = this.ctx.createAnalyser();
             this.analyser.fftSize = 2048; // High resolution for visuals
@@ -45,6 +49,7 @@ export const AudioEngine = {
             outGain.connect(this.ctx.destination);
 
             // Initialize Instruments
+            this.instruments.clear();
             this.addInstrument('tb303_1', new TB303(this.ctx, this.master));
             this.addInstrument('tb303_2', new TB303(this.ctx, this.master));
             const tr909 = new TR909(this.ctx, this.master);
@@ -80,7 +85,12 @@ export const AudioEngine = {
             }
 
             // --- iOS Safari Background Resume Handler ---
-            this.setupVisibilityHandler();
+            if (!this.hasVisibilityHandler) {
+                this.setupVisibilityHandler();
+                this.hasVisibilityHandler = true;
+            }
+
+            this.isInitialized = true;
         }
         if (this.ctx.state === 'suspended') await this.ctx.resume();
     },

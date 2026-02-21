@@ -163,10 +163,28 @@ export class TR909 {
         // Iterate over all configured voices
         for (const [id, voice] of this.voices) {
             // Check if this track has a trig for this step
-            if (seqData[id] && seqData[id][stepIndex]) {
-                // Trigger the voice
-                // params[id] contains the knob values for this track
-                voice.trigger(time, params[id] || {});
+            const steps = seqData[id];
+            if (!steps) continue;
+
+            const stepVal = steps[stepIndex];
+            let isActive = false;
+            let stepAccent;
+
+            if (stepVal && typeof stepVal === 'object') {
+                isActive = !!stepVal.active;
+                stepAccent = stepVal.accent;
+            } else {
+                isActive = !!stepVal;
+            }
+
+            if (isActive) {
+                // params[id] contains knob values for this track.
+                // Keep compatibility with binary step arrays; accent is optional.
+                const voiceParams = { ...(params[id] || {}) };
+                if (stepAccent !== undefined) {
+                    voiceParams.accent = stepAccent ? 1.35 : 1.0;
+                }
+                voice.trigger(time, voiceParams);
             }
         }
     }

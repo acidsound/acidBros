@@ -6,10 +6,10 @@
  * All time values are in SECONDS, frequencies in HZ.
  */
 export class UnifiedSynth {
-    constructor(ctx, output) {
+    constructor(ctx, output, sharedNoiseBuffer = null) {
         this.ctx = ctx;
         this.output = output;
-        this.noiseBuffer = this._createNoiseBuffer();
+        this.noiseBuffer = sharedNoiseBuffer || this._createNoiseBuffer();
         this.activeNodes = [];  // Track active audio nodes for cleanup
     }
 
@@ -140,14 +140,69 @@ export class UnifiedSynth {
             masterGain.gain.setValueAtTime(vol * 1.5, now);
         }
 
+        // Optional short trigger mute gate (analog-style unwanted transient suppression).
+        if (P.triggerMute && P.triggerMute > 0) {
+            const trigGate = this.ctx.createGain();
+            trigGate.gain.setValueAtTime(0, now);
+            trigGate.gain.linearRampToValueAtTime(1.0, now + Math.max(0.0005, P.triggerMute));
+            outputNode.connect(trigGate);
+            outputNode = trigGate;
+            releaseNodes.push(trigGate);
+        }
+
         // Optional HPF (for RS metallic character)
         if (P.masterHPF) {
             const hpf = this.ctx.createBiquadFilter();
             hpf.type = 'highpass';
             hpf.frequency.setValueAtTime(P.masterHPF, now);
-            masterGain.connect(hpf);
+            outputNode.connect(hpf);
             outputNode = hpf;
             releaseNodes.push(hpf);
+        }
+
+        // Optional low shelf boost (used for TOM body resonance support).
+        if (P.masterLowShelf) {
+            const lowShelf = this.ctx.createBiquadFilter();
+            lowShelf.type = 'lowshelf';
+            lowShelf.frequency.setValueAtTime(P.masterLowShelf.freq || 150, now);
+            lowShelf.gain.setValueAtTime(P.masterLowShelf.gain !== undefined ? P.masterLowShelf.gain : 0, now);
+            outputNode.connect(lowShelf);
+            outputNode = lowShelf;
+            releaseNodes.push(lowShelf);
+        }
+
+        // Optional peaking resonance boost (used by TOM body shaping).
+        if (P.masterPeak) {
+            const peak = this.ctx.createBiquadFilter();
+            peak.type = 'peaking';
+            peak.frequency.setValueAtTime(P.masterPeak.freq || 120, now);
+            peak.Q.setValueAtTime(P.masterPeak.Q !== undefined ? P.masterPeak.Q : 1.0, now);
+            peak.gain.setValueAtTime(P.masterPeak.gain !== undefined ? P.masterPeak.gain : 0, now);
+            outputNode.connect(peak);
+            outputNode = peak;
+            releaseNodes.push(peak);
+        }
+
+        // Backward-compatible low-pass contour support for legacy custom presets.
+        if (P.masterLPF) {
+            const lpf = this.ctx.createBiquadFilter();
+            lpf.type = 'lowpass';
+            lpf.frequency.setValueAtTime(P.masterLPF.freq || 1800, now);
+            lpf.Q.setValueAtTime(P.masterLPF.Q !== undefined ? P.masterLPF.Q : 0.707, now);
+            outputNode.connect(lpf);
+            outputNode = lpf;
+            releaseNodes.push(lpf);
+        }
+
+        // Optional high shelf boost for stick/brightness contour.
+        if (P.masterHighShelf) {
+            const highShelf = this.ctx.createBiquadFilter();
+            highShelf.type = 'highshelf';
+            highShelf.frequency.setValueAtTime(P.masterHighShelf.freq || 2400, now);
+            highShelf.gain.setValueAtTime(P.masterHighShelf.gain !== undefined ? P.masterHighShelf.gain : 0, now);
+            outputNode.connect(highShelf);
+            outputNode = highShelf;
+            releaseNodes.push(highShelf);
         }
 
         outputNode.connect(this.output);
@@ -158,37 +213,115 @@ export class UnifiedSynth {
         // Calculate masterDecay for Tom-style sounds
         const masterDecay = P.masterEnv ? Math.max(0.001, P.masterEnv.decay || 0.5) : 1.5;
 
+        const voiceAccent = Number.isFinite(P.accent) ? Math.max(0.5, Math.min(2.0, P.accent)) : 1.0;
+        const withAccent = (cfg) => {
+            if (!cfg) return cfg;
+            return {
+                ...cfg,
+                accent: (cfg.accent !== undefined ? cfg.accent : 1.0) * voiceAccent
+            };
+        };
+
         // Process Main Oscillator (osc1)
         if (P.osc1 && P.osc1.enabled) {
-            this._playMainOsc(P.osc1, now, masterGain, masterDecay);
+            this._playMainOsc(withAccent(P.osc1), now, masterGain, masterDecay);
         }
 
         // Process Additional Oscillators (osc2, osc3, osc4) - for SD, Tom, RS
         ['osc2', 'osc3', 'osc4'].forEach(id => {
             const cfg = P[id];
             if (cfg && cfg.enabled) {
-                this._playOsc(cfg, now, masterGain, masterDecay);
+                this._playOsc(withAccent(cfg), now, masterGain, masterDecay);
             }
         });
 
         // Process Click (for BD attack) - Square + Noise burst
         if (P.click && P.click.enabled) {
-            this._playClick(P.click, now, masterGain);
+            this._playClick(withAccent(P.click), now, masterGain);
         }
 
         // Process Snap (for RS metallic bite) - Triangle pitch sweep
         if (P.snap && P.snap.enabled) {
-            this._playSnap(P.snap, now, masterGain);
+            this._playSnap(withAccent(P.snap), now, masterGain);
         }
 
         // Process Noise (for SD snappy LPF, CP burst)
         if (P.noise && P.noise.enabled) {
-            this._playNoise(P.noise, now, masterGain);
+            this._playNoise(withAccent(P.noise), now, masterGain);
         }
 
         // Process Noise2 (for SD snappy HPF - parallel path)
         if (P.noise2 && P.noise2.enabled) {
-            this._playNoise(P.noise2, now, masterGain);
+            this._playNoise(withAccent(P.noise2), now, masterGain);
+        }
+    }
+
+    _safeNumber(value, fallback) {
+        return Number.isFinite(value) ? value : fallback;
+    }
+
+    _schedulePitch(osc, cfg, now, defaultStartMultiplier = 1.0) {
+        const baseFreq = Math.max(1, this._safeNumber(cfg.freq, 48));
+        const pitchEnv = cfg.pitchEnv && typeof cfg.pitchEnv === 'object' ? cfg.pitchEnv : null;
+
+        if (pitchEnv) {
+            const startMultiplier = Math.max(0.01, this._safeNumber(pitchEnv.startMultiplier, 1.0));
+            const cvTargetRatio = Math.max(0.01, this._safeNumber(pitchEnv.cvTargetRatio, 1.0));
+            const cvDecay = Math.max(0, this._safeNumber(pitchEnv.cvDecay, 0));
+            const hold = Math.max(0, this._safeNumber(pitchEnv.hold, 0));
+            const dropDelay = Math.max(0, this._safeNumber(pitchEnv.dropDelay, 0));
+            const dropRatio = Math.max(0.01, this._safeNumber(pitchEnv.dropRatio, 1.0));
+            const dropTime = Math.max(0, this._safeNumber(pitchEnv.dropTime, 0));
+
+            const startFreq = Math.max(1, baseFreq * startMultiplier);
+            const cvTargetFreq = Math.max(1, baseFreq * cvTargetRatio);
+
+            osc.frequency.setValueAtTime(startFreq, now);
+
+            let cursor = now;
+            if (cvDecay > 0 && Math.abs(startFreq - cvTargetFreq) > 0.001) {
+                cursor = now + cvDecay;
+                osc.frequency.exponentialRampToValueAtTime(cvTargetFreq, cursor);
+            } else {
+                osc.frequency.setValueAtTime(cvTargetFreq, now);
+            }
+
+            if (hold > 0) {
+                cursor += hold;
+                osc.frequency.setValueAtTime(cvTargetFreq, cursor);
+            }
+
+            if (Math.abs(dropRatio - 1.0) > 0.0001) {
+                const dropStart = Math.max(now + dropDelay, cursor);
+                const dropTarget = Math.max(1, baseFreq * dropRatio);
+                osc.frequency.setValueAtTime(cvTargetFreq, dropStart);
+                if (dropTime > 0) {
+                    osc.frequency.exponentialRampToValueAtTime(dropTarget, dropStart + dropTime);
+                } else {
+                    osc.frequency.setValueAtTime(dropTarget, dropStart);
+                }
+            }
+
+            return;
+        }
+
+        const startFreq = Math.max(
+            1,
+            this._safeNumber(
+                cfg.startFreq,
+                baseFreq * defaultStartMultiplier
+            )
+        );
+        const endFreq = Math.max(1, this._safeNumber(cfg.endFreq, baseFreq));
+        const pDecay = Math.max(0, this._safeNumber(cfg.p_decay, 0.02));
+
+        osc.frequency.setValueAtTime(startFreq, now);
+        if (startFreq !== baseFreq && pDecay > 0) {
+            osc.frequency.exponentialRampToValueAtTime(baseFreq, now + pDecay);
+        } else if (endFreq !== baseFreq && pDecay > 0) {
+            osc.frequency.exponentialRampToValueAtTime(endFreq, now + pDecay);
+        } else {
+            osc.frequency.setValueAtTime(baseFreq, now);
         }
     }
 
@@ -201,16 +334,12 @@ export class UnifiedSynth {
         // Wave type
         osc.type = this._parseWaveType(cfg.wave);
 
-        // Frequency: startFreq -> freq over p_decay seconds
-        const freq = cfg.freq || 48;
-        const startFreq = cfg.startFreq || (freq * 6);
-        const pDecay = cfg.p_decay || 0.02;
-
-        osc.frequency.setValueAtTime(startFreq, now);
-        osc.frequency.exponentialRampToValueAtTime(freq, now + pDecay);
+        // Frequency (legacy start/end ramp or CV-style pitchEnv)
+        this._schedulePitch(osc, cfg, now, 6.0);
 
         const aDecay = cfg.a_decay || 0.5;
-        const level = cfg.level || 1.0;
+        const accent = Number.isFinite(cfg.accent) ? cfg.accent : 1.0;
+        const level = (cfg.level || 1.0) * accent;
 
         if (cfg.staticLevel) {
             // Tom style: static level, master handles decay
@@ -256,25 +385,12 @@ export class UnifiedSynth {
 
         osc.type = this._parseWaveType(cfg.wave);
 
-        // Frequency with optional pitch bend
-        const freq = cfg.freq || 180;
-        const startFreq = cfg.startFreq || freq;
-        const endFreq = cfg.endFreq !== undefined ? cfg.endFreq : freq;
-        const pDecay = cfg.p_decay || 0.02;
-
-        osc.frequency.setValueAtTime(startFreq, now);
-
-        // Pitch decay: either startFreq->freq or freq->endFreq
-        if (startFreq !== freq && pDecay > 0) {
-            // Tom/SD style: pitch sweep down to target
-            osc.frequency.exponentialRampToValueAtTime(freq, now + pDecay);
-        } else if (endFreq !== freq && pDecay > 0) {
-            // RS style: slight pitch decay (freq -> freq * 0.98)
-            osc.frequency.exponentialRampToValueAtTime(endFreq, now + pDecay);
-        }
+        // Frequency (legacy start/end ramp or CV-style pitchEnv)
+        this._schedulePitch(osc, cfg, now, 1.0);
 
         // Amplitude handling
-        const level = cfg.level || 1.0;
+        const accent = Number.isFinite(cfg.accent) ? cfg.accent : 1.0;
+        const level = (cfg.level || 1.0) * accent;
         const aDecay = cfg.a_decay || 0.15;
 
         if (cfg.staticLevel) {
@@ -301,7 +417,8 @@ export class UnifiedSynth {
 
     // Click component for BD attack (Transient Pulse)
     _playClick(cfg, now, destination) {
-        const level = cfg.level || 0.2;
+        const accent = Number.isFinite(cfg.accent) ? cfg.accent : 1.0;
+        const level = (cfg.level || 0.2) * accent;
 
         const clickOsc = this.ctx.createOscillator();
         const clickGain = this.ctx.createGain();
@@ -342,7 +459,8 @@ export class UnifiedSynth {
         snap.frequency.setValueAtTime(cfg.startFreq || 1800, now);
         snap.frequency.exponentialRampToValueAtTime(cfg.endFreq || 400, now + 0.01);
 
-        const level = cfg.level || 0.6;
+        const accent = Number.isFinite(cfg.accent) ? cfg.accent : 1.0;
+        const level = (cfg.level || 0.6) * accent;
         snapGain.gain.setValueAtTime(level, now);
         snapGain.gain.linearRampToValueAtTime(0, now + 0.006);
 
@@ -369,7 +487,8 @@ export class UnifiedSynth {
         filter.Q.setValueAtTime(cfg.Q || 1.0, now);
 
         const g = this.ctx.createGain();
-        const level = cfg.level || 0.5;
+        const accent = Number.isFinite(cfg.accent) ? cfg.accent : 1.0;
+        const level = (cfg.level || 0.5) * accent;
         const decay = Math.max(0.001, cfg.decay || 0.25);
 
         // Burst Mode (for CLAP)
@@ -436,6 +555,48 @@ export class UnifiedSynth {
     }
 }
 
+// Tom pitch model derived from TR-909 circuit reverse-engineering notes.
+// Frequency ratios are kept constant across tuning to preserve resonance character.
+export const TOM_ROOT_FREQUENCIES = Object.freeze({
+    // User-calibrated anchors against reference recordings:
+    // LT ~ E2, MT ~ A2, HT ~ B2
+    lt: 82.41,
+    mt: 110.0,
+    ht: 123.47
+});
+export const TOM_HARMONIC_RATIOS = Object.freeze([1.0, 1.5, 2.77]);
+export const TOM_START_FREQ_MULTIPLIER = Math.pow(2, 1 / 12); // onset: +1 semitone
+export const TOM_PITCH_DROP_RATIO = 1.0; // release lands on root anchor
+export const TOM_CV_START_MULTIPLIER = TOM_START_FREQ_MULTIPLIER;
+export const TOM_CV_DECAY_TIME = 0.14;
+export const TOM_PITCH_DROP_DELAY = 0.0;
+export const TOM_PITCH_DROP_TIME = 0.14;
+const TOM_TUNE_SCALE_MIN = 0.7;
+const TOM_TUNE_SCALE_MAX = 1.3;
+
+export function mapTomTuneToScale(knob = 50) {
+    const clamped = Math.max(0, Math.min(100, Number.isFinite(knob) ? knob : 50));
+    return TOM_TUNE_SCALE_MIN + (clamped / 100) * (TOM_TUNE_SCALE_MAX - TOM_TUNE_SCALE_MIN);
+}
+
+export function getTomFrequencies(trackId = 'mt', tuneKnob = 50) {
+    const root = (TOM_ROOT_FREQUENCIES[trackId] || TOM_ROOT_FREQUENCIES.mt) * mapTomTuneToScale(tuneKnob);
+    return TOM_HARMONIC_RATIOS.map(ratio => root * ratio);
+}
+
+export function createTomPitchEnv() {
+    return {
+        startMultiplier: TOM_CV_START_MULTIPLIER,
+        cvTargetRatio: 1.0,
+        cvDecay: TOM_CV_DECAY_TIME,
+        dropDelay: TOM_PITCH_DROP_DELAY,
+        dropRatio: TOM_PITCH_DROP_RATIO,
+        dropTime: TOM_PITCH_DROP_TIME
+    };
+}
+
+const [MT_OSC1_FREQ, MT_OSC2_FREQ, MT_OSC3_FREQ] = getTomFrequencies('mt', 50);
+
 /**
  * FACTORY_PRESETS - Exact values from TR909.js playBD, playSD, playTom, playRim, playCP
  * All time values in SECONDS, frequencies in HZ.
@@ -468,6 +629,7 @@ export const FACTORY_PRESETS = {
         // TR909 playSD: 2 Triangles (1:1.62 ratio), pitch bend 1.5x in 20ms
         // Body: immediate gain (no ramp), 150ms decay
         // Noise: parallel LPF (250ms) + HPF (150ms)
+        triggerMute: 0.001,
         osc1: {
             enabled: true,
             wave: 'triangle',
@@ -506,47 +668,70 @@ export const FACTORY_PRESETS = {
         }
     },
     tom: {
-        // TR909 playTom (MT): masterEnv has the decay, oscillators have static levels
-        // 3 oscillators (tri + sine + sine), pitch 1.3x in 50ms
-        // Noise only on OSC3 (short 50ms burst)
-        masterEnv: {
-            level: 1.2,          // P.vol * 1.2
-            decay: 0.5           // decayTime at p2=50: 0.1 + 0.5*0.8
+        // TR909 playTom (MT): 3 oscillators (tri + sine + sine), pitch 1.3x in 50ms.
+        // Harmonic ratios are fixed at 1 : 1.5 : 2.77.
+        // Stage-1 analog alignment: independent oscillator/noise decays (no shared masterEnv gate).
+        triggerMute: 0.0012,
+        masterLowShelf: {
+            freq: MT_OSC1_FREQ * 1.6,
+            gain: 3.2
+        },
+        masterPeak: {
+            freq: MT_OSC1_FREQ,
+            Q: 0.95,
+            gain: 3.4
+        },
+        masterHighShelf: {
+            freq: MT_OSC3_FREQ * 1.9,
+            gain: 1.8
         },
         osc1: {
             enabled: true,
             wave: 'triangle',
-            freq: 120,
-            startFreq: 156,      // 120 * 1.3
-            p_decay: 0.05,       // 50ms pitch envelope
+            freq: MT_OSC1_FREQ,
+            startFreq: MT_OSC1_FREQ * TOM_START_FREQ_MULTIPLIER,
+            endFreq: MT_OSC1_FREQ * TOM_PITCH_DROP_RATIO,
+            p_decay: TOM_PITCH_DROP_TIME,
+            pitchEnv: createTomPitchEnv(),
+            // Keep fundamental longest to stabilize perceived pitch near root note.
+            a_decay: 0.45,
             level: 1.0,          // static level (no envelope)
-            staticLevel: true
+            drive: 1.5,
+            noAttack: true
         },
         osc2: {
             enabled: true,
             wave: 'sine',
-            freq: 180,
-            startFreq: 234,
-            p_decay: 0.05,
-            level: 0.6,
-            staticLevel: true
+            freq: MT_OSC2_FREQ,
+            startFreq: MT_OSC2_FREQ * TOM_START_FREQ_MULTIPLIER,
+            endFreq: MT_OSC2_FREQ * TOM_PITCH_DROP_RATIO,
+            p_decay: TOM_PITCH_DROP_TIME,
+            pitchEnv: createTomPitchEnv(),
+            // Upper partial decays faster than osc1.
+            a_decay: 0.22,
+            level: 0.42,
+            noAttack: true
         },
         osc3: {
             enabled: true,
             wave: 'sine',
-            freq: 240,
-            startFreq: 312,
-            p_decay: 0.05,
-            level: 0.4,
-            staticLevel: true
+            freq: MT_OSC3_FREQ,
+            startFreq: MT_OSC3_FREQ * TOM_START_FREQ_MULTIPLIER,
+            endFreq: MT_OSC3_FREQ * TOM_PITCH_DROP_RATIO,
+            p_decay: TOM_PITCH_DROP_TIME,
+            pitchEnv: createTomPitchEnv(),
+            // Highest partial should be shortest to avoid octave-up pitch dominance.
+            a_decay: 0.13,
+            level: 0.16,
+            noAttack: true
         },
         noise: {
             enabled: true,
             filter_type: 'bandpass',
-            cutoff: 480,         // targetFreq * 2 (highest osc freq)
-            Q: 1.0,
-            decay: 0.05,         // short 50ms burst
-            level: 0.3
+            cutoff: MT_OSC3_FREQ * 2.6,
+            Q: 0.85,
+            decay: 0.03,         // short stick/transient component
+            level: 0.13
         }
     },
     rs: {
@@ -615,18 +800,29 @@ export function getFactoryPreset(trackId) {
     }
     if (['lt', 'mt', 'ht'].includes(trackId)) {
         const p = JSON.parse(JSON.stringify(FACTORY_PRESETS.tom));
-        // Adjust frequencies for LT/HT (from original playTom)
-        if (trackId === 'lt') {
-            p.osc1.freq = 80; p.osc1.startFreq = 104;
-            p.osc2.freq = 120; p.osc2.startFreq = 156;
-            p.osc3.freq = 160; p.osc3.startFreq = 208;
-            p.noise.cutoff = 320;
-        } else if (trackId === 'ht') {
-            p.osc1.freq = 180; p.osc1.startFreq = 234;
-            p.osc2.freq = 270; p.osc2.startFreq = 351;
-            p.osc3.freq = 360; p.osc3.startFreq = 468;
-            p.noise.cutoff = 720;
+        const [f1, f2, f3] = getTomFrequencies(trackId, 50);
+        p.osc1.freq = f1; p.osc1.startFreq = f1 * TOM_START_FREQ_MULTIPLIER;
+        p.osc1.endFreq = f1 * TOM_PITCH_DROP_RATIO;
+        p.osc1.p_decay = TOM_PITCH_DROP_TIME;
+        p.osc1.pitchEnv = createTomPitchEnv();
+        p.osc2.freq = f2; p.osc2.startFreq = f2 * TOM_START_FREQ_MULTIPLIER;
+        p.osc2.endFreq = f2 * TOM_PITCH_DROP_RATIO;
+        p.osc2.p_decay = TOM_PITCH_DROP_TIME;
+        p.osc2.pitchEnv = createTomPitchEnv();
+        p.osc3.freq = f3; p.osc3.startFreq = f3 * TOM_START_FREQ_MULTIPLIER;
+        p.osc3.endFreq = f3 * TOM_PITCH_DROP_RATIO;
+        p.osc3.p_decay = TOM_PITCH_DROP_TIME;
+        p.osc3.pitchEnv = createTomPitchEnv();
+        if (p.masterLowShelf) {
+            p.masterLowShelf.freq = f1 * 1.6;
         }
+        if (p.masterPeak) {
+            p.masterPeak.freq = f1;
+        }
+        if (p.masterHighShelf) {
+            p.masterHighShelf.freq = f3 * 1.9;
+        }
+        p.noise.cutoff = f3 * 2.6;
         return p;
     }
     return JSON.parse(JSON.stringify(FACTORY_PRESETS.bd));

@@ -2,7 +2,15 @@ import { RotaryKnob } from './RotaryKnob.js';
 import { Data } from '../data/Data.js';
 import { AudioEngine } from '../audio/AudioEngine.js';
 import { UI } from './UI.js';
-import { UnifiedSynth, getFactoryPreset } from '../audio/tr909/UnifiedSynth.js';
+import {
+    UnifiedSynth,
+    getFactoryPreset,
+    getTomFrequencies,
+    TOM_START_FREQ_MULTIPLIER,
+    TOM_PITCH_DROP_RATIO,
+    TOM_PITCH_DROP_TIME,
+    createTomPitchEnv
+} from '../audio/tr909/UnifiedSynth.js';
 
 /**
  * DrumSynthUI - Controller for the DrumSynth Maker Overlay
@@ -205,7 +213,7 @@ export const DrumSynthUI = {
 
     loadSettings(trackId) {
         const saved = Data.getUnitSettings('tr909')?.[trackId]?.customSynth;
-        const preset = (saved && Object.keys(saved).length > 0) ? saved : getFactoryPreset(trackId);
+        const preset = this._mergePresetWithFactory(trackId, saved);
         if (!preset) return;
 
         // Apply preset values to knobs
@@ -304,19 +312,22 @@ export const DrumSynthUI = {
     },
 
     async preview() {
-        // Ensure AudioContext exists and is resumed
-        if (!AudioEngine.ctx) {
-            console.log('DrumSynthUI: Creating AudioContext...');
-            AudioEngine.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        }
+        // Always bootstrap the shared engine first.
+        await AudioEngine.init();
 
-        if (AudioEngine.ctx.state === 'suspended') {
-            await AudioEngine.ctx.resume();
-        }
+        const tr909 = AudioEngine.instruments?.get('tr909');
+        const sharedNoiseBuffer = tr909?.noiseBuffer || null;
 
-        if (!this.synth) {
-            console.log('DrumSynthUI: Creating UnifiedSynth...');
-            this.synth = new UnifiedSynth(AudioEngine.ctx, AudioEngine.ctx.destination);
+        if (
+            !this.synth ||
+            this.synth.ctx !== AudioEngine.ctx ||
+            (sharedNoiseBuffer && this.synth.noiseBuffer !== sharedNoiseBuffer)
+        ) {
+            this.synth = new UnifiedSynth(
+                AudioEngine.ctx,
+                AudioEngine.master || AudioEngine.ctx.destination,
+                sharedNoiseBuffer,
+            );
         }
 
         // Use TR909-style preview with live knobs
@@ -329,29 +340,26 @@ export const DrumSynthUI = {
         // 1. Get current UI parameters
         const uiParams = this.collectParams();
 
-        // 2. Get factory preset for architectural defaults (masterEnv, noise2, etc.)
+        // 2. Merge with factory preset for architectural defaults (masterEnv, noise2, etc.)
         const factory = getFactoryPreset(this.currentTrackId);
+        const preset = this._mergePresetWithFactory(this.currentTrackId, uiParams);
 
-        // 3. Merge: UI params over factory
-        // We use JSON.parse(JSON.stringify) to ensure deep copy
-        const preset = JSON.parse(JSON.stringify({ ...factory, ...uiParams }));
-
-        // 4. Special architectural syncs
+        // 3. Special architectural syncs
         // SD has noise2 (HPF path) which isn't in UI - sync it with noise1 (LPF path)
-        if (factory.noise2) {
+        if (factory?.noise2) {
             preset.noise2 = JSON.parse(JSON.stringify(factory.noise2));
             preset.noise2.enabled = uiParams.noise.enabled;
             // Also sync some knobs if they match
             preset.noise2.decay = uiParams.noise.decay;
         }
 
-        // 5. Collect live 909 knobs
+        // 4. Collect live 909 knobs
         const P = {};
         Object.keys(this.liveKnobs).forEach(id => {
             P[id] = this.liveKnobs[id].value;
         });
 
-        // 6. Apply 909 knob mappings (TUNE, DECAY, etc.) to the detailed preset
+        // 5. Apply 909 knob mappings (TUNE, DECAY, etc.) to the detailed preset
         this._applyKnobParams(preset, P, this.currentTrackId);
 
         console.log('DrumSynthUI: Preview', preset);
@@ -362,18 +370,32 @@ export const DrumSynthUI = {
 
     // Apply TR909 knob values to preset (mirrors DrumVoice._applyKnobParams)
     _applyKnobParams(preset, P, trackId) {
+        const resolveAccentGain = (accent) => {
+            if (accent === undefined || accent === null) return 1.0;
+            if (typeof accent === 'boolean') return accent ? 1.35 : 1.0;
+            const n = Number(accent);
+            if (!Number.isFinite(n)) return 1.0;
+            if (n <= 1.0) return 1.0 + Math.max(0, n) * 0.35;
+            return Math.max(0.5, Math.min(2.0, n));
+        };
+
         // Handle Level knob if present
         if (P.level !== undefined) {
             preset.vol = P.level / 100;
         } else {
             preset.vol = P.vol !== undefined ? P.vol : 1;
         }
+        preset.accent = resolveAccentGain(P.accent);
 
         const vol = preset.vol;
 
         switch (trackId) {
             case 'bd':
                 if (P.p1 !== undefined) {
+                    const baseFreq = 40 + (P.p1 / 100) * 25;
+                    preset.osc1.freq = baseFreq;
+                    preset.osc1.startFreq = baseFreq * 5;
+
                     let pitchDecay;
                     if (P.p1 <= 40) {
                         pitchDecay = 0.005 + (P.p1 / 40) * 0.015;
@@ -383,12 +405,11 @@ export const DrumSynthUI = {
                     preset.osc1.p_decay = pitchDecay;
                 }
                 if (P.p2 !== undefined && preset.click) {
-                    const clickLevel = (P.p2 / 100) * 0.4;
-                    preset.click.level = clickLevel;
-                    preset.click.noise_level = clickLevel * 0.2;
+                    preset.click.enabled = true;
+                    preset.click.level = (P.p2 / 100) * 0.5;
                 }
                 if (P.p3 !== undefined) {
-                    preset.osc1.a_decay = 0.1 + (P.p3 / 100) * 0.8;
+                    preset.osc1.a_decay = 0.1 + (P.p3 / 100) * 1.9;
                 }
                 break;
 
@@ -413,22 +434,62 @@ export const DrumSynthUI = {
 
             case 'lt': case 'mt': case 'ht':
                 if (P.p1 !== undefined) {
-                    const baseFreqs = { lt: [80, 120, 160], mt: [120, 180, 240], ht: [180, 270, 360] };
-                    const freqs = baseFreqs[trackId];
-                    const tuneOffset = (P.p1 / 100) * (freqs[0] * 0.5);
+                    const [f1, f2, f3] = getTomFrequencies(trackId, P.p1);
+                    const freqs = [f1, f2, f3];
                     ['osc1', 'osc2', 'osc3'].forEach((osc, i) => {
                         if (preset[osc]) {
-                            const targetFreq = freqs[i] + tuneOffset;
+                            const targetFreq = freqs[i];
                             preset[osc].freq = targetFreq;
-                            preset[osc].startFreq = targetFreq * 1.3;
+                            preset[osc].startFreq = targetFreq * TOM_START_FREQ_MULTIPLIER;
+                            preset[osc].endFreq = targetFreq * TOM_PITCH_DROP_RATIO;
+                            preset[osc].p_decay = TOM_PITCH_DROP_TIME;
+                            preset[osc].pitchEnv = createTomPitchEnv();
                         }
                     });
+                    if (preset.masterLowShelf) {
+                        preset.masterLowShelf.freq = f1 * 1.6;
+                    }
+                    if (preset.masterPeak) {
+                        preset.masterPeak.freq = f1;
+                    }
+                    if (preset.masterHighShelf) {
+                        preset.masterHighShelf.freq = f3 * 1.9;
+                    }
                     if (preset.noise) {
-                        preset.noise.cutoff = (freqs[2] + tuneOffset) * 2;
+                        preset.noise.cutoff = f3 * 2.6;
                     }
                 }
-                if (P.p2 !== undefined && preset.masterEnv) {
-                    preset.masterEnv.decay = 0.1 + (P.p2 / 100) * 0.8;
+                if (P.p2 !== undefined) {
+                    const bodyDecay = 0.1 + (P.p2 / 100) * 0.8;
+                    // Match runtime TOM envelope balance:
+                    // fundamental longest, upper harmonics shorter.
+                    const o1 = bodyDecay * 1.25;
+                    const o2 = bodyDecay * 0.62;
+                    const o3 = bodyDecay * 0.36;
+                    const noiseDecay = 0.008 + (P.p2 / 100) * 0.045;
+
+                    if (preset.osc1) {
+                        preset.osc1.staticLevel = false;
+                        preset.osc1.noAttack = true;
+                        preset.osc1.a_decay = o1;
+                    }
+                    if (preset.osc2) {
+                        preset.osc2.staticLevel = false;
+                        preset.osc2.noAttack = true;
+                        preset.osc2.a_decay = o2;
+                    }
+                    if (preset.osc3) {
+                        preset.osc3.staticLevel = false;
+                        preset.osc3.noAttack = true;
+                        preset.osc3.a_decay = o3;
+                    }
+                    if (preset.noise) {
+                        preset.noise.decay = noiseDecay;
+                    }
+                    // Keep compatibility with legacy custom presets that still depend on masterEnv.
+                    if (preset.masterEnv) {
+                        preset.masterEnv.decay = bodyDecay;
+                    }
                 }
                 break;
 
@@ -438,6 +499,33 @@ export const DrumSynthUI = {
                 }
                 break;
         }
+    },
+
+    // Backward-compatible merge: fill missing modules/fields from factory preset.
+    _mergePresetWithFactory(trackId, overridePreset) {
+        const clone = (obj) => JSON.parse(JSON.stringify(obj || {}));
+        const factory = clone(getFactoryPreset(trackId));
+        const override = (overridePreset && typeof overridePreset === 'object')
+            ? clone(overridePreset)
+            : null;
+
+        if (!override || Object.keys(override).length === 0) {
+            return factory;
+        }
+
+        for (const [key, value] of Object.entries(override)) {
+            const isObj = value && typeof value === 'object' && !Array.isArray(value);
+            const factoryVal = factory[key];
+            const isFactoryObj = factoryVal && typeof factoryVal === 'object' && !Array.isArray(factoryVal);
+
+            if (isObj && isFactoryObj) {
+                factory[key] = { ...factoryVal, ...value };
+            } else {
+                factory[key] = value;
+            }
+        }
+
+        return factory;
     },
 
     resetToFactory() {
