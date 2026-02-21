@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v135
+- **Current Version**: v136
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -666,3 +666,13 @@ To ensure project health and consistency, relevant documentation MUST be updated
   - Kept runtime/dynamic style writes only for values that change by interaction (`left/top/height/transform`).
 - **Piano Keys**:
   - Removed per-key inline CSS var injection (`--white-index`) and switched to generated index classes (`white-index-0`..`white-index-20`) mapped in `machines.css`.
+
+### v136: TB-303 Resonance Body Compensation (Tunable)
+- **Audio Engine**:
+  - Added resonance-dependent makeup gain in `TB303FilterProcessor` to reduce perceived loudness loss at high `RES`.
+  - Exposed internal tuning constant (`resonanceMakeupAmount`) with inline comments so tone can be adjusted without changing UI ranges.
+- **Synthesis Docs**:
+  - Updated `docs/SYNTH_ARCHITECTURE.md` to document that resonance makeup is an intentionally tunable DSP calibration.
+  - Clarified that this tuning does not alter `CUTOFF/RESO` knob ranges or saved pattern data mapping.
+- **Versioning**:
+  - Bumped deployed version markers to `v136` (`sw.js` cache name and `index.html` version display).

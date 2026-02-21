@@ -232,6 +232,7 @@ graph LR
   - Output HP A + Output HP B (post-ladder double HP shaping)
 - **Nonlinearity Preserved**: `tanh` soft clipping in the feedback path is retained for stability and analog-like saturation.
 - **Output Trim**: A small compensation gain is applied after the post-ladder HP chain to keep perceived level consistent.
+- **Resonance Makeup (Tunable)**: A resonance-dependent makeup gain is applied to reduce excessive perceived loudness drop at high `RES` settings. The compensation amount is intentionally configurable in code (`resonanceMakeupAmount`) for taste-based tuning.
 
 ### UI/Knob Mapping Impact
 - **No UI range changes required** for this update.
@@ -239,6 +240,7 @@ graph LR
   - `CUTOFF`: `0..100` knob -> normalized `0..1` -> mapped to filter cutoff trajectory in voice engine.
   - `RESO`: `0..15` knob -> normalized `0..1` (`reso / 15`) -> worklet resonance parameter.
   - `ENV MOD`, `DECAY`, `ACCENT`, `VOLUME`: unchanged behavior and ranges.
+- **Tuning Scope Clarification**: Resonance makeup tuning is internal DSP calibration only; it does not alter saved data format or UI knob ranges.
 
 ---
 

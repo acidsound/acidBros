@@ -63,6 +63,11 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
         this.hpSumming = new OnePoleHighPass(0.7, sr);  // section 5
         this.hpOutA = new OnePoleHighPass(3.2, sr);     // section 2
         this.hpOutB = new OnePoleHighPass(1.2, sr);     // section 3
+
+        // TUNABLE: Resonance loudness compensation amount.
+        // Higher value keeps more body at high RES, lower value is closer to raw ladder attenuation.
+        // Keep UI knob ranges unchanged; this is purely internal gain contour tuning.
+        this.resonanceMakeupAmount = 0.75;
     }
 
     process(inputs, outputs, parameters) {
@@ -155,7 +160,10 @@ class TB303FilterProcessor extends AudioWorkletProcessor {
             const v4 = (y3 - this.s4) * G;
             const y4 = v4 + this.s4;
             this.s4 = y4 + v4;
-            const yOut = 1.06 * this.hpOutB.process(this.hpOutA.process(y4));
+            // TUNABLE: quadratic compensation curve for high resonance attenuation.
+            // resonance^2 keeps low/mid RES mostly untouched and focuses correction near the top end.
+            const resonanceMakeup = 1.0 + (this.resonanceMakeupAmount * resonance * resonance);
+            const yOut = 1.06 * resonanceMakeup * this.hpOutB.process(this.hpOutA.process(y4));
 
             // NaN Safety check
             if (!Number.isFinite(yOut)) {
