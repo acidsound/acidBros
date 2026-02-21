@@ -402,7 +402,7 @@
 }
 
 .song-block.dragging-source {
-    opacity: 0.2;
+    opacity: 0.45;
 }
 
 .song-drag-ghost {
@@ -411,7 +411,7 @@
     top: 0;
     margin: 0;
     z-index: 9999;
-    opacity: 0.9;
+    opacity: 0.58;
     pointer-events: none;
     transition: none !important;
     will-change: transform;
@@ -426,11 +426,36 @@
     border-color: #ff0000;
 }
 
+.pat-btn.queued {
+    border-color: #ffe066;
+    box-shadow: 0 0 6px rgba(255, 224, 102, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    animation: pattern-queue-blink var(--pattern-queue-blink-duration, 0.48s) infinite;
+}
+
+@keyframes pattern-queue-blink {
+    0%,
+    44% {
+        border-color: #a08a32;
+        box-shadow: 0 0 4px rgba(255, 224, 102, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    45%,
+    100% {
+        border-color: #fff2a6;
+        box-shadow: 0 0 12px rgba(255, 224, 102, 0.75), 0 0 18px rgba(255, 224, 102, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+}
+
 .song-block.playing {
     background: #ffcc00;
     color: #000;
     border-color: #ffaa00;
     box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+}
+
+.song-block.queued {
+    border-color: #ffe066;
+    box-shadow: 0 0 6px rgba(255, 224, 102, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    animation: pattern-queue-blink var(--pattern-queue-blink-duration, 0.48s) infinite;
 }
 
 .pattern-actions,

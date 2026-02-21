@@ -14,7 +14,10 @@ class ClockProcessor extends AudioWorkletProcessor {
             if (e.data.type === 'start') {
                 this.isPlaying = true;
                 this.currentStep = 0;
-                this.nextNoteTime = currentTime; // currentTime is global in Worklet scope
+                const requestedStart = Number(e.data.startTime);
+                this.nextNoteTime = Number.isFinite(requestedStart)
+                    ? Math.max(requestedStart, currentTime)
+                    : currentTime; // currentTime is global in Worklet scope
             } else if (e.data.type === 'stop') {
                 this.isPlaying = false;
             } else if (e.data.type === 'tempo') {

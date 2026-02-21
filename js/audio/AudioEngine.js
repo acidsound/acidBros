@@ -13,6 +13,7 @@ export const AudioEngine = {
     swing: 50,
     currentStep: 0,
     currentSongIndex: 0,
+    queuedPatternId: null,
 
     // Fallback Scheduler State
     useWorklet: false,
@@ -132,10 +133,42 @@ export const AudioEngine = {
         this.instruments.set(id, instance);
     },
 
-    async play() {
+    queuePatternSwitch(patternId) {
+        if (Data.mode !== 'pattern' || !this.isPlaying) return false;
+        if (!Number.isInteger(patternId) || patternId < 0 || patternId > 15) return false;
+
+        if (patternId === Data.currentPatternId) {
+            this.queuedPatternId = null;
+            if (UI.updatePatternButtonsState) UI.updatePatternButtonsState();
+            return false;
+        }
+
+        this.queuedPatternId = patternId;
+        if (UI.updatePatternButtonsState) UI.updatePatternButtonsState();
+        return true;
+    },
+
+    clearPatternSwitchQueue(updateUI = true) {
+        if (this.queuedPatternId === null) return;
+        this.queuedPatternId = null;
+        if (updateUI && UI.updatePatternButtonsState) UI.updatePatternButtonsState();
+    },
+
+    applyQueuedPatternSwitch() {
+        if (Data.mode !== 'pattern' || this.queuedPatternId === null) return;
+        const nextPatternId = this.queuedPatternId;
+        this.queuedPatternId = null;
+        Data.selectPattern(nextPatternId);
+    },
+
+    async play(restartFromTop = false) {
         if (!this.ctx) await this.init();
-        if (this.isPlaying) return;
         if (this.ctx.state === 'suspended') await this.ctx.resume();
+
+        if (this.isPlaying) {
+            if (!restartFromTop) return;
+            this.stop();
+        }
 
         // Check if UI is initialized
         if (!UI.isInitialized) {
@@ -153,7 +186,12 @@ export const AudioEngine = {
         this.isPlaying = true;
         this.currentStep = 0;
         this.currentSongIndex = 0;
-        this.nextNoteTime = this.ctx.currentTime; // For fallback scheduler
+        this.lastStep = null;
+        this.clearPatternSwitchQueue(false);
+
+        // Start from step 0 immediately on transport play/restart.
+        const startTime = this.ctx.currentTime + 0.005;
+        this.nextNoteTime = startTime; // For fallback scheduler
 
         // Reset all instruments
         this.instruments.forEach(inst => {
@@ -172,7 +210,7 @@ export const AudioEngine = {
 
         if (this.useWorklet && this.clockNode) {
             // Send Start Message to Worklet
-            this.clockNode.port.postMessage({ type: 'start' });
+            this.clockNode.port.postMessage({ type: 'start', startTime });
             this.clockNode.port.postMessage({ type: 'tempo', value: this.tempo });
             this.clockNode.port.postMessage({ type: 'swing', value: this.swing });
         } else {
@@ -184,7 +222,9 @@ export const AudioEngine = {
     stop() {
         this.isPlaying = false;
         this.currentSongIndex = 0;
+        this.lastStep = null;
         UI.clearPlayhead();
+        this.clearPatternSwitchQueue();
 
         if (this.ctx) {
             this.instruments.forEach(inst => {
@@ -209,6 +249,7 @@ export const AudioEngine = {
         if (this.useWorklet && this.clockNode) {
             this.clockNode.port.postMessage({ type: 'tempo', value: newTempo });
         }
+        if (UI.updateQueuedPatternBlinkTempo) UI.updateQueuedPatternBlinkTempo();
     },
 
     setSwing(newSwing) {
@@ -239,6 +280,8 @@ export const AudioEngine = {
 
                 UI.updateSongTimeline();
                 UI.renderAll();
+            } else if (Data.mode === 'pattern') {
+                this.applyQueuedPatternSwitch();
             }
         }
         this.lastStep = step;
@@ -288,6 +331,8 @@ export const AudioEngine = {
 
                 UI.updateSongTimeline();
                 UI.renderAll();
+            } else if (Data.mode === 'pattern') {
+                this.applyQueuedPatternSwitch();
             }
         }
     },

@@ -94,7 +94,7 @@ export const UI = {
             };
         }
 
-        this.bindFastEvent(document.getElementById('playBtn'), () => AudioEngine.play());
+        this.bindFastEvent(document.getElementById('playBtn'), () => AudioEngine.play(true));
         this.bindFastEvent(document.getElementById('stopBtn'), () => AudioEngine.stop());
         this.bindFastEvent(document.getElementById('randomBtn'), () => Data.randomize());
 
@@ -243,6 +243,7 @@ export const UI = {
                 window.knobInstances.tempo.setValue(AudioEngine.tempo);
             }
             this.updateSevenSegment(AudioEngine.tempo);
+            this.updateQueuedPatternBlinkTempo();
         };
 
         // Listen for Tempo Knob changes via the hidden input
@@ -415,6 +416,7 @@ export const UI = {
         }
 
         this.initModeControls();
+        this.updateQueuedPatternBlinkTempo();
         this.renderModeControls();
 
         FileManager.init();
@@ -499,6 +501,7 @@ export const UI = {
         if (pInput) {
             pInput.onchange = () => {
                 const wasSongMode = Data.mode === 'song';
+                AudioEngine.clearPatternSwitchQueue(false);
 
                 if (wasSongMode) {
                     if (AudioEngine.isPlaying && Data.song.length > 0) {
@@ -522,6 +525,7 @@ export const UI = {
 
         if (sInput) {
             sInput.onchange = () => {
+                AudioEngine.clearPatternSwitchQueue(false);
                 Data.mode = 'song';
                 this.updateModeSwitch();
                 this.renderAll();
@@ -549,7 +553,13 @@ export const UI = {
             patContainer.querySelectorAll('.pat-btn').forEach(btn => {
                 this.bindFastEvent(btn, () => {
                     const id = parseInt(btn.dataset.pattern);
-                    Data.selectPattern(id);
+                    if (Data.mode === 'pattern' && AudioEngine.isPlaying) {
+                        AudioEngine.queuePatternSwitch(id);
+                    } else {
+                        AudioEngine.clearPatternSwitchQueue(false);
+                        Data.selectPattern(id);
+                    }
+                    this.updatePatternButtonsState();
                 });
             });
 
@@ -608,6 +618,10 @@ export const UI = {
     updatePatternButtonsState() {
         const patContainer = document.getElementById('pattern-controls-container');
         if (!patContainer) return;
+        const queuedPatternId =
+            (Data.mode === 'pattern' && AudioEngine.isPlaying)
+                ? AudioEngine.queuedPatternId
+                : null;
 
         patContainer.querySelectorAll('.pat-btn').forEach(btn => {
             const id = parseInt(btn.dataset.pattern);
@@ -616,7 +630,15 @@ export const UI = {
             } else {
                 btn.classList.remove('active');
             }
+            const isQueued = queuedPatternId !== null && id === queuedPatternId && id !== Data.currentPatternId;
+            btn.classList.toggle('queued', isQueued);
         });
+    },
+
+    updateQueuedPatternBlinkTempo() {
+        const bpm = Math.max(1, Number(AudioEngine.tempo) || 125);
+        const beatSeconds = 60 / bpm;
+        document.documentElement.style.setProperty('--pattern-queue-blink-duration', `${beatSeconds.toFixed(4)}s`);
     },
 
     updateSongButtonsState() {
@@ -1180,6 +1202,14 @@ export const UI = {
             return;
         }
 
+        let nextSongIndex = null;
+        if (AudioEngine.isPlaying && Data.mode === 'song' && Data.song.length > 1) {
+            nextSongIndex = (AudioEngine.currentSongIndex + 1) % Data.song.length;
+            if (nextSongIndex === AudioEngine.currentSongIndex) {
+                nextSongIndex = null;
+            }
+        }
+
         const resolveDropPlacement = (point, dragIndex) => {
             const elemBelow = document.elementFromPoint(point.clientX, point.clientY);
             const targetBlock = elemBelow ? elemBelow.closest('.song-block') : null;
@@ -1216,6 +1246,8 @@ export const UI = {
             // Highlight current playing block
             if (AudioEngine.isPlaying && AudioEngine.currentSongIndex === idx) {
                 block.classList.add('playing');
+            } else if (nextSongIndex !== null && nextSongIndex === idx) {
+                block.classList.add('queued');
             }
 
             // Drag and Drop Logic
