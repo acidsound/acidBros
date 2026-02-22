@@ -1,4 +1,4 @@
-const CACHE_NAME = 'acidbros-v146';
+const CACHE_NAME = 'acidbros-v147';
 const ASSETS = [
     './',
     './index.html',
@@ -129,7 +129,12 @@ const staleWhileRevalidate = async (request, event) => {
     const fresh = await updatePromise;
     if (fresh) return fresh;
 
-    return cache.match('./index.html');
+    if (request.mode === 'navigate') {
+        const fallback = await cache.match('./index.html');
+        if (fallback) return fallback;
+    }
+
+    return Response.error();
 };
 
 self.addEventListener('fetch', (e) => {
@@ -140,7 +145,8 @@ self.addEventListener('fetch', (e) => {
         e.request.mode === 'navigate' ||
         destination === 'style' ||
         destination === 'script' ||
-        destination === 'worker';
+        destination === 'worker' ||
+        destination === 'audio';
 
     if (shouldUseNetworkFirst) {
         e.respondWith(networkFirst(e.request));

@@ -71,21 +71,58 @@ export const UI = {
     },
 
     bindFastEvent(el, handler) {
-        el.addEventListener('pointerdown', (e) => {
+        if (!el) return;
+
+        let lastInvokeAt = 0;
+        const invoke = (e) => {
+            const now = Date.now();
+            // Prevent duplicate firing when pointer/touch is followed by click.
+            if (now - lastInvokeAt < 180) return;
+            lastInvokeAt = now;
+            handler(e);
+        };
+
+        const onPress = (e) => {
             e.preventDefault();
             el.classList.add('pressed');
-            handler(e);
+            invoke(e);
 
             const cleanup = () => {
                 el.classList.remove('pressed');
                 document.removeEventListener('pointerup', cleanup);
                 document.removeEventListener('pointercancel', cleanup);
+                document.removeEventListener('mouseup', cleanup);
+                document.removeEventListener('touchend', cleanup);
+                document.removeEventListener('touchcancel', cleanup);
             };
             document.addEventListener('pointerup', cleanup);
             document.addEventListener('pointercancel', cleanup);
+            document.addEventListener('mouseup', cleanup);
+            document.addEventListener('touchend', cleanup);
+            document.addEventListener('touchcancel', cleanup);
+        };
+
+        if (window.PointerEvent) {
+            el.addEventListener('pointerdown', onPress, { passive: false });
+        } else {
+            el.addEventListener('touchstart', onPress, { passive: false });
+            el.addEventListener('mousedown', onPress);
+        }
+
+        // iOS real devices can be stricter than Simulator about user activation source.
+        // Keep click as a fallback while deduping against pointer/touch.
+        el.addEventListener('click', (e) => {
+            e.preventDefault();
+            invoke(e);
         });
 
         el.addEventListener('pointerleave', () => {
+            el.classList.remove('pressed');
+        });
+        el.addEventListener('mouseleave', () => {
+            el.classList.remove('pressed');
+        });
+        el.addEventListener('touchcancel', () => {
             el.classList.remove('pressed');
         });
     },

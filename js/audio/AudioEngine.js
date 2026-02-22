@@ -13,6 +13,7 @@ export const AudioEngine = {
     hasVisibilityHandler: false,
     isPlaying: false,
     transportCommandId: 0,
+    iosSessionBridgeEl: null,
     tempo: 125,
     swing: 50,
     currentStep: 0,
@@ -35,15 +36,59 @@ export const AudioEngine = {
         return this.ctx;
     },
 
+    isIOSDevice() {
+        const ua = navigator.userAgent || '';
+        const platform = navigator.platform || '';
+        const touchPoints = navigator.maxTouchPoints || 0;
+        return /iPad|iPhone|iPod/.test(ua) || (platform === 'MacIntel' && touchPoints > 1);
+    },
+
+    async primeIOSAudioSession() {
+        if (!this.isIOSDevice()) return;
+
+        if (!this.iosSessionBridgeEl) {
+            const el = document.createElement('audio');
+            // Tiny silent WAV used to keep iOS audio session in a playable state.
+            el.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+            el.preload = 'auto';
+            el.setAttribute('playsinline', 'true');
+            el.setAttribute('webkit-playsinline', 'true');
+            el.setAttribute('x-webkit-airplay', 'deny');
+            this.iosSessionBridgeEl = el;
+        }
+
+        try {
+            this.iosSessionBridgeEl.currentTime = 0;
+            const playPromise = this.iosSessionBridgeEl.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+                await playPromise;
+            }
+        } catch (err) {
+            console.warn('AudioEngine: iOS media session bridge play failed.', err);
+        }
+    },
+
     async resumeContext() {
         const ctx = this.ensureContext();
-        if (ctx.state === 'running') return true;
+        if (ctx.state === 'running') {
+            await this.primeIOSAudioSession();
+            return true;
+        }
         try {
             await ctx.resume();
+            if (ctx.state === 'interrupted') {
+                // Some iOS devices get stuck in interrupted state until a suspend/resume cycle.
+                await ctx.suspend();
+                await ctx.resume();
+            }
         } catch (err) {
             console.warn('AudioEngine: AudioContext resume blocked until next user gesture.', err);
         }
-        return ctx.state === 'running';
+        const running = ctx.state === 'running';
+        if (running) {
+            await this.primeIOSAudioSession();
+        }
+        return running;
     },
 
     showResumeOverlay() {
