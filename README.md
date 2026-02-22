@@ -73,6 +73,7 @@ New in the note editor: **TB‑303 Live Mode** with hold-based octave, AC/SL, Re
 * **Documentation**:
   * **[User Manual](docs/USER_MANUAL.md)**: Comprehensive reference guide.
   * **[Learning Guide](docs/LEARNING_GUIDE.md)**: Step-by-step tutorial for beginners (6 chapters).
+  * **[Incident Prevention Log](docs/INCIDENT_PREVENTION.md)**: iOS real-device audio outage timeline, root cause, and recurrence checklist.
 
 ## Usage
 
