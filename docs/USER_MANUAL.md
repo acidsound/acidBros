@@ -121,6 +121,29 @@ Click the piano toggle button (🎹) in the TB-303 unit header to open the advan
 
 *Pressing a piano key automatically advances to the next step for fast pattern entry.*
 
+### TB-303 Live Mode
+
+![TB-303 Live Mode](../assets/manual-live-mode.png)
+
+TB-303 Live Mode is a performance overlay for the note editor. It is inspired by the TB-303 Pitch mode. It does **not** write changes to the pattern data.
+
+#### How to Enter Live Mode
+1. Open the TB-303 note editor with the piano toggle button (🎹) in the unit header.
+2. Click the **Live button** (song icon) to the right of **Preview (🔊)**.
+3. Start playback and perform with hold gestures.
+
+#### Live Mode Behavior
+- **Step Navigation (< >)** is hidden while Live Mode is ON.
+- **Step Indicator** follows the currently playing step in real time.
+- **DN / UP**: while held, force the current playback step octave to down (1) or up (3). Releasing returns to the saved step octave.
+- **AC / SL**: while held, momentarily apply Accent or Slide to the current playback step.
+- **Off**: while held, force the current playback step to Rest regardless of saved state.
+- **Piano Keys**: while held, transpose playback from C-based semitone offset (example: E = +4 semitones). Works together with DN/UP.
+
+Live input is quantized per step clock (intended for input just before each step is played).
+
+Turn Live Mode OFF to return to normal note editing behavior.
+
 ---
 
 ## 4. TR‑909 Rhythm Composer

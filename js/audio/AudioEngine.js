@@ -352,6 +352,22 @@ export const AudioEngine = {
             const seqData = Data.getSequence(id);
             const params = UI.getParams(id);
             if (seqData && params) {
+                if (id === 'tb303_1' || id === 'tb303_2') {
+                    const unitId = id === 'tb303_1' ? 1 : 2;
+                    const playbackStep = UI.get303PlaybackStep(unitId, stepIndex, seqData);
+                    if (playbackStep) {
+                        inst.processStep(
+                            time,
+                            stepIndex,
+                            seqData,
+                            params,
+                            this.tempo,
+                            playbackStep.step,
+                            playbackStep.prevStep
+                        );
+                        return;
+                    }
+                }
                 inst.processStep(time, stepIndex, seqData, params, this.tempo);
             }
         });

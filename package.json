@@ -1,6 +1,6 @@
 {
   "name": "acidbros-automation",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Automation scripts for AcidBros",
   "scripts": {
     "generate-screenshots": "node scripts/generate_screenshots.js"

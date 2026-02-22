@@ -6,11 +6,31 @@ import { FileManager } from '../data/FileManager.js';
 import { MidiManager } from '../midi/MidiManager.js';
 import { DrumSynthUI } from './DrumSynthUI.js';
 
+const NOTE_TO_SEMITONE = Object.freeze({
+    C: 0,
+    'C#': 1,
+    D: 2,
+    'D#': 3,
+    E: 4,
+    F: 5,
+    'F#': 6,
+    G: 7,
+    'G#': 8,
+    A: 9,
+    'A#': 10,
+    B: 11
+});
+
+const SEMITONE_TO_NOTE = Object.freeze([
+    'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'
+]);
+
 export const UI = {
     isInitialized: false,
     isMainScrollLocked: false,
     scrollLockY: 0,
     overlaySelector: '#fileManagerOverlay:not(.hidden), #settingsOverlay:not(.hidden), #drumSynthOverlay:not(.hidden), #add-track-popover-overlay:not(.hidden)',
+    live303Editors: {},
 
     lockMainScroll() {
         if (this.isMainScrollLocked) return;
@@ -1553,6 +1573,65 @@ export const UI = {
         return null;
     },
 
+    transpose303Note(note, semitoneOffset) {
+        const noteIndex = NOTE_TO_SEMITONE[note];
+        if (!Number.isInteger(noteIndex) || !Number.isInteger(semitoneOffset)) {
+            return note;
+        }
+        const normalized = ((noteIndex + semitoneOffset) % 12 + 12) % 12;
+        return SEMITONE_TO_NOTE[normalized] || note;
+    },
+
+    get303LiveStep(unitId, stepIndex, baseStep) {
+        if (!baseStep) return baseStep;
+        const editor = this.live303Editors && this.live303Editors[unitId];
+        if (!editor || !editor.liveEnabled) return baseStep;
+
+        const liveStep = { ...baseStep };
+        const hold = editor.hold;
+        if (!hold) return liveStep;
+
+        const octaveOverride = hold.octaveUpPointers.size > 0
+            ? 3
+            : (hold.octaveDownPointers.size > 0 ? 1 : null);
+        if (octaveOverride !== null) {
+            liveStep.octave = octaveOverride;
+        }
+
+        if (hold.accentPointers.size > 0) {
+            liveStep.accent = true;
+        }
+
+        if (hold.slidePointers.size > 0) {
+            liveStep.slide = true;
+        }
+
+        if (hold.restPointers.size > 0) {
+            liveStep.active = false;
+            return liveStep;
+        }
+
+        if (liveStep.active && Number.isInteger(hold.transposeOffset)) {
+            liveStep.note = this.transpose303Note(liveStep.note, hold.transposeOffset);
+        }
+
+        return liveStep;
+    },
+
+    get303PlaybackStep(unitId, stepIndex, seqData) {
+        if (!seqData || !seqData.length) return null;
+        const step = seqData[stepIndex];
+        if (!step) return null;
+
+        const prevStepIndex = (stepIndex === 0) ? 15 : stepIndex - 1;
+        const prevStep = seqData[prevStepIndex] || null;
+
+        return {
+            step: this.get303LiveStep(unitId, stepIndex, step),
+            prevStep: prevStep ? this.get303LiveStep(unitId, prevStepIndex, prevStep) : null
+        };
+    },
+
     renderAll() {
         this.render303Grid(1);
         this.render303Grid(2);
@@ -1564,30 +1643,86 @@ export const UI = {
         const toggleBtn = document.getElementById(`pianoToggle303_${unitId}`);
         const sequencer = document.getElementById(`grid303_${unitId}`);
         const noteEditor = document.getElementById(`noteEditor303_${unitId}`);
+        if (!toggleBtn || !sequencer || !noteEditor) return;
+
         const prevBtn = noteEditor.querySelector('.prev-btn');
         const nextBtn = noteEditor.querySelector('.next-btn');
         const stepInd = noteEditor.querySelector('.step-indicator');
         const previewBtn = noteEditor.querySelector('.preview-toggle-btn');
+        const liveBtn = noteEditor.querySelector('.live-toggle-btn');
         const restBtn = noteEditor.querySelector('.rest-btn');
         const octBtns = noteEditor.querySelectorAll('.octave-btn');
         const modBtns = noteEditor.querySelectorAll('.mod-btn');
         const pianoKeysWrapper = document.getElementById(`pianoKeys303_${unitId}`);
 
-        let currentStepIndex = 0;
-        let previewEnabled = true;
+        if (!stepInd || !previewBtn || !restBtn || !pianoKeysWrapper) return;
 
-        const updateEditorState = () => {
+        const state = {
+            unitId,
+            currentStepIndex: 0,
+            previewEnabled: true,
+            liveEnabled: false,
+            hold: {
+                octaveDownPointers: new Set(),
+                octaveUpPointers: new Set(),
+                accentPointers: new Set(),
+                slidePointers: new Set(),
+                restPointers: new Set(),
+                transposePointers: new Map(),
+                transposeOrder: 0,
+                transposeOffset: null
+            }
+        };
+
+        this.live303Editors[unitId] = state;
+
+        const clearLiveHolds = () => {
+            state.hold.octaveDownPointers.clear();
+            state.hold.octaveUpPointers.clear();
+            state.hold.accentPointers.clear();
+            state.hold.slidePointers.clear();
+            state.hold.restPointers.clear();
+            state.hold.transposePointers.clear();
+            state.hold.transposeOffset = null;
+        };
+
+        const refreshTransposeOffset = () => {
+            let nextOffset = null;
+            let nextOrder = -1;
+            state.hold.transposePointers.forEach((entry) => {
+                if (entry.order > nextOrder) {
+                    nextOrder = entry.order;
+                    nextOffset = entry.offset;
+                }
+            });
+            state.hold.transposeOffset = Number.isInteger(nextOffset) ? nextOffset : null;
+        };
+
+        const getDisplayStep = (seq, stepIndex) => {
+            const baseStep = seq[stepIndex];
+            if (!baseStep) return null;
+            if (!state.liveEnabled) return baseStep;
+            return this.get303LiveStep(unitId, stepIndex, baseStep);
+        };
+
+        const updateEditorState = ({ renderGrid = true } = {}) => {
             const seq = Data.getSequence(`tb303_${unitId}`);
             if (!seq || seq.length === 0) return;
-            const step = seq[currentStepIndex];
 
-            stepInd.innerText = (currentStepIndex + 1).toString().padStart(2, '0');
+            state.currentStepIndex = ((state.currentStepIndex % 16) + 16) % 16;
+            const step = getDisplayStep(seq, state.currentStepIndex);
+            if (!step) return;
 
-            // Update Control Buttons UI
+            stepInd.innerText = (state.currentStepIndex + 1).toString().padStart(2, '0');
+            previewBtn.classList.toggle('active', state.previewEnabled);
+            noteEditor.classList.toggle('live-mode', state.liveEnabled);
+            if (liveBtn) liveBtn.classList.toggle('active', state.liveEnabled);
+
             octBtns.forEach(b => {
                 const bVal = parseInt(b.dataset.val);
                 b.classList.toggle('active', step.octave === bVal);
             });
+
             modBtns.forEach(b => {
                 if (b.classList.contains('accent-btn')) {
                     b.classList.toggle('active', step.accent);
@@ -1595,9 +1730,9 @@ export const UI = {
                     b.classList.toggle('active', step.slide);
                 }
             });
+
             restBtn.classList.toggle('active', !step.active);
 
-            // Update Piano Keys UI
             const allKeys = pianoKeysWrapper.querySelectorAll('.piano-key');
             allKeys.forEach(k => {
                 const isNoteMatch = k.dataset.note === step.note;
@@ -1605,25 +1740,27 @@ export const UI = {
                 k.classList.toggle('active', isNoteMatch && isOctMatch && step.active);
             });
 
-            // Re-render sequence grid immediately
-            this.render303Grid(unitId);
+            if (renderGrid) {
+                this.render303Grid(unitId);
+            }
         };
 
         const goNext = () => {
-            currentStepIndex = (currentStepIndex + 1) % 16;
+            if (state.liveEnabled) return;
+            state.currentStepIndex = (state.currentStepIndex + 1) % 16;
             updateEditorState();
         };
 
         const goPrev = () => {
-            currentStepIndex = (currentStepIndex - 1 + 16) % 16;
+            if (state.liveEnabled) return;
+            state.currentStepIndex = (state.currentStepIndex - 1 + 16) % 16;
             updateEditorState();
         };
 
         const playPreview = async (step) => {
-            if (!previewEnabled) return;
+            if (!state.previewEnabled) return;
             if (!AudioEngine.ctx) await AudioEngine.init();
             if (AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') await AudioEngine.ctx.resume();
-
             if (!AudioEngine.ctx) return;
 
             const instId = `tb303_${unitId}`;
@@ -1631,7 +1768,30 @@ export const UI = {
             AudioEngine.voice303(AudioEngine.ctx.currentTime, step, params, unitId);
         };
 
-        // Pointerdown for fast interactions (连打 / Mash mapping)
+        const setLiveMode = (enabled) => {
+            if (state.liveEnabled === enabled) return;
+
+            state.liveEnabled = enabled;
+            if (enabled) {
+                const playheadStep = Number.isInteger(this.lastPlayheadStep)
+                    ? this.lastPlayheadStep
+                    : (Number.isInteger(AudioEngine.currentStep) ? AudioEngine.currentStep : 0);
+                state.currentStepIndex = ((playheadStep % 16) + 16) % 16;
+            } else {
+                clearLiveHolds();
+            }
+
+            updateEditorState({ renderGrid: false });
+        };
+
+        state.updateFromPlayhead = (step) => {
+            if (!state.liveEnabled || !Number.isInteger(step)) return;
+            state.currentStepIndex = ((step % 16) + 16) % 16;
+            if (!noteEditor.classList.contains('hidden')) {
+                updateEditorState({ renderGrid: false });
+            }
+        };
+
         const bindFastEvent = (el, handler) => {
             el.addEventListener('pointerdown', (e) => {
                 e.preventDefault();
@@ -1639,9 +1799,33 @@ export const UI = {
             });
         };
 
+        const bindHoldEvent = (el, onStart, onEnd) => {
+            el.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                el.classList.add('pressed');
+                onStart(e);
+
+                const release = (evt) => {
+                    if (evt.pointerId !== e.pointerId) return;
+                    onEnd(evt);
+                    el.classList.remove('pressed');
+                    document.removeEventListener('pointerup', release);
+                    document.removeEventListener('pointercancel', release);
+                };
+
+                document.addEventListener('pointerup', release);
+                document.addEventListener('pointercancel', release);
+            });
+
+            el.addEventListener('pointerleave', () => {
+                el.classList.remove('pressed');
+            });
+        };
+
         bindFastEvent(toggleBtn, () => {
             const isEditing = !noteEditor.classList.contains('hidden');
             if (isEditing) {
+                setLiveMode(false);
                 noteEditor.classList.add('hidden');
                 sequencer.classList.remove('hidden');
             } else {
@@ -1650,58 +1834,100 @@ export const UI = {
                 updateEditorState();
             }
 
-            // Toggle icon visual
             const iconSpan = toggleBtn.querySelector('.icon');
-            if (isEditing) {
-                // Switching back to Sequencer mode (so show Piano icon for access)
-                iconSpan.classList.remove('icon-step');
-                iconSpan.classList.add('icon-piano');
-            } else {
-                // Switching to Piano mode (so show Step icon to go back)
-                iconSpan.classList.remove('icon-piano');
-                iconSpan.classList.add('icon-step');
-                updateEditorState();
+            if (iconSpan) {
+                if (isEditing) {
+                    iconSpan.classList.remove('icon-step');
+                    iconSpan.classList.add('icon-piano');
+                } else {
+                    iconSpan.classList.remove('icon-piano');
+                    iconSpan.classList.add('icon-step');
+                    updateEditorState();
+                }
             }
         });
 
-        bindFastEvent(prevBtn, goPrev);
-        bindFastEvent(nextBtn, goNext);
+        if (prevBtn) bindFastEvent(prevBtn, goPrev);
+        if (nextBtn) bindFastEvent(nextBtn, goNext);
 
         bindFastEvent(previewBtn, () => {
-            previewEnabled = !previewEnabled;
-            previewBtn.classList.toggle('active', previewEnabled);
+            state.previewEnabled = !state.previewEnabled;
+            previewBtn.classList.toggle('active', state.previewEnabled);
+        });
+
+        if (liveBtn) {
+            bindFastEvent(liveBtn, () => {
+                setLiveMode(!state.liveEnabled);
+            });
+        }
+
+        bindHoldEvent(restBtn, (e) => {
+            if (!state.liveEnabled) return;
+            state.hold.restPointers.add(e.pointerId);
+            updateEditorState({ renderGrid: false });
+        }, (e) => {
+            if (!state.liveEnabled) return;
+            state.hold.restPointers.delete(e.pointerId);
+            updateEditorState({ renderGrid: false });
         });
 
         bindFastEvent(restBtn, () => {
+            if (state.liveEnabled) return;
             const seq = Data.getSequence(`tb303_${unitId}`);
-            seq[currentStepIndex].active = false;
+            seq[state.currentStepIndex].active = false;
             goNext();
         });
 
         octBtns.forEach(btn => {
+            const targetOct = parseInt(btn.dataset.val);
+
+            bindHoldEvent(btn, (e) => {
+                if (!state.liveEnabled) return;
+                if (targetOct === 1) state.hold.octaveDownPointers.add(e.pointerId);
+                if (targetOct === 3) state.hold.octaveUpPointers.add(e.pointerId);
+                updateEditorState({ renderGrid: false });
+            }, (e) => {
+                if (!state.liveEnabled) return;
+                if (targetOct === 1) state.hold.octaveDownPointers.delete(e.pointerId);
+                if (targetOct === 3) state.hold.octaveUpPointers.delete(e.pointerId);
+                updateEditorState({ renderGrid: false });
+            });
+
             bindFastEvent(btn, () => {
+                if (state.liveEnabled) return;
                 const seq = Data.getSequence(`tb303_${unitId}`);
-                const targetOct = parseInt(btn.dataset.val);
-                // Toggle target -> normal(2)
-                seq[currentStepIndex].octave = seq[currentStepIndex].octave === targetOct ? 2 : targetOct;
+                seq[state.currentStepIndex].octave = seq[state.currentStepIndex].octave === targetOct ? 2 : targetOct;
                 updateEditorState();
             });
         });
 
         modBtns.forEach(btn => {
+            const isAcc = btn.classList.contains('accent-btn');
+
+            bindHoldEvent(btn, (e) => {
+                if (!state.liveEnabled) return;
+                if (isAcc) state.hold.accentPointers.add(e.pointerId);
+                else state.hold.slidePointers.add(e.pointerId);
+                updateEditorState({ renderGrid: false });
+            }, (e) => {
+                if (!state.liveEnabled) return;
+                if (isAcc) state.hold.accentPointers.delete(e.pointerId);
+                else state.hold.slidePointers.delete(e.pointerId);
+                updateEditorState({ renderGrid: false });
+            });
+
             bindFastEvent(btn, () => {
+                if (state.liveEnabled) return;
                 const seq = Data.getSequence(`tb303_${unitId}`);
-                const isAcc = btn.classList.contains('accent-btn');
                 if (isAcc) {
-                    seq[currentStepIndex].accent = !seq[currentStepIndex].accent;
+                    seq[state.currentStepIndex].accent = !seq[state.currentStepIndex].accent;
                 } else {
-                    seq[currentStepIndex].slide = !seq[currentStepIndex].slide;
+                    seq[state.currentStepIndex].slide = !seq[state.currentStepIndex].slide;
                 }
                 updateEditorState();
             });
         });
 
-        // Initialize Piano Keys
         const keys = [
             { n: 'C', type: 'white' }, { n: 'C#', type: 'black' },
             { n: 'D', type: 'white' }, { n: 'D#', type: 'black' },
@@ -1711,11 +1937,6 @@ export const UI = {
             { n: 'A#', type: 'black' }, { n: 'B', type: 'white' }
         ];
 
-        // For responsiveness, render 3 octaves but CSS hides the overflow on mobile, or we render 3 octaves tightly.
-        // Actually, CSS width percentage is best if we assume 3 octaves = 36 keys.
-        // Wait, the user said 1 octave on mobile portrait, 3 octaves on landscape.
-        // If we generate 3 octaves (36 keys) and use min-width / flex to show horizontal scroll, or just change width%.
-        // Let's generate 3 octaves.
         const totalOctaves = 3;
         const totalWhiteKeys = 7 * totalOctaves;
         let whiteIndex = 0;
@@ -1730,19 +1951,38 @@ export const UI = {
                 const keyWhiteIndex = k.type === 'white' ? whiteIndex++ : whiteIndex;
                 div.classList.add(`white-index-${keyWhiteIndex}`);
 
+                bindHoldEvent(div, (e) => {
+                    if (!state.liveEnabled) return;
+                    const offset = NOTE_TO_SEMITONE[k.n];
+                    if (!Number.isInteger(offset)) return;
+                    state.hold.transposeOrder += 1;
+                    state.hold.transposePointers.set(e.pointerId, {
+                        offset,
+                        order: state.hold.transposeOrder
+                    });
+                    refreshTransposeOffset();
+                    updateEditorState({ renderGrid: false });
+                }, (e) => {
+                    if (!state.liveEnabled) return;
+                    state.hold.transposePointers.delete(e.pointerId);
+                    refreshTransposeOffset();
+                    updateEditorState({ renderGrid: false });
+                });
+
                 bindFastEvent(div, () => {
+                    if (state.liveEnabled) return;
                     const seq = Data.getSequence(`tb303_${unitId}`);
-                    const step = seq[currentStepIndex];
+                    const step = seq[state.currentStepIndex];
                     step.note = k.n;
                     step.active = true;
-                    // If desktop (3 octaves clicked), override tb303 octave setting
+
                     const octaveGroup = noteEditor.querySelector('.octave-selector-group');
                     const is3OctaveMode = octaveGroup && getComputedStyle(octaveGroup).display === 'none';
                     if (is3OctaveMode) {
-                        step.octave = oct; // 1 = Dn, 2 = Normal, 3 = Up
+                        step.octave = oct;
                     }
 
-                    if (previewEnabled) playPreview(step);
+                    if (state.previewEnabled) playPreview(step);
                     goNext();
                 });
 
@@ -1750,13 +1990,14 @@ export const UI = {
             });
         }
 
-        // Save the external setStep function for Note Editor
         this[`openNoteEditor303_${unitId}`] = (stepIndex) => {
-            currentStepIndex = stepIndex;
+            state.currentStepIndex = stepIndex;
             noteEditor.classList.remove('hidden');
             sequencer.classList.add('hidden');
             updateEditorState();
         };
+
+        updateEditorState({ renderGrid: false });
     },
 
     init303Knobs(unitId) {
@@ -2059,6 +2300,15 @@ export const UI = {
             if (seq.children[step]) seq.children[step].classList.add('current');
         });
 
+        if (this.live303Editors) {
+            [1, 2].forEach((unitId) => {
+                const editor = this.live303Editors[unitId];
+                if (editor && editor.liveEnabled && typeof editor.updateFromPlayhead === 'function') {
+                    editor.updateFromPlayhead(step);
+                }
+            });
+        }
+
         this.lastPlayheadStep = step;
     },
 
@@ -2229,6 +2479,7 @@ export const UI = {
         while (currentElements.length > 0) {
             currentElements[0].classList.remove('current');
         }
+        this.lastPlayheadStep = null;
     },
 
     highlightStep(step) {

@@ -2,6 +2,8 @@
 
 **acidBros** is a web‑based synthesizer and sequencer inspired by the legendary Roland TB‑303 Bass Line and TR‑909 Rhythm Composer. It runs directly in your browser using the Web Audio API.
 
+New in the note editor: **TB‑303 Live Mode** with hold-based octave, AC/SL, Rest, and key-transpose performance control (non-destructive to pattern data).
+
 🎹 **[Try it live!](https://acidsound.github.io/acidBros/)**
 
 ## Screenshots
@@ -47,6 +49,7 @@
   * **Song Mode**: Arrange patterns into songs by clicking pattern buttons to add them to the timeline.
   * Smooth animated mode switching.
 * **Live Performance Features**:
+  * **TB‑303 Live Mode (Note Editor)**: Enable the Live button (song icon) to perform temporary per-step changes while playing: hold DN/UP, AC/SL, Off, and piano keys for transpose. Live input is step-quantized and does not overwrite stored pattern steps.
   * **Collapsible Sequencers**: Click machine headers to hide grids and focus on knobs for live tweaking.
   * **Swing/Shuffle Control**: Adjustable groove timing (0-100%) with visual ribbon controller and center reference line.
   * **File Manager**: Save, load, duplicate, rename, and delete patterns with persistent browser storage.

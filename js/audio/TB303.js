@@ -267,12 +267,12 @@ export class TB303 {
         }
     }
 
-    processStep(time, stepIndex, seqData, params, tempo) {
+    processStep(time, stepIndex, seqData, params, tempo, liveStep = null, livePrevStep = null) {
         this._applyDelayParams(time, params, tempo);
 
-        const step = seqData[stepIndex];
+        const step = liveStep || seqData[stepIndex];
         const prevStepIndex = (stepIndex === 0) ? 15 : stepIndex - 1;
-        const prevStep = seqData[prevStepIndex];
+        const prevStep = livePrevStep || seqData[prevStepIndex];
 
         if (step && step.active) {
             this.playStep(time, step, params, prevStep, tempo);

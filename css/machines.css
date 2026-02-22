@@ -175,6 +175,12 @@
     position: relative;
 }
 
+.note-editor.live-mode {
+    background: linear-gradient(180deg, #1b2a1f 0%, #141d17 100%);
+    border-color: #2c5034;
+    box-shadow: inset 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 10px rgba(102, 255, 153, 0.2);
+}
+
 .machine.collapsed .note-editor {
     display: none !important;
 }
@@ -200,6 +206,20 @@
     min-width: 25px;
     text-align: center;
     text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+}
+
+.note-editor.live-mode .editor-header .step-indicator {
+    color: #7dff9e;
+    text-shadow: 0 0 6px rgba(78, 255, 138, 0.65);
+}
+
+.note-editor.live-mode .prev-btn,
+.note-editor.live-mode .next-btn {
+    display: none;
+}
+
+.note-editor.live-mode .editor-header .nav-group:first-child {
+    gap: 0;
 }
 
 /* Base button style for editor controls */
@@ -232,6 +252,13 @@
     color: white;
     border-color: #aa5500;
     box-shadow: 0 0 5px rgba(255, 153, 0, 0.5);
+}
+
+.editor-btn.live-toggle-btn.active {
+    background: linear-gradient(to bottom, #7cff9f, #2f8f4b);
+    border-color: #1f5f31;
+    color: #0b2512;
+    box-shadow: 0 0 8px rgba(102, 255, 153, 0.45);
 }
 
 .editor-btn.accent-btn.active {
@@ -278,6 +305,15 @@
     border-radius: 4px;
     margin-bottom: 8px;
     border: 1px solid #111;
+}
+
+.note-editor.live-mode .editor-controls {
+    background: rgba(9, 27, 14, 0.45);
+    border-color: #27462f;
+}
+
+.note-editor.live-mode .control-label {
+    color: #92b199;
 }
 
 .control-group {
