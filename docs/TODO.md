@@ -4,7 +4,7 @@
 - [ ] (EPIC) Mixer
 - [ ] (EPIC) Effects
 - [ ] (EPIC) LRC 기반 완전 자동화 영상 생성기
-- [ ] Pitch mode
+- [x] 303 Live Mode
 - [ ] Pattern transpose +1, -1
 - [ ] Pattern shift +1, -1
 - [ ] Drum Synth Sound 파일 관리

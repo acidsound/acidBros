@@ -173,6 +173,10 @@
     box-sizing: border-box;
     width: 100%;
     position: relative;
+    max-height: 1000px;
+    overflow: hidden;
+    opacity: 1;
+    transition: max-height 0.2s ease, opacity 0.2s ease, padding 0.2s ease, margin 0.2s ease, border-width 0.2s ease;
 }
 
 .note-editor.live-mode {
@@ -182,7 +186,12 @@
 }
 
 .machine.collapsed .note-editor {
-    display: none !important;
+    max-height: 0;
+    opacity: 0;
+    padding: 0 10px;
+    margin: 0;
+    border-width: 0;
+    pointer-events: none;
 }
 
 .editor-header {
@@ -200,9 +209,10 @@
 
 .editor-header .step-indicator {
     color: #ff3333;
-    font-family: 'Courier New', monospace;
-    font-weight: bold;
+    font-family: 'DSEG7Classic', monospace;
+    font-weight: normal;
     font-size: 14px;
+    letter-spacing: 0.5px;
     min-width: 25px;
     text-align: center;
     text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
@@ -215,6 +225,10 @@
 
 .note-editor.live-mode .prev-btn,
 .note-editor.live-mode .next-btn {
+    display: none;
+}
+
+.note-editor.live-mode .preview-toggle-btn {
     display: none;
 }
 
