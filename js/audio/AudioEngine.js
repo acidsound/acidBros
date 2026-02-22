@@ -27,6 +27,7 @@ export const AudioEngine = {
     timerID: null,
     workletWatchdogTimer: null,
     awaitingWorkletTick: false,
+    workletRecoveryAttempts: 0,
 
     // Instruments Map
     instruments: new Map(),
@@ -151,15 +152,7 @@ export const AudioEngine = {
                     try {
                         await this.ctx.audioWorklet.addModule('js/audio/TB303FilterProcessor.js');
                         await this.ctx.audioWorklet.addModule('js/audio/ClockProcessor.js');
-                        this.clockNode = new AudioWorkletNode(this.ctx, 'clock-processor');
-
-                        this.clockNode.port.onmessage = (e) => {
-                            if (e.data.type === 'tick') {
-                                this.handleTick(e.data);
-                            }
-                        };
-
-                        this.clockNode.connect(this.ctx.destination);
+                        this.createClockNode();
                         this.useWorklet = true;
                         console.log("AudioEngine: Using AudioWorklet for timing.");
 
@@ -230,6 +223,50 @@ export const AudioEngine = {
         this.instruments.set(id, instance);
     },
 
+    attachClockNode(node) {
+        this.clockNode = node;
+        this.clockNode.port.onmessage = (e) => {
+            if (e.data.type === 'tick') {
+                this.handleTick(e.data);
+            }
+        };
+        this.clockNode.connect(this.ctx.destination);
+    },
+
+    createClockNode() {
+        if (!this.ctx) return null;
+        const node = new AudioWorkletNode(this.ctx, 'clock-processor');
+        this.attachClockNode(node);
+        return node;
+    },
+
+    async recoverWorkletClock() {
+        if (!this.ctx || !this.ctx.audioWorklet) return false;
+        try {
+            if (this.clockNode) {
+                try { this.clockNode.port.onmessage = null; } catch (e) { }
+                try { this.clockNode.disconnect(); } catch (e) { }
+            }
+
+            this.createClockNode();
+            if (!this.clockNode) return false;
+
+            if (this.isPlaying) {
+                const restartTime = this.ctx.currentTime + 0.005;
+                this.nextNoteTime = restartTime;
+                this.clockNode.port.postMessage({ type: 'start', startTime: restartTime });
+                this.clockNode.port.postMessage({ type: 'tempo', value: this.tempo });
+                this.clockNode.port.postMessage({ type: 'swing', value: this.swing });
+                this.armWorkletWatchdog();
+            }
+
+            return true;
+        } catch (err) {
+            console.error('AudioEngine: Failed to recover AudioWorklet clock.', err);
+            return false;
+        }
+    },
+
     clearWorkletWatchdog() {
         if (this.workletWatchdogTimer) {
             window.clearTimeout(this.workletWatchdogTimer);
@@ -244,16 +281,24 @@ export const AudioEngine = {
         this.awaitingWorkletTick = true;
         this.workletWatchdogTimer = window.setTimeout(() => {
             if (!this.isPlaying || !this.awaitingWorkletTick) return;
-            console.warn('AudioEngine: No clock tick from AudioWorklet, falling back to timer scheduler.');
-            this.useWorklet = false;
-            try {
-                this.clockNode.port.postMessage({ type: 'stop' });
-            } catch (err) {
-                console.warn('AudioEngine: Failed to stop worklet during fallback.', err);
-            }
-            this.nextNoteTime = Math.max(this.ctx.currentTime + 0.005, this.nextNoteTime || 0);
-            this.scheduler();
             this.clearWorkletWatchdog();
+            this.workletRecoveryAttempts += 1;
+
+            // Keep worklet clock quality instead of degrading to timer fallback.
+            if (this.workletRecoveryAttempts > 1) {
+                console.error('AudioEngine: AudioWorklet clock tick missing after recovery, stopping transport.');
+                this.stopInternal(false);
+                this.showResumeOverlay();
+                return;
+            }
+
+            console.warn('AudioEngine: No clock tick from AudioWorklet, attempting clock recovery.');
+            this.recoverWorkletClock().then((ok) => {
+                if (!ok) {
+                    this.stopInternal(false);
+                    this.showResumeOverlay();
+                }
+            });
         }, 500);
     },
 
@@ -321,6 +366,7 @@ export const AudioEngine = {
         }
 
         this.isPlaying = true;
+        this.workletRecoveryAttempts = 0;
         this.currentStep = 0;
         this.currentSongIndex = 0;
         this.lastStep = null;
@@ -361,6 +407,7 @@ export const AudioEngine = {
         if (invalidateCommand) this.transportCommandId++;
 
         this.isPlaying = false;
+        this.workletRecoveryAttempts = 0;
         this.currentSongIndex = 0;
         this.lastStep = null;
         this.clearWorkletWatchdog();
@@ -411,6 +458,7 @@ export const AudioEngine = {
         if (this.awaitingWorkletTick) {
             this.clearWorkletWatchdog();
         }
+        this.workletRecoveryAttempts = 0;
 
         const { time, step } = data;
         this.currentStep = step;
