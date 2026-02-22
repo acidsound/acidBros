@@ -64,7 +64,16 @@ export const AudioEngine = {
             this.iosSessionBridgeEl.currentTime = 0;
             const playPromise = this.iosSessionBridgeEl.play();
             if (playPromise && typeof playPromise.then === 'function') {
-                await playPromise;
+                playPromise
+                    .then(() => {
+                        try {
+                            this.iosSessionBridgeEl.pause();
+                            this.iosSessionBridgeEl.currentTime = 0;
+                        } catch (e) { }
+                    })
+                    .catch((err) => {
+                        console.warn('AudioEngine: iOS media session bridge play failed.', err);
+                    });
             }
         } catch (err) {
             console.warn('AudioEngine: iOS media session bridge play failed.', err);
@@ -74,7 +83,7 @@ export const AudioEngine = {
     async resumeContext() {
         const ctx = this.ensureContext();
         if (ctx.state === 'running') {
-            await this.primeIOSAudioSession();
+            this.primeIOSAudioSession();
             return true;
         }
         try {
@@ -89,9 +98,21 @@ export const AudioEngine = {
         }
         const running = ctx.state === 'running';
         if (running) {
-            await this.primeIOSAudioSession();
+            this.primeIOSAudioSession();
         }
         return running;
+    },
+
+    withTimeout(promise, timeoutMs, label = 'operation') {
+        let timeoutId = null;
+        const timeoutPromise = new Promise((_, reject) => {
+            timeoutId = window.setTimeout(() => {
+                reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+            }, timeoutMs);
+        });
+        return Promise.race([promise, timeoutPromise]).finally(() => {
+            if (timeoutId !== null) window.clearTimeout(timeoutId);
+        });
     },
 
     showResumeOverlay() {
@@ -145,13 +166,30 @@ export const AudioEngine = {
                 this.addInstrument('tr909', tr909);
 
                 // Fetch 909 samples
-                await tr909.initBuffers();
+                try {
+                    await this.withTimeout(tr909.initBuffers(), 4500, 'TR909 buffer init');
+                } catch (err) {
+                    console.warn('AudioEngine: TR-909 sample init stalled, continuing without blocking audio startup.', err);
+                    try {
+                        tr909.initVoices();
+                    } catch (voiceErr) {
+                        console.error('AudioEngine: Failed to initialize fallback TR-909 voices.', voiceErr);
+                    }
+                }
 
                 // --- AudioWorklet Setup ---
                 if (this.ctx.audioWorklet) {
                     try {
-                        await this.ctx.audioWorklet.addModule('js/audio/TB303FilterProcessor.js');
-                        await this.ctx.audioWorklet.addModule('js/audio/ClockProcessor.js');
+                        await this.withTimeout(
+                            this.ctx.audioWorklet.addModule('js/audio/TB303FilterProcessor.js'),
+                            3000,
+                            'TB303 worklet module load'
+                        );
+                        await this.withTimeout(
+                            this.ctx.audioWorklet.addModule('js/audio/ClockProcessor.js'),
+                            3000,
+                            'Clock worklet module load'
+                        );
                         this.createClockNode();
                         this.useWorklet = true;
                         console.log("AudioEngine: Using AudioWorklet for timing.");

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'acidbros-v150';
+const CACHE_NAME = 'acidbros-v151';
 const ASSETS = [
     './',
     './index.html',
