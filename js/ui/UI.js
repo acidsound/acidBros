@@ -72,58 +72,44 @@ export const UI = {
 
     bindFastEvent(el, handler) {
         if (!el) return;
-
-        let lastInvokeAt = 0;
-        const invoke = (e) => {
-            const now = Date.now();
-            // Prevent duplicate firing when pointer/touch is followed by click.
-            if (now - lastInvokeAt < 180) return;
-            lastInvokeAt = now;
-            handler(e);
-        };
-
-        const onPress = (e) => {
+        el.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             el.classList.add('pressed');
-            invoke(e);
+            handler(e);
 
             const cleanup = () => {
                 el.classList.remove('pressed');
                 document.removeEventListener('pointerup', cleanup);
                 document.removeEventListener('pointercancel', cleanup);
-                document.removeEventListener('mouseup', cleanup);
-                document.removeEventListener('touchend', cleanup);
-                document.removeEventListener('touchcancel', cleanup);
             };
             document.addEventListener('pointerup', cleanup);
             document.addEventListener('pointercancel', cleanup);
-            document.addEventListener('mouseup', cleanup);
-            document.addEventListener('touchend', cleanup);
-            document.addEventListener('touchcancel', cleanup);
-        };
-
-        if (window.PointerEvent) {
-            el.addEventListener('pointerdown', onPress, { passive: false });
-        } else {
-            el.addEventListener('touchstart', onPress, { passive: false });
-            el.addEventListener('mousedown', onPress);
-        }
-
-        // iOS real devices can be stricter than Simulator about user activation source.
-        // Keep click as a fallback while deduping against pointer/touch.
-        el.addEventListener('click', (e) => {
-            e.preventDefault();
-            invoke(e);
         });
 
         el.addEventListener('pointerleave', () => {
             el.classList.remove('pressed');
         });
-        el.addEventListener('mouseleave', () => {
-            el.classList.remove('pressed');
-        });
-        el.addEventListener('touchcancel', () => {
-            el.classList.remove('pressed');
+    },
+
+    bindTransportEvent(el, handler) {
+        if (!el) return;
+
+        let lastInvokeAt = 0;
+        const invoke = (e) => {
+            const now = Date.now();
+            if (now - lastInvokeAt < 220) return;
+            lastInvokeAt = now;
+            handler(e);
+        };
+
+        el.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            invoke(e);
+        }, { passive: false });
+
+        el.addEventListener('click', (e) => {
+            e.preventDefault();
+            invoke(e);
         });
     },
 
@@ -151,8 +137,8 @@ export const UI = {
             };
         }
 
-        this.bindFastEvent(document.getElementById('playBtn'), () => AudioEngine.play(true));
-        this.bindFastEvent(document.getElementById('stopBtn'), () => AudioEngine.stop());
+        this.bindTransportEvent(document.getElementById('playBtn'), () => AudioEngine.play(true));
+        this.bindTransportEvent(document.getElementById('stopBtn'), () => AudioEngine.stop());
         this.bindFastEvent(document.getElementById('randomBtn'), () => Data.randomize());
 
         // Mark UI as initialized

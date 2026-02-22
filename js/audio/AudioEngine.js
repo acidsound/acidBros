@@ -25,6 +25,8 @@ export const AudioEngine = {
     nextNoteTime: 0.0,
     scheduleAheadTime: 0.1,
     timerID: null,
+    workletWatchdogTimer: null,
+    awaitingWorkletTick: false,
 
     // Instruments Map
     instruments: new Map(),
@@ -228,6 +230,33 @@ export const AudioEngine = {
         this.instruments.set(id, instance);
     },
 
+    clearWorkletWatchdog() {
+        if (this.workletWatchdogTimer) {
+            window.clearTimeout(this.workletWatchdogTimer);
+            this.workletWatchdogTimer = null;
+        }
+        this.awaitingWorkletTick = false;
+    },
+
+    armWorkletWatchdog() {
+        if (!this.useWorklet || !this.clockNode) return;
+        this.clearWorkletWatchdog();
+        this.awaitingWorkletTick = true;
+        this.workletWatchdogTimer = window.setTimeout(() => {
+            if (!this.isPlaying || !this.awaitingWorkletTick) return;
+            console.warn('AudioEngine: No clock tick from AudioWorklet, falling back to timer scheduler.');
+            this.useWorklet = false;
+            try {
+                this.clockNode.port.postMessage({ type: 'stop' });
+            } catch (err) {
+                console.warn('AudioEngine: Failed to stop worklet during fallback.', err);
+            }
+            this.nextNoteTime = Math.max(this.ctx.currentTime + 0.005, this.nextNoteTime || 0);
+            this.scheduler();
+            this.clearWorkletWatchdog();
+        }, 500);
+    },
+
     queuePatternSwitch(patternId) {
         if (Data.mode !== 'pattern' || !this.isPlaying) return false;
         if (!Number.isInteger(patternId) || patternId < 0 || patternId > 15) return false;
@@ -321,6 +350,7 @@ export const AudioEngine = {
             this.clockNode.port.postMessage({ type: 'start', startTime });
             this.clockNode.port.postMessage({ type: 'tempo', value: this.tempo });
             this.clockNode.port.postMessage({ type: 'swing', value: this.swing });
+            this.armWorkletWatchdog();
         } else {
             // Start Fallback Scheduler
             this.scheduler();
@@ -333,6 +363,7 @@ export const AudioEngine = {
         this.isPlaying = false;
         this.currentSongIndex = 0;
         this.lastStep = null;
+        this.clearWorkletWatchdog();
         UI.clearPlayhead();
         this.clearPatternSwitchQueue();
 
@@ -347,9 +378,10 @@ export const AudioEngine = {
             UI.updateSongTimeline();
         }
 
-        if (this.useWorklet && this.clockNode) {
+        if (this.clockNode) {
             this.clockNode.port.postMessage({ type: 'stop' });
-        } else {
+        }
+        if (!this.useWorklet) {
             window.clearTimeout(this.timerID);
         }
     },
@@ -375,6 +407,11 @@ export const AudioEngine = {
 
     // --- Worklet Handler ---
     handleTick(data) {
+        if (!this.useWorklet || !this.isPlaying) return;
+        if (this.awaitingWorkletTick) {
+            this.clearWorkletWatchdog();
+        }
+
         const { time, step } = data;
         this.currentStep = step;
 
