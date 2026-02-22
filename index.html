@@ -40,8 +40,11 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('Service Worker registered!', reg))
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+          .then(reg => {
+            console.log('Service Worker registered!', reg);
+            reg.update();
+          })
           .catch(err => console.log('Service Worker registration failed:', err));
       });
     }
@@ -92,7 +95,7 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v144</div>
+          <div class="version-display">v145</div>
           <button id="fileManagerBtn" class="transport-icon-btn" title="File Manager" aria-label="File Manager">
             <span class="icon icon-lg icon-folder"></span>
           </button>

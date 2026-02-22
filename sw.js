@@ -1,4 +1,4 @@
-const CACHE_NAME = 'acidbros-v143';
+const CACHE_NAME = 'acidbros-v145';
 const ASSETS = [
     './',
     './index.html',
@@ -72,7 +72,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-    self.skipWaiting(); // Force waiting service worker to become active
+    self.skipWaiting();
     e.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(ASSETS);
@@ -80,12 +80,74 @@ self.addEventListener('install', (e) => {
     );
 });
 
-self.addEventListener('fetch', (e) => {
-    e.respondWith(
-        caches.match(e.request).then((response) => {
-            return response || fetch(e.request);
+const isSameOriginGetRequest = (request) => {
+    if (!request || request.method !== 'GET') return false;
+    const url = new URL(request.url);
+    return url.origin === self.location.origin;
+};
+
+const cachePutIfOk = async (request, response) => {
+    if (!response || !response.ok) return;
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put(request, response.clone());
+};
+
+const networkFirst = async (request) => {
+    try {
+        const fresh = await fetch(request);
+        await cachePutIfOk(request, fresh);
+        return fresh;
+    } catch (err) {
+        const cache = await caches.open(CACHE_NAME);
+        const cached = await cache.match(request);
+        if (cached) return cached;
+
+        if (request.mode === 'navigate') {
+            const fallback = await cache.match('./index.html');
+            if (fallback) return fallback;
+        }
+        throw err;
+    }
+};
+
+const staleWhileRevalidate = async (request, event) => {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
+
+    const updatePromise = fetch(request)
+        .then(async (fresh) => {
+            await cachePutIfOk(request, fresh);
+            return fresh;
         })
-    );
+        .catch(() => null);
+
+    if (cached) {
+        event.waitUntil(updatePromise);
+        return cached;
+    }
+
+    const fresh = await updatePromise;
+    if (fresh) return fresh;
+
+    return cache.match('./index.html');
+};
+
+self.addEventListener('fetch', (e) => {
+    if (!isSameOriginGetRequest(e.request)) return;
+
+    const destination = e.request.destination;
+    const shouldUseNetworkFirst =
+        e.request.mode === 'navigate' ||
+        destination === 'style' ||
+        destination === 'script' ||
+        destination === 'worker';
+
+    if (shouldUseNetworkFirst) {
+        e.respondWith(networkFirst(e.request));
+        return;
+    }
+
+    e.respondWith(staleWhileRevalidate(e.request, e));
 });
 
 self.addEventListener('activate', (e) => {
@@ -98,6 +160,6 @@ self.addEventListener('activate', (e) => {
                     }
                 })
             );
-        }).then(() => self.clients.claim()) // Immediately control all clients
+        }).then(() => self.clients.claim())
     );
 });
