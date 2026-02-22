@@ -9,8 +9,10 @@ export const AudioEngine = {
     analyser: null, // FFT Analyser
     clockNode: null, // AudioWorkletNode
     isInitialized: false,
+    initPromise: null,
     hasVisibilityHandler: false,
     isPlaying: false,
+    transportCommandId: 0,
     tempo: 125,
     swing: 50,
     currentStep: 0,
@@ -26,73 +28,117 @@ export const AudioEngine = {
     // Instruments Map
     instruments: new Map(),
 
-    async init() {
+    ensureContext() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         }
+        return this.ctx;
+    },
 
-        if (!this.isInitialized) {
-            // --- FFT Analyser Setup ---
-            this.analyser = this.ctx.createAnalyser();
-            this.analyser.fftSize = 2048; // High resolution for visuals
+    async resumeContext() {
+        const ctx = this.ensureContext();
+        if (ctx.state === 'running') return true;
+        try {
+            await ctx.resume();
+        } catch (err) {
+            console.warn('AudioEngine: AudioContext resume blocked until next user gesture.', err);
+        }
+        return ctx.state === 'running';
+    },
 
-            this.master = this.ctx.createDynamicsCompressor();
-            this.master.threshold.value = -8;
-            this.master.ratio.value = 12;
+    showResumeOverlay() {
+        const overlay = document.getElementById('audioResumeOverlay');
+        if (!overlay) return;
+        overlay.classList.remove('hidden');
+        overlay.style.display = 'flex';
+    },
 
-            const outGain = this.ctx.createGain();
-            outGain.gain.value = 0.8;
+    hideResumeOverlay() {
+        const overlay = document.getElementById('audioResumeOverlay');
+        if (!overlay) return;
+        overlay.classList.add('hidden');
+        overlay.style.display = '';
+    },
 
-            // Chain: Master -> Analyser -> OutGain -> Destination
-            this.master.connect(this.analyser);
-            this.analyser.connect(outGain);
-            outGain.connect(this.ctx.destination);
+    async init() {
+        this.ensureContext();
 
-            // Initialize Instruments
-            this.instruments.clear();
-            this.addInstrument('tb303_1', new TB303(this.ctx, this.master));
-            this.addInstrument('tb303_2', new TB303(this.ctx, this.master));
-            const tr909 = new TR909(this.ctx, this.master);
-            this.addInstrument('tr909', tr909);
+        // Resume as early as possible so first touch on Play is not lost
+        // behind async buffer/worklet loading.
+        await this.resumeContext();
+        if (this.isInitialized) {
+            await this.resumeContext();
+            return;
+        }
 
-            // Fetch 909 samples
-            await tr909.initBuffers();
+        if (!this.initPromise) {
+            this.initPromise = (async () => {
+                // --- FFT Analyser Setup ---
+                this.analyser = this.ctx.createAnalyser();
+                this.analyser.fftSize = 2048; // High resolution for visuals
 
-            // --- AudioWorklet Setup ---
-            if (this.ctx.audioWorklet) {
-                try {
-                    await this.ctx.audioWorklet.addModule('js/audio/TB303FilterProcessor.js');
-                    await this.ctx.audioWorklet.addModule('js/audio/ClockProcessor.js');
-                    this.clockNode = new AudioWorkletNode(this.ctx, 'clock-processor');
+                this.master = this.ctx.createDynamicsCompressor();
+                this.master.threshold.value = -8;
+                this.master.ratio.value = 12;
 
-                    this.clockNode.port.onmessage = (e) => {
-                        if (e.data.type === 'tick') {
-                            this.handleTick(e.data);
-                        }
-                    };
+                const outGain = this.ctx.createGain();
+                outGain.gain.value = 0.8;
 
-                    this.clockNode.connect(this.ctx.destination);
-                    this.useWorklet = true;
-                    console.log("AudioEngine: Using AudioWorklet for timing.");
+                // Chain: Master -> Analyser -> OutGain -> Destination
+                this.master.connect(this.analyser);
+                this.analyser.connect(outGain);
+                outGain.connect(this.ctx.destination);
 
-                } catch (err) {
-                    console.warn('AudioEngine: Failed to load AudioWorklet, falling back to setTimeout.', err);
+                // Initialize Instruments
+                this.instruments.clear();
+                this.addInstrument('tb303_1', new TB303(this.ctx, this.master));
+                this.addInstrument('tb303_2', new TB303(this.ctx, this.master));
+                const tr909 = new TR909(this.ctx, this.master);
+                this.addInstrument('tr909', tr909);
+
+                // Fetch 909 samples
+                await tr909.initBuffers();
+
+                // --- AudioWorklet Setup ---
+                if (this.ctx.audioWorklet) {
+                    try {
+                        await this.ctx.audioWorklet.addModule('js/audio/TB303FilterProcessor.js');
+                        await this.ctx.audioWorklet.addModule('js/audio/ClockProcessor.js');
+                        this.clockNode = new AudioWorkletNode(this.ctx, 'clock-processor');
+
+                        this.clockNode.port.onmessage = (e) => {
+                            if (e.data.type === 'tick') {
+                                this.handleTick(e.data);
+                            }
+                        };
+
+                        this.clockNode.connect(this.ctx.destination);
+                        this.useWorklet = true;
+                        console.log("AudioEngine: Using AudioWorklet for timing.");
+
+                    } catch (err) {
+                        console.warn('AudioEngine: Failed to load AudioWorklet, falling back to setTimeout.', err);
+                        this.useWorklet = false;
+                    }
+                } else {
+                    console.warn('AudioEngine: AudioWorklet not supported (insecure context?), falling back to setTimeout.');
                     this.useWorklet = false;
                 }
-            } else {
-                console.warn('AudioEngine: AudioWorklet not supported (insecure context?), falling back to setTimeout.');
-                this.useWorklet = false;
-            }
 
-            // --- iOS Safari Background Resume Handler ---
-            if (!this.hasVisibilityHandler) {
-                this.setupVisibilityHandler();
-                this.hasVisibilityHandler = true;
-            }
+                // --- iOS Safari Background Resume Handler ---
+                if (!this.hasVisibilityHandler) {
+                    this.setupVisibilityHandler();
+                    this.hasVisibilityHandler = true;
+                }
 
-            this.isInitialized = true;
+                this.isInitialized = true;
+            })().finally(() => {
+                this.initPromise = null;
+            });
         }
-        if (this.ctx.state === 'suspended') await this.ctx.resume();
+
+        await this.initPromise;
+        await this.resumeContext();
     },
 
     // Handle iOS Safari background resume
@@ -104,38 +150,32 @@ export const AudioEngine = {
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && this.isPlaying && this.ctx) {
                 // Check if AudioContext is suspended after returning from background
-                if (this.ctx.state === 'suspended') {
+                if (this.ctx.state !== 'running') {
                     console.log('AudioEngine: AudioContext suspended after background, showing resume overlay');
-                    overlay.style.display = 'flex';
+                    this.showResumeOverlay();
                 }
             }
         });
 
         // Handle overlay tap to resume
         overlay.addEventListener('click', async () => {
-            if (this.ctx && this.ctx.state === 'suspended') {
-                try {
-                    await this.ctx.resume();
-                    console.log('AudioEngine: AudioContext resumed via user tap');
-                } catch (err) {
-                    console.error('AudioEngine: Failed to resume AudioContext', err);
-                }
+            if (!this.ctx) return;
+            const resumed = await this.resumeContext();
+            if (resumed) {
+                console.log('AudioEngine: AudioContext resumed via user tap');
+                this.hideResumeOverlay();
             }
-            overlay.style.display = 'none';
         });
 
         // Also handle touch events for better iOS responsiveness
         overlay.addEventListener('touchend', async (e) => {
             e.preventDefault();
-            if (this.ctx && this.ctx.state === 'suspended') {
-                try {
-                    await this.ctx.resume();
-                    console.log('AudioEngine: AudioContext resumed via user touch');
-                } catch (err) {
-                    console.error('AudioEngine: Failed to resume AudioContext', err);
-                }
+            if (!this.ctx) return;
+            const resumed = await this.resumeContext();
+            if (resumed) {
+                console.log('AudioEngine: AudioContext resumed via user touch');
+                this.hideResumeOverlay();
             }
-            overlay.style.display = 'none';
         }, { passive: false });
     },
 
@@ -172,12 +212,25 @@ export const AudioEngine = {
     },
 
     async play(restartFromTop = false) {
-        if (!this.ctx) await this.init();
-        if (this.ctx.state === 'suspended') await this.ctx.resume();
+        const commandId = ++this.transportCommandId;
+
+        // First attempt must happen before heavyweight async init().
+        await this.resumeContext();
+        if (commandId !== this.transportCommandId) return;
+        if (!this.isInitialized) await this.init();
+        if (commandId !== this.transportCommandId) return;
+        await this.resumeContext();
+        if (commandId !== this.transportCommandId) return;
+
+        if (!this.ctx || this.ctx.state !== 'running') {
+            this.showResumeOverlay();
+            return;
+        }
 
         if (this.isPlaying) {
             if (!restartFromTop) return;
-            this.stop();
+            this.stopInternal(false);
+            if (commandId !== this.transportCommandId) return;
         }
 
         // Check if UI is initialized
@@ -188,7 +241,7 @@ export const AudioEngine = {
             }
             UI.pendingInitCallbacks.push(() => {
                 console.log("Executing pending play callback after UI initialization");
-                this.play();
+                this.play(restartFromTop);
             });
             return;
         }
@@ -229,7 +282,9 @@ export const AudioEngine = {
         }
     },
 
-    stop() {
+    stopInternal(invalidateCommand = true) {
+        if (invalidateCommand) this.transportCommandId++;
+
         this.isPlaying = false;
         this.currentSongIndex = 0;
         this.lastStep = null;
@@ -252,6 +307,10 @@ export const AudioEngine = {
         } else {
             window.clearTimeout(this.timerID);
         }
+    },
+
+    stop() {
+        this.stopInternal(true);
     },
 
     setTempo(newTempo) {

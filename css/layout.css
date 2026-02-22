@@ -514,6 +514,10 @@
     text-align: center;
 }
 
+#shuffleBtn {
+    height: 28px;
+}
+
 .song-timeline {
     display: grid;
     grid-template-columns: repeat(8, 38px);

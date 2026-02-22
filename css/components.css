@@ -343,10 +343,14 @@
     background: linear-gradient(to bottom, #555, #333);
     border: 1px solid #000;
     border-radius: 4px;
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     transition: all 0.15s ease;
+    color: #ddd;
 }
