@@ -3,7 +3,7 @@
 ## Project Overview
 Web-based TB-303 and TR-909 synthesizer/sequencer using Web Audio API.
 - **Live URL**: https://acidsound.github.io/acidBros/
-- **Current Version**: v137
+- **Current Version**: v152
 - **Repository**: https://github.com/acidsound/acidBros
 
 ## Architecture
@@ -178,7 +178,7 @@ const MyUI = {
   - Ctrl+wheel zoom blocked on desktop
 
 #### 4. Service Worker & PWA
-- **Cache Version**: Currently v94 (increment on each deployment)
+- **Cache Version**: Currently v152 (increment on each deployment)
 - **Strategy**: Cache-first for offline support
 - **Assets**: All JS, CSS, HTML, fonts, core 909 samples (CH/OH/CR/RD), and individual SVG icons cached
 
@@ -200,7 +200,7 @@ acidBros/
 │   ├── components.css      # Knobs, Switches, LED Display
 │   ├── machines.css        # TB-303 & TR-909 specifics
 │   └── overlays.css        # Modals, Toasts, File Manager
-├── sw.js                   # Service worker (cache v98)
+├── sw.js                   # Service worker (cache v152)
 ├── manifest.json           # PWA manifest
 ├── js/
 │   ├── main.js            # Entry point
@@ -292,7 +292,7 @@ To ensure project health and consistency, relevant documentation MUST be updated
 - **Storage**: LocalStorage for persistence
 - **Share**: URL encoding for pattern sharing
 
-## Recent Changes (v57-v125)
+## Recent Changes (v57-v152)
 
 ### v57: File Manager
 - **File Management System**: Complete file save/load functionality
@@ -690,3 +690,12 @@ To ensure project health and consistency, relevant documentation MUST be updated
   - Minor `TB303.js` optimizations: note-index lookup table reuse and worklet parameter handle reuse in slide path.
 - **Versioning**:
   - Bumped deployed version markers to `v137` (`sw.js` cache name and `index.html` version display).
+
+### v152: HT Factory Balance Tuning + Deployment Marker Bump
+- **TR-909 HT Tuning**:
+  - Applied balanced auto-optimization to HT factory voicing in `js/audio/tr909/UnifiedSynth.js`.
+  - Adjusted OSC2/OSC3 balance and transient brightness to improve reference-matching while preserving body/ring character.
+  - Added/retained compatible pitchEnv handling for legacy shaper flow and auxiliary oscillator drive path.
+- **Versioning/Deploy Markers**:
+  - Bumped deployed version markers to `v152` in `sw.js` cache name and `index.html` version display.
+  - Updated iOS service-worker reset key to force stale cache reset after deployment.

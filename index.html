@@ -44,7 +44,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', async () => {
         if (isIOSWebKit) {
-          const resetKey = 'acidbros-ios-sw-reset-v151';
+          const resetKey = 'acidbros-ios-sw-reset-v152';
           if (sessionStorage.getItem(resetKey)) {
             console.log('iOS: Service Worker registration skipped.');
             return;
@@ -127,7 +127,7 @@
     <div class="top-bar">
       <div class="controls-row">
         <div class="transport-controls">
-          <div class="version-display">v151</div>
+          <div class="version-display">v152</div>
           <button id="fileManagerBtn" class="transport-icon-btn" title="File Manager" aria-label="File Manager">
             <span class="icon icon-lg icon-folder"></span>
           </button>

@@ -384,6 +384,7 @@ export class UnifiedSynth {
     _playOsc(cfg, now, destination, masterDecay = 1.5) {
         const osc = this.ctx.createOscillator();
         const g = this.ctx.createGain();
+        let shaper = null;
 
         osc.type = this._parseWaveType(cfg.wave);
 
@@ -404,7 +405,15 @@ export class UnifiedSynth {
             g.gain.exponentialRampToValueAtTime(0.001, now + Math.max(0.001, aDecay));
         }
 
-        osc.connect(g);
+        // Optional saturation for auxiliary oscillators (e.g., HT osc2 body definition).
+        if (cfg.drive && cfg.drive > 0) {
+            shaper = this.ctx.createWaveShaper();
+            shaper.curve = this._makeDistortionCurve(cfg.drive);
+            osc.connect(shaper);
+            shaper.connect(g);
+        } else {
+            osc.connect(g);
+        }
         g.connect(destination);
         osc.start(now);
 
@@ -413,6 +422,7 @@ export class UnifiedSynth {
         osc.stop(now + stopTime + 0.1);
         this._trackNode(osc, stopTime + 0.5, () => {
             this._disconnectNode(osc);
+            this._disconnectNode(shaper);
             this._disconnectNode(g);
         });
     }
@@ -602,7 +612,8 @@ export const DRUM_SHAPER_DEFAULTS = Object.freeze({
     sd: Object.freeze({ enabled: false, pitchMode: 'legacy', drop: 50, ring: 50, bright: 50 }),
     lt: Object.freeze({ enabled: true, pitchMode: 'cv', drop: 100, ring: 100, bright: 100 }),
     mt: Object.freeze({ enabled: true, pitchMode: 'cv', drop: 100, ring: 100, bright: 100 }),
-    ht: Object.freeze({ enabled: true, pitchMode: 'cv', drop: 100, ring: 100, bright: 100 }),
+    // HT v1.2c reference calibration: milder sweep + OSC2 drive for clearer body.
+    ht: Object.freeze({ enabled: true, pitchMode: 'cv', drop: 62, ring: 95, bright: 100 }),
     rs: Object.freeze({ enabled: false, pitchMode: 'legacy', drop: 50, ring: 50, bright: 50 }),
     cp: Object.freeze({ enabled: false, pitchMode: 'legacy', drop: 50, ring: 50, bright: 50 }),
     default: Object.freeze({ enabled: false, pitchMode: 'legacy', drop: 50, ring: 50, bright: 50 })
@@ -1249,6 +1260,22 @@ export function applyShaperControls(preset, shaper = {}) {
                 dropRatio: _clamp(safeNumber(basePitchEnv.dropRatio, 1.0), 0.25, 4.0),
                 dropTime: oscDropTime
             };
+        } else if (osc.pitchEnv && typeof osc.pitchEnv === 'object' && freq && freq > 0) {
+            // Legacy patches can still carry pitchEnv. Keep it in sync so DROP is audible.
+            const startMul = _clamp(
+                safeNumber(osc.startFreq, freq) / freq,
+                0.5,
+                3.0
+            );
+            osc.pitchEnv = {
+                ...osc.pitchEnv,
+                startMultiplier: startMul,
+                cvTargetRatio: 1.0,
+                cvDecay: oscDropTime,
+                dropDelay: 0.0,
+                dropRatio: 1.0,
+                dropTime: oscDropTime
+            };
         }
 
         if (Number.isFinite(osc.a_decay)) {
@@ -1667,6 +1694,67 @@ export function getFactoryPreset(trackId) {
             p.masterHighShelf.freq = f3 * 1.9;
         }
         p.noise.cutoff = f3 * 2.6;
+
+        // HT v1.2d balanced auto-optimization:
+        // - keep v1.1 body/ring foundation,
+        // - reduce perceived pitch sweep via lower DROP default,
+        // - strengthen OSC2 with mild drive instead of excessive level lift.
+        if (trackId === 'ht') {
+            const htOsc2Ratio = TOM_HARMONIC_RATIOS[1];
+            const htOsc3Ratio = TOM_HARMONIC_RATIOS[2];
+
+            p.osc2.freq = f1 * htOsc2Ratio;
+            p.osc2.startFreq = p.osc2.freq * TOM_START_FREQ_MULTIPLIER;
+            p.osc2.endFreq = p.osc2.freq * TOM_PITCH_DROP_RATIO;
+            p.osc2.p_decay = TOM_PITCH_DROP_TIME;
+            p.osc2.pitchEnv = createTomPitchEnv();
+            p.osc2.a_decay = 0.24;
+            p.osc2.level = 0.5264;
+            p.osc2.drive = 1.276;
+
+            p.osc3.freq = f1 * htOsc3Ratio;
+            p.osc3.startFreq = p.osc3.freq * TOM_START_FREQ_MULTIPLIER;
+            p.osc3.endFreq = p.osc3.freq * TOM_PITCH_DROP_RATIO;
+            p.osc3.p_decay = TOM_PITCH_DROP_TIME;
+            p.osc3.pitchEnv = createTomPitchEnv();
+            p.osc3.a_decay = 0.1105;
+            p.osc3.level = 0.1275;
+
+            p.osc1.a_decay = 0.45;
+            p.osc1.level = 1.0;
+            p.osc1.startFreq = p.osc1.freq * TOM_START_FREQ_MULTIPLIER;
+            p.osc1.p_decay = TOM_PITCH_DROP_TIME;
+            p.osc1.pitchEnv = createTomPitchEnv();
+
+            if (p.masterLowShelf) {
+                p.masterLowShelf.gain = 3.0;
+            }
+
+            if (p.masterPeak) {
+                p.masterPeak.freq = f1;
+                p.masterPeak.gain = 3.6;
+                p.masterPeak.Q = 0.96;
+            }
+            if (p.masterHighShelf) {
+                p.masterHighShelf.freq = p.osc3.freq * 1.9;
+                p.masterHighShelf.gain = 2.944;
+            }
+            if (p.noise) {
+                p.noise.cutoff = p.osc3.freq * 3.3;
+                p.noise.Q = 0.88;
+                p.noise.decay = 0.032;
+                p.noise.level = 0.144;
+            }
+            p.click = {
+                enabled: true,
+                startFreq: 4500,
+                freq: 1000,
+                decay: 0.0048,
+                filter_freq: 3000,
+                level: 0.0627
+            };
+        }
+
         p.shaper = getDefaultDrumShaper(trackId);
         return p;
     }
